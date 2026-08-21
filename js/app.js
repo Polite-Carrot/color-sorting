@@ -454,8 +454,26 @@
     $('how-to').addEventListener('click', function () { $('howto').hidden = false; $('howto-close').focus(); });
     $('howto-close').addEventListener('click', function () { $('howto').hidden = true; $('how-to').focus(); });
 
+    /* Two-step rather than a confirm() dialog, which a sandboxed frame can
+       block outright — leaving the button looking broken. */
+    var resetArmed = false, resetTimer = null;
     $('reset-progress').addEventListener('click', function () {
-      if (!window.confirm('Clear all stars and records?')) return;
+      var btn = this;
+      function disarm() {
+        resetArmed = false;
+        clearTimeout(resetTimer);
+        btn.textContent = 'Reset progress';
+        btn.classList.remove('is-armed');
+      }
+      if (!resetArmed) {
+        resetArmed = true;
+        btn.textContent = 'Tap again to erase';
+        btn.classList.add('is-armed');
+        clearTimeout(resetTimer);
+        resetTimer = setTimeout(disarm, 4000);
+        return;
+      }
+      disarm();
       progress = { guide: {}, random: {} };
       save();
       renderMenu();

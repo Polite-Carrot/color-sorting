@@ -79,15 +79,27 @@
   var Sound = {
     on: true,
     ctx: null,
+    broken: false,
+    /* Audio can be unavailable outright — a sandboxed frame, a locked-down
+       browser. Fail once, quietly, and let the game carry on silent. */
     ensure: function () {
-      if (!this.ctx && global.AudioContext) this.ctx = new global.AudioContext();
-      if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+      if (this.broken) return null;
+      try {
+        if (!this.ctx && global.AudioContext) this.ctx = new global.AudioContext();
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+      } catch (e) {
+        this.broken = true;
+        this.ctx = null;
+      }
       return this.ctx;
     },
     blip: function (freq, dur, type, gain) {
       if (!this.on) return;
       var ctx = this.ensure();
       if (!ctx) return;
+      try { this._blip(ctx, freq, dur, type, gain); } catch (e) { this.broken = true; }
+    },
+    _blip: function (ctx, freq, dur, type, gain) {
       var osc = ctx.createOscillator();
       var amp = ctx.createGain();
       osc.type = type || 'sine';

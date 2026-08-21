@@ -9,6 +9,7 @@ again, so the puzzle is working out which jars, and how much of each, before you
 commit.
 
 **To play:** open `index.html` in a browser. No install, no build step, no server.
+Or run `node build.js --standalone` for the whole game as one shareable file.
 
 ## What's in it
 
@@ -66,11 +67,36 @@ pouring a pre-mixed jar in gives bit-for-bit the same result as pouring its
 ingredients in separately. Any future change to the mixing function has to
 preserve that, or generated targets stop being reachable.
 
+## Building
+
+The game runs straight from source, so building is only for producing a
+single-file copy:
+
+```
+node build.js               # artifact fragment, no <!doctype> wrapper
+node build.js --standalone  # complete document, opens from disk
+```
+
+Both inline every stylesheet, script and font face, so the result has no
+external references at all. The default output is a fragment meant to be
+embedded in a host page that supplies its own `<!doctype>` — opened directly
+it would fall into quirks mode and lay out differently, which is what
+`--standalone` is for.
+
+Typefaces are Bricolage Grotesque for headings, Public Sans for interface
+text and IBM Plex Mono for anything measured — jar volumes, moves, par,
+seeds — so numbers read like markings on lab glass. They live in `fonts.css`
+as inlined latin subsets, committed so the game never depends on the network.
+Re-run `node fetch-fonts.js` only if the type stack changes.
+
 ## Layout
 
 ```
 index.html        markup and screens
 styles.css        all styling
+fonts.css         generated — inlined webfont subsets
+build.js          bundles everything into one file
+fetch-fonts.js    regenerates fonts.css from Google Fonts
 js/colour.js      palette, subtractive paint mixing, colour matching
 js/levels.js      the three guide levels
 js/engine.js      jars, pouring, undo, win check  (no DOM)
