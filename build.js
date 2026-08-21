@@ -24,11 +24,14 @@ const out = path.resolve(root, args.filter(a => a !== '--standalone')[0] ||
   (standalone ? 'colour-jars-standalone.html' : 'colour-jars.html'));
 const read = f => fs.readFileSync(path.join(root, f), 'utf8');
 
-/* Order matters: each module attaches to window and the next one reads it. */
-const MODULES = ['colour', 'levels', 'engine', 'generator', 'ui', 'app']
-  .map(n => 'js/' + n + '.js');
-
 const html = read('index.html');
+
+/* Take the module list, and its order, straight from the page rather than
+   keeping a second copy here — a hand-maintained list silently drops any
+   newly added file, and the bundle then breaks in ways the source page does
+   not. Order matters: each module attaches to window and the next reads it. */
+const MODULES = [...html.matchAll(/<script\s+src="([^"]+)"><\/script>/gi)].map(m => m[1]);
+if (!MODULES.length) throw new Error('index.html: no <script src> tags found');
 
 const body = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
 if (!body) throw new Error('index.html: no <body> found');

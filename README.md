@@ -1,12 +1,12 @@
 # Colour Jars
 
-A browser puzzle game about pouring liquids between jars to mix an exact shade.
+A browser puzzle game about pouring liquid between jars to fill one big jar
+with a single colour.
 
-There is one big jar and a shelf of smaller ones. Fill the big jar **to the brim**
-so its colour matches the target exactly. Colours mix like paint — blue and yellow
-make green — and once two colours are in the same jar there is no separating them
-again, so the puzzle is working out which jars, and how much of each, before you
-commit.
+Colours never mix. Every jar is a stack of solid bands, and a band can only be
+poured onto the same colour or into an empty jar. Exactly one jarful of the
+target colour is scattered across the shelf, usually buried — so the puzzle is
+working out where to park everything that is in the way.
 
 **To play:** open `index.html` in a browser. No install, no build step, no server.
 Or run `node build.js --standalone` for the whole game as one shareable file.
@@ -17,60 +17,70 @@ Or run `node build.js --standalone` for the whole game as one shareable file.
 
 | # | Level | Teaches |
 |---|-------|---------|
-| 1 | Straight Pour | Picking a jar up and pouring it |
-| 2 | Two Make One | Mixing two colours in the right ratio, and the sink |
-| 3 | Already Stirred | Pre-mixed jars, and pouring only part of a jar |
+| 1 | Top Pour | Picking a jar up and pouring it |
+| 2 | Dig It Out | Uncovering a buried colour by stacking on a match |
+| 3 | Make Room | Working through the one empty jar |
 
 Each level unlocks the next. Stars and best scores are kept in `localStorage`.
 
 **Random Puzzle** — endlessly generated, in three settings:
 
-| Mode | Big jar | Colours in the recipe | Jars | Roughly |
-|------|---------|----------------------|------|---------|
-| Easy | 6 units | 2 | 4 | 1 winning fill in ~14 |
-| Normal | 8 units | 2–3, plus a pre-mixed jar | 5 | 1 in ~29 |
-| Hard | 12 units | 3–4, two pre-mixes, lots of spare liquid | 7 | 1 in ~242 |
+| Mode | Big jar | Jars | Colours in the way | Par |
+|------|---------|------|--------------------|-----|
+| Easy | 4 units | 4 | 2 | 3–6 moves |
+| Normal | 6 units | 5 | 3 | 7–12 moves |
+| Hard | 8 units | 6 | 4 | 13–22 moves |
 
 Puzzles are built from a seed, so typing the same seed replays the same puzzle.
 Leave the seed blank for a fresh one.
 
 ## Rules
 
-- Tap a jar to pick it up, then tap another to pour into it. Tap it again to put it down.
-- One unit poured is one move. **Par** is the fewest moves possible.
-- Colours mix subtractively, like paint: 2 crimson + 2 yellow makes 4 orange.
-  Only the proportions matter, never the order you pour in.
-- The big jar must be **full *and* the right shade**. Full but wrong does not count.
-- The **sink** throws liquid away, so an overpour is recoverable — but it costs moves.
-- Not every jar is meant to be used, and not every jar is meant to be emptied.
+- Tap a jar to pick it up, then tap another to pour. The whole top block of one
+  colour moves at once. Tap it again to put it down.
+- A colour can only go onto the same colour, or into an empty jar.
+- The big jar accepts nothing but the target colour, and never pours back out,
+  so a wrong tap cannot spoil it.
+- **Par** is the fewest moves possible. Match it for three stars.
 
-Three stars for finishing at or under par, fewer for going over or taking a hint.
+Keyboard: `1`–`9` jars · `0` big jar · `U` undo · `H` hint · `R` restart ·
+`Esc` put down.
 
-Keyboard: `1`–`9` shelf jars · `0` big jar · `D` sink · `U` undo · `H` hint ·
-`R` restart · `Esc` deselect.
+## The solver
+
+`js/solver.js` is a breadth-first search over pour states, and it does three
+jobs: it proves a generated puzzle can be finished, it sets par to the genuine
+fewest moves rather than an estimate, and it answers the hint button from
+wherever the player currently is — so a hint is always correct even after a
+detour. It also means the game can say *"this position cannot be finished any
+more"* the moment it becomes true, instead of leaving someone stuck without
+knowing why.
+
+Two things keep it fast enough to run inside a keypress:
+
+- Jars holding the same thing are interchangeable, so states are compared by a
+  canonical key with the side jars sorted.
+- Pouring the target colour into the big jar is never wrong — the big jar takes
+  nothing else, always has room until it is finished, and emptying that run
+  frees space. Merging target runs elsewhere first costs a move and saves at
+  most one, so it can never come out ahead. When such a move exists the search
+  takes it and ignores everything else.
+
+That second shortcut is a claim about optimality, so it is checked rather than
+assumed: re-solving puzzles with it removed gives an identical par every time.
 
 ## How puzzles are generated
 
-Random puzzles are built **backwards from a known answer**, which is what
-guarantees they are always solvable. The generator picks the recipe first, then
-splits it across jars, merges some pairs into pre-mixed jars, adds spare liquid
-so the answer is not simply "empty everything", and pads with decoy colours the
-recipe never uses. The recorded answer also drives the hint button.
+The generator deals the liquid out at random and then hands the board to the
+solver. A puzzle is kept only if the solver can finish it **and** the
+fewest-moves count lands in the band for that difficulty. So par is always the
+true optimum, "hard" means measurably more moves rather than just more jars,
+and an unsolvable board can never reach the player.
 
-Anything that would spoil the puzzle is rejected and regenerated: recipes a
-single pure colour already matches, and single jars that on their own equal the
-answer.
-
-This works because mixing is **order-independent**. Colours are blended as a
-volume-weighted geometric mean, which is an arithmetic mean in log space, so
-pouring a pre-mixed jar in gives bit-for-bit the same result as pouring its
-ingredients in separately. Any future change to the mixing function has to
-preserve that, or generated targets stop being reachable.
+Two colours that look alike are never used together, and a board where the
+target is already sitting on top of more than one jar is thrown away.
 
 ## Building
-
-The game runs straight from source, so building is only for producing a
-single-file copy:
 
 ```
 node build.js               # artifact fragment, no <!doctype> wrapper
@@ -79,15 +89,15 @@ node build.js --standalone  # complete document, opens from disk
 
 Both inline every stylesheet, script and font face, so the result has no
 external references at all. The default output is a fragment meant to be
-embedded in a host page that supplies its own `<!doctype>` — opened directly
-it would fall into quirks mode and lay out differently, which is what
+embedded in a host page that supplies its own `<!doctype>` — opened directly it
+would fall into quirks mode and lay out differently, which is what
 `--standalone` is for.
 
-Typefaces are Bricolage Grotesque for headings, Public Sans for interface
-text and IBM Plex Mono for anything measured — jar volumes, moves, par,
-seeds — so numbers read like markings on lab glass. They live in `fonts.css`
-as inlined latin subsets, committed so the game never depends on the network.
-Re-run `node fetch-fonts.js` only if the type stack changes.
+Typefaces are Bricolage Grotesque for headings, Public Sans for interface text
+and IBM Plex Mono for anything measured, including the letter on each colour
+band. They live in `fonts.css` as inlined latin subsets, committed so the game
+never depends on the network. Re-run `node fetch-fonts.js` only if the type
+stack changes.
 
 ## Layout
 
@@ -97,16 +107,26 @@ styles.css        all styling
 fonts.css         generated — inlined webfont subsets
 build.js          bundles everything into one file
 fetch-fonts.js    regenerates fonts.css from Google Fonts
-js/colour.js      palette, subtractive paint mixing, colour matching
+js/colour.js      the palette, and how far apart two colours look
 js/levels.js      the three guide levels
-js/engine.js      jars, pouring, undo, win check  (no DOM)
-js/generator.js   seeded random puzzle generation
+js/engine.js      stacked jars, pouring, undo, win check  (no DOM)
+js/solver.js      breadth-first search: par, hints, solvability  (no DOM)
+js/generator.js   seeded random puzzles, validated by the solver
 js/ui.js          jar rendering and sound
 js/app.js         screens, progress, input
 ```
 
-The engine is pure logic with no DOM dependency, so it runs under Node — which is
-how the generator was verified: 9,000 generated puzzles (3,000 per difficulty)
-were each played through both their recorded answer and their hint path, and all
-9,000 were solvable. The same harness measured the guess odds in the table above,
-by brute-forcing every way to fill the big jar.
+The engine and solver are pure logic with no DOM dependency, so they run under
+Node. That is how the game is checked: 820 generated puzzles across the three
+difficulties were each verified to hold exactly one jarful of the target, to
+use no two lookalike colours, to fall inside their difficulty's par band, and
+to have the solver's own path play back through the engine to a win in exactly
+par moves.
+
+## Accessibility
+
+Colour is the mechanic, so it is never the only signal. Every band carries the
+initial of its colour — the palette is picked so all ten differ — and each jar
+reads out its contents top-down for screen readers, which is the order that
+matters when pouring. Everything is keyboard-operable, focus is always visible,
+and animation honours `prefers-reduced-motion`.

@@ -4,10 +4,6 @@
 
   var C = global.Colour;
 
-  /* Chromium applies text-transform:capitalize inconsistently across the
-     inline-block key badge, so do it here instead of in CSS. */
-  function titleCase(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-
   function el(tag, cls, parent) {
     var n = document.createElement(tag);
     if (cls) n.className = cls;
@@ -15,8 +11,21 @@
     return n;
   }
 
-  /* ── a single jar, built once and updated in place so the liquid can
-     animate between heights instead of snapping ── */
+  function titleCase(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  /* Consecutive units of one colour, bottom first. Drawn as a single band so
+     a jar reads as its colours rather than as a tally of units — the unit
+     lines etched on the glass still show the amounts. */
+  function runs(cells) {
+    var out = [];
+    for (var i = 0; i < cells.length; i++) {
+      var last = out[out.length - 1];
+      if (last && last.colour === cells[i]) last.size++;
+      else out.push({ colour: cells[i], size: 1 });
+    }
+    return out;
+  }
+
   function JarView(opts) {
     opts = opts || {};
     this.isMain = !!opts.main;
@@ -25,9 +34,7 @@
     var root = el('button', 'jar' + (this.isMain ? ' jar--main' : ''));
     root.type = 'button';
     var glass = el('div', 'jar__glass', root);
-    this.liquid = el('div', 'jar__liquid', glass);
-    this.cap = el('span', 'jar__cap', glass);
-    this.capText = el('span', null, this.cap);
+    this.stack = el('div', 'jar__stack', glass);
     this.tag = el('span', 'jar__tag', root);
 
     this.root = root;
@@ -37,32 +44,41 @@
 
   JarView.prototype.update = function (jar, state) {
     state = state || {};
-    var pct = jar.capacity > 0 ? (jar.volume / jar.capacity) * 100 : 0;
-    var colour = jar.colour ? C.toCss(jar.colour) : 'transparent';
+    var list = runs(jar.cells);
+    var unit = 100 / jar.capacity;
 
-    this.glass.style.setProperty('--unit', (100 / jar.capacity) + '%');
-    this.liquid.style.height = pct + '%';
-    this.liquid.style.backgroundColor = colour;
-    this.liquid.classList.toggle('is-empty', jar.volume <= 0);
+    this.glass.style.setProperty('--unit', unit + '%');
 
-    this.capText.textContent = jar.volume + '/' + jar.capacity;
-
-    var label = titleCase(jar.volume > 0 ? C.name(jar.colour) : 'empty');
-    this.tag.innerHTML = '';
-    if (this.keyLabel) {
-      var k = el('span', 'jar__key', this.tag);
-      k.textContent = this.keyLabel;
+    this.stack.innerHTML = '';
+    for (var i = 0; i < list.length; i++) {
+      var run = list[i];
+      var band = el('div', 'band' + (i === list.length - 1 ? ' band--top' : ''), this.stack);
+      band.style.height = (unit * run.size) + '%';
+      band.style.backgroundColor = C.hex(run.colour);
+      band.style.color = C.ink(run.colour);
+      var glyph = el('span', null, band);
+      glyph.textContent = C.mark(run.colour);
     }
-    this.tag.appendChild(document.createTextNode(label));
+
+    var topColour = jar.cells.length ? jar.cells[jar.cells.length - 1] : null;
+    this.tag.innerHTML = '';
+    if (this.keyLabel) el('span', 'jar__key', this.tag).textContent = this.keyLabel;
+    this.tag.appendChild(document.createTextNode(titleCase(topColour ? C.name(topColour) : 'empty')));
 
     this.root.classList.toggle('is-selected', !!state.selected);
     this.root.classList.toggle('is-target', !!state.targetable);
     this.root.classList.toggle('is-won', !!state.won);
     this.root.disabled = !!state.disabled;
 
+    /* Read out top-down, which is the order that matters when pouring. */
+    var spoken = jar.cells.length
+      ? list.slice().reverse().map(function (r) {
+          return r.size + ' ' + C.name(r.colour);
+        }).join(', then ')
+      : 'empty';
     this.root.setAttribute('aria-label',
       (this.isMain ? 'Big jar' : 'Jar ' + this.keyLabel) + ', ' +
-      jar.volume + ' of ' + jar.capacity + ' units, ' + label +
+      jar.cells.length + ' of ' + jar.capacity + ' full, from the top: ' + spoken +
       (state.selected ? ', picked up' : ''));
     this.root.setAttribute('aria-pressed', state.selected ? 'true' : 'false');
   };
@@ -70,18 +86,15 @@
   JarView.prototype.flash = function (cls) {
     var node = this.root;
     node.classList.remove(cls);
-    void node.offsetWidth; /* restart the animation */
+    void node.offsetWidth;
     node.classList.add(cls);
     setTimeout(function () { node.classList.remove(cls); }, 420);
   };
 
-  /* ── sound ── */
   var Sound = {
     on: true,
     ctx: null,
     broken: false,
-    /* Audio can be unavailable outright — a sandboxed frame, a locked-down
-       browser. Fail once, quietly, and let the game carry on silent. */
     ensure: function () {
       if (this.broken) return null;
       try {
@@ -114,7 +127,6 @@
     pour:  function (fullness) { this.blip(320 + fullness * 260, 0.11, 'sine'); },
     pick:  function () { this.blip(540, 0.06, 'triangle', 0.05); },
     nope:  function () { this.blip(150, 0.13, 'sawtooth', 0.05); },
-    drain: function () { this.blip(220, 0.16, 'sine', 0.06); },
     win:   function () {
       var self = this;
       [523, 659, 784, 1047].forEach(function (f, i) {
@@ -123,5 +135,5 @@
     }
   };
 
-  global.UI = { JarView: JarView, Sound: Sound, el: el, titleCase: titleCase };
+  global.UI = { JarView: JarView, Sound: Sound, el: el, titleCase: titleCase, runs: runs };
 })(window);

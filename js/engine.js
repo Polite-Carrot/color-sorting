@@ -1,49 +1,52 @@
-/* engine.js — puzzle state: jars, pouring, undo and the win check.
- * Pure logic, no DOM. */
+/* engine.js — puzzle state: stacked jars, pouring, undo and the win check.
+ * Pure logic, no DOM.
+ *
+ * Rules:
+ *  - A jar is a stack of solid units, listed bottom to top.
+ *  - Pouring moves the whole top run of one colour from one jar to another.
+ *  - A pour is legal only onto an empty jar, or onto the same colour, and
+ *    only as far as there is room.
+ *  - The big jar accepts the target colour and nothing else, and never pours
+ *    back out. It cannot be spoiled, so a wrong tap costs nothing. */
 (function (global) {
   'use strict';
 
-  var C = global.Colour;
   var MAIN = 'main';
-  var DRAIN = 'drain';
-
-  function buildJar(spec, id) {
-    var volume = 0, colour = null;
-    var fills = spec.fills || [];
-    for (var i = 0; i < fills.length; i++) {
-      var c = C.parse(fills[i][0]), v = fills[i][1];
-      colour = colour === null ? c : C.mix(colour, volume, c, v);
-      volume += v;
-    }
-    return { id: id, capacity: spec.cap, volume: volume, colour: volume > 0 ? colour : null };
-  }
 
   function cloneJars(jars) {
     return jars.map(function (j) {
-      return {
-        id: j.id,
-        capacity: j.capacity,
-        volume: j.volume,
-        colour: j.colour ? { r: j.colour.r, g: j.colour.g, b: j.colour.b } : null
-      };
+      return { id: j.id, capacity: j.capacity, cells: j.cells.slice() };
     });
   }
 
+  /* Length of the run of identical colour at the top of a stack. */
+  function topRun(cells) {
+    if (!cells.length) return 0;
+    var c = cells[cells.length - 1], n = 1;
+    for (var i = cells.length - 2; i >= 0; i--) {
+      if (cells[i] !== c) break;
+      n++;
+    }
+    return n;
+  }
+
+  function top(cells) { return cells.length ? cells[cells.length - 1] : null; }
+
   function Game(level) {
     this.level = level;
-    this.target = C.mixAll(level.target);
-    this.par = level.main.cap;
+    this.target = level.target;
+    this.par = level.par;
     this.restart();
   }
 
   Game.prototype.restart = function () {
     var lvl = this.level;
-    this.main = buildJar({ cap: lvl.main.cap, fills: lvl.main.fills || [] }, MAIN);
-    this.jars = lvl.jars.map(function (spec, i) { return buildJar(spec, 'jar' + i); });
-    this.drained = 0;
+    this.main = { id: MAIN, capacity: lvl.main.cap, cells: (lvl.main.fills || []).slice() };
+    this.jars = lvl.jars.map(function (spec, i) {
+      return { id: 'jar' + i, capacity: spec.cap, cells: (spec.fills || []).slice() };
+    });
     this.moves = 0;
     this.hintsUsed = 0;
-    this.selected = null;
     this.won = false;
     this.history = [];
   };
@@ -54,128 +57,90 @@
     return null;
   };
 
-  Game.prototype.snapshot = function () {
-    return {
-      main: cloneJars([this.main])[0],
-      jars: cloneJars(this.jars),
-      drained: this.drained,
-      moves: this.moves,
-      won: this.won
-    };
+  Game.prototype.all = function () { return [this.main].concat(this.jars); };
+
+  /* How many units a pour would actually move, and why not if zero. */
+  Game.prototype.check = function (fromId, toId) {
+    if (fromId === toId) return { amount: 0, reason: 'same' };
+    var from = this.get(fromId), to = this.get(toId);
+    if (!from || !to) return { amount: 0, reason: 'missing' };
+    if (fromId === MAIN) return { amount: 0, reason: 'locked' };
+    if (!from.cells.length) return { amount: 0, reason: 'empty' };
+
+    var colour = top(from.cells);
+    var space = to.capacity - to.cells.length;
+    if (space <= 0) return { amount: 0, reason: 'full' };
+
+    if (toId === MAIN && colour !== this.target) return { amount: 0, reason: 'wrong-colour' };
+    if (to.cells.length && top(to.cells) !== colour) return { amount: 0, reason: 'mismatch' };
+
+    return { amount: Math.min(topRun(from.cells), space), colour: colour };
   };
 
-  Game.prototype.applySnapshot = function (s) {
-    this.main = s.main;
-    this.jars = s.jars;
-    this.drained = s.drained;
-    this.moves = s.moves;
-    this.won = s.won;
-  };
+  Game.prototype.pourable = function (fromId, toId) { return this.check(fromId, toId).amount; };
 
-  /* How much can actually move from -> to right now. */
-  Game.prototype.pourable = function (fromId, toId, all) {
-    if (fromId === toId) return 0;
-    var from = this.get(fromId);
-    if (!from || from.volume <= 0) return 0;
-    if (toId === DRAIN) {
-      if (!this.level.drain) return 0;
-      return all ? from.volume : 1;
-    }
-    var to = this.get(toId);
-    if (!to) return 0;
-    var free = to.capacity - to.volume;
-    if (free <= 0) return 0;
-    return Math.min(all ? from.volume : 1, free);
-  };
+  Game.prototype.pour = function (fromId, toId) {
+    var can = this.check(fromId, toId);
+    if (!can.amount) return { ok: false, reason: can.reason };
 
-  /* Move liquid. Every unit poured costs one move. */
-  Game.prototype.pour = function (fromId, toId, all) {
-    var amount = this.pourable(fromId, toId, all);
-    if (amount <= 0) {
-      var from = this.get(fromId);
-      var reason = 'blocked';
-      if (from && from.volume <= 0) reason = 'empty';
-      else if (toId !== DRAIN) {
-        var to = this.get(toId);
-        if (to && to.volume >= to.capacity) reason = 'full';
-      }
-      return { ok: false, reason: reason };
-    }
+    this.history.push({ main: cloneJars([this.main])[0], jars: cloneJars(this.jars), moves: this.moves });
+    if (this.history.length > 300) this.history.shift();
 
-    this.history.push(this.snapshot());
-    if (this.history.length > 200) this.history.shift();
+    var from = this.get(fromId), to = this.get(toId);
+    for (var i = 0; i < can.amount; i++) to.cells.push(from.cells.pop());
 
-    var src = this.get(fromId);
-    var poured = { r: src.colour.r, g: src.colour.g, b: src.colour.b };
-    src.volume -= amount;
-    if (src.volume <= 0) { src.volume = 0; src.colour = null; }
-
-    if (toId === DRAIN) {
-      this.drained += amount;
-    } else {
-      var dst = this.get(toId);
-      dst.colour = dst.volume > 0 ? C.mix(dst.colour, dst.volume, poured, amount) : poured;
-      dst.volume += amount;
-    }
-
-    this.moves += amount;
+    this.moves++;
     this.won = this.isSolved();
-    return { ok: true, amount: amount, from: fromId, to: toId, won: this.won };
+    return { ok: true, amount: can.amount, colour: can.colour, from: fromId, to: toId, won: this.won };
   };
 
   Game.prototype.isSolved = function () {
-    return this.main.volume === this.main.capacity &&
-           C.distance(this.main.colour, this.target) <= C.TOLERANCE;
+    if (this.main.cells.length !== this.main.capacity) return false;
+    for (var i = 0; i < this.main.cells.length; i++) if (this.main.cells[i] !== this.target) return false;
+    return true;
   };
 
-  /* Full but the wrong shade — worth calling out, it is the near-miss case. */
-  Game.prototype.isFullButWrong = function () {
-    return this.main.volume === this.main.capacity && !this.isSolved();
-  };
+  Game.prototype.collected = function () { return this.main.cells.length; };
 
-  Game.prototype.matchPercent = function () {
-    if (this.main.volume === 0) return 0;
-    return C.matchPercent(this.main.colour, this.target);
+  /* Any legal move at all? Used to spot a dead end early. */
+  Game.prototype.hasMoves = function () {
+    var ids = this.all().map(function (j) { return j.id; });
+    for (var i = 0; i < ids.length; i++) {
+      for (var j = 0; j < ids.length; j++) {
+        if (this.pourable(ids[i], ids[j])) return true;
+      }
+    }
+    return false;
   };
 
   Game.prototype.canUndo = function () { return this.history.length > 0; };
 
   Game.prototype.undo = function () {
     if (!this.history.length) return false;
-    this.applySnapshot(this.history.pop());
+    var s = this.history.pop();
+    this.main = s.main;
+    this.jars = s.jars;
+    this.moves = s.moves;
+    this.won = false;
     return true;
-  };
-
-  /* Next step of the stored solution that has not been done yet, compared
-   * against what is actually left in each jar. */
-  Game.prototype.hint = function () {
-    var sol = this.level.solution || [];
-    for (var i = 0; i < sol.length; i++) {
-      var step = sol[i];
-      var jar = this.jars[step.jar];
-      if (!jar) continue;
-      var startVolume = this.level.jars[step.jar].fills.reduce(function (n, f) { return n + f[1]; }, 0);
-      var alreadyPoured = startVolume - jar.volume;
-      if (alreadyPoured < step.units) {
-        return { jarIndex: step.jar, jarId: jar.id, units: step.units - alreadyPoured, total: step.units };
-      }
-    }
-    return null;
-  };
-
-  Game.prototype.useHint = function () {
-    var h = this.hint();
-    if (h) this.hintsUsed++;
-    return h;
   };
 
   Game.prototype.stars = function () {
     if (!this.won) return 0;
     if (this.hintsUsed > 0) return this.moves <= this.par ? 2 : 1;
     if (this.moves <= this.par) return 3;
-    if (this.moves <= this.par + Math.ceil(this.par / 2)) return 2;
+    if (this.moves <= this.par + 2) return 2;
     return 1;
   };
 
-  global.Engine = { Game: Game, MAIN: MAIN, DRAIN: DRAIN };
+  /* Plain snapshot for the solver. */
+  Game.prototype.position = function () {
+    return {
+      target: this.target,
+      main: { capacity: this.main.capacity, cells: this.main.cells.slice() },
+      jars: cloneJars(this.jars)
+    };
+  };
+
+  global.Engine = { Game: Game, MAIN: MAIN, topRun: topRun, top: top };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -6,8 +6,12 @@
   var UI = window.UI;
   var Sound = UI.Sound;
   var MAIN = window.Engine.MAIN;
-  var DRAIN = window.Engine.DRAIN;
-  var STORE_KEY = 'colourjars.progress.v1';
+  var STORE_KEY = 'colourjars.progress.v2';
+
+  /* Budget for the after-every-move "is this still winnable" check. Small
+     enough to never be felt; positions too tangled to settle inside it simply
+     get no warning rather than a stutter. */
+  var WATCH_BUDGET = 40000;
 
   var $ = function (id) { return document.getElementById(id); };
 
@@ -15,7 +19,6 @@
     game: null,
     mode: 'guide',
     difficulty: 'easy',
-    pourAll: false,
     selected: null,
     mainView: null,
     jarViews: []
@@ -70,8 +73,7 @@
       btn.type = 'button';
       btn.disabled = !unlocked;
 
-      var no = UI.el('span', 'level-btn__no', btn);
-      no.textContent = unlocked ? String(i + 1) : '🔒';
+      UI.el('span', 'level-btn__no', btn).textContent = unlocked ? String(i + 1) : '🔒';
 
       var main = UI.el('div', 'level-btn__main', btn);
       UI.el('span', 'level-btn__name', main).textContent = lvl.name;
@@ -94,8 +96,8 @@
         b.type = 'button';
         b.textContent = window.Generator.DIFFICULTY[key].label;
         b.setAttribute('role', 'radio');
-        b.addEventListener('click', function () { setDifficulty(key); });
         b.dataset.key = key;
+        b.addEventListener('click', function () { setDifficulty(key); });
       });
     }
     setDifficulty(state.difficulty);
@@ -113,7 +115,7 @@
     var rec = progress.random[key];
     $('random-record').textContent = rec
       ? rec.won + (rec.won === 1 ? ' puzzle solved' : ' puzzles solved') +
-        (rec.best ? ' · best ' + rec.best + ' moves' : '')
+        (rec.bestPar ? ' · matched par ' + rec.par3 + '×' : '')
       : 'No puzzles solved yet.';
   }
 
@@ -125,14 +127,26 @@
     state.selected = null;
     buildBoard();
     showScreen('game');
-    setStatus(level.brief ? '' : 'Pick a jar to begin.', '');
+    setStatus('', '');
   }
 
   function startRandom() {
     var raw = $('seed-input').value.trim();
-    var seed = raw === '' ? null : (parseInt(raw, 10) >>> 0);
-    if (raw !== '' && isNaN(parseInt(raw, 10))) seed = null;
-    startLevel(window.Generator.generate(state.difficulty, seed), 'random');
+    var parsed = parseInt(raw, 10);
+    var seed = (raw === '' || isNaN(parsed)) ? null : (parsed >>> 0);
+    var btn = $('play-random');
+    btn.disabled = true;
+    btn.textContent = 'Dealing…';
+    /* Hard puzzles are solver-checked before they appear, which takes a beat.
+       Yield first so the button state paints. */
+    setTimeout(function () {
+      try {
+        startLevel(window.Generator.generate(state.difficulty, seed), 'random');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Deal me a puzzle';
+      }
+    }, 20);
   }
 
   function buildBoard() {
@@ -143,7 +157,9 @@
     $('level-sub').textContent = lvl.subtitle || '';
     $('brief').textContent = lvl.brief || '';
     $('stat-par').textContent = g.par;
-    $('target-swatch').style.background = C.toCss(g.target);
+    $('target-swatch').style.background = C.hex(g.target);
+    $('target-swatch').style.color = C.ink(g.target);
+    $('target-mark').textContent = C.mark(g.target);
     $('target-name').textContent = UI.titleCase(C.name(g.target));
 
     var mainSlot = $('main-slot');
@@ -166,21 +182,6 @@
       return view;
     });
 
-    var drainSlot = $('drain-slot');
-    drainSlot.innerHTML = '';
-    if (lvl.drain) {
-      var d = UI.el('button', 'drain');
-      d.type = 'button';
-      d.innerHTML = '<b>🚱</b><small>Sink</small>';
-      d.setAttribute('aria-label', 'Sink — pour liquid away');
-      d.addEventListener('click', function () { onJarClick(DRAIN); });
-      drainSlot.appendChild(d);
-      state.drainBtn = d;
-    } else {
-      state.drainBtn = null;
-    }
-
-    $('hint').disabled = !lvl.solution || !lvl.solution.length;
     refresh();
   }
 
@@ -191,21 +192,19 @@
     if (!g || g.won) return;
     Sound.ensure();
 
-    if (id === DRAIN) {
-      if (!state.selected) { setStatus('Pick a jar first, then tap the sink.', 'warn'); return; }
-      doPour(state.selected, DRAIN);
-      return;
-    }
-
     if (state.selected === id) {          /* put it back down */
       state.selected = null;
       refresh();
       return;
     }
 
-    if (!state.selected) {                /* pick up */
+    if (!state.selected) {
+      if (id === MAIN) {
+        setStatus('The big jar only collects — pick one of the jars below.', 'warn');
+        return;
+      }
       var jar = g.get(id);
-      if (!jar || jar.volume <= 0) {
+      if (!jar || !jar.cells.length) {
         setStatus('That jar is empty.', 'warn');
         viewFor(id).flash('is-blocked');
         Sound.nope();
@@ -218,12 +217,11 @@
       return;
     }
 
-    /* The held jar cannot pour here — read the tap as picking that jar up
-       instead of complaining. Otherwise you would have to deselect first
-       just to empty the full main jar into the sink. */
-    if (g.pourable(state.selected, id, state.pourAll) <= 0) {
+    /* Cannot pour there — read the tap as picking that jar up instead, which
+       is nearly always what was meant. */
+    if (!g.pourable(state.selected, id)) {
       var candidate = g.get(id);
-      if (candidate && candidate.volume > 0) {
+      if (id !== MAIN && candidate && candidate.cells.length) {
         state.selected = id;
         Sound.pick();
         setStatus('Now tap where it should go.', '');
@@ -232,47 +230,51 @@
       }
     }
 
-    doPour(state.selected, id);           /* pour */
+    doPour(state.selected, id);
   }
 
   function doPour(fromId, toId) {
     var g = state.game;
-    var result = g.pour(fromId, toId, state.pourAll);
+    var result = g.pour(fromId, toId);
 
     if (!result.ok) {
       Sound.nope();
-      var view = toId === DRAIN ? null : viewFor(toId);
-      if (view) view.flash('is-blocked');
+      viewFor(toId).flash('is-blocked');
       setStatus(
-        result.reason === 'full' ? 'That jar is already full.' :
+        result.reason === 'full' ? 'That jar is full.' :
         result.reason === 'empty' ? 'Nothing left to pour.' :
+        result.reason === 'wrong-colour' ? 'The big jar only takes ' + C.name(g.target) + '.' :
+        result.reason === 'mismatch' ? 'A colour can only go onto the same colour, or an empty jar.' :
         'You cannot pour that way.', 'warn');
       return;
     }
 
-    if (toId === DRAIN) {
-      Sound.drain();
-      setStatus('Poured ' + result.amount + ' away.', '');
-    } else {
-      var dest = g.get(toId);
-      Sound.pour(dest.volume / dest.capacity);
-      viewFor(toId).flash('just-poured');
-      setStatus('', '');
-    }
-
-    /* Keep hold of the jar while it still has something in it — pouring
-       several units in a row is the common case. */
-    if (g.get(fromId).volume <= 0) state.selected = null;
-
+    var dest = g.get(toId);
+    Sound.pour(dest.cells.length / dest.capacity);
+    viewFor(toId).flash('just-poured');
+    state.selected = null;
+    setStatus('', '');
     refresh();
 
     if (g.won) {
-      state.selected = null;
-      refresh();
       Sound.win();
       setTimeout(onWin, 420);
-    } else if (g.isFullButWrong()) {
-      setStatus('Full, but that is not the shade. Tip some into the sink and adjust.', 'warn');
+    } else {
+      watchForDeadEnd();
+    }
+  }
+
+  /* Say so early when a position can no longer be finished, rather than
+     leaving someone to discover it several moves later. */
+  function watchForDeadEnd() {
+    var g = state.game;
+    if (!g.hasMoves()) {
+      setStatus('No moves left. Undo, or restart.', 'warn');
+      return;
+    }
+    var check = window.Solver.solve(g.position(), WATCH_BUDGET);
+    if (!check.budgetExceeded && check.par == null) {
+      setStatus('This position cannot be finished any more — undo a move.', 'warn');
     }
   }
 
@@ -289,36 +291,30 @@
 
     state.mainView.update(g.main, {
       selected: sel === MAIN,
-      targetable: !!sel && sel !== MAIN && g.pourable(sel, MAIN, state.pourAll) > 0,
+      targetable: !!sel && g.pourable(sel, MAIN) > 0,
       won: g.won
     });
 
     g.jars.forEach(function (jar, i) {
       state.jarViews[i].update(jar, {
         selected: sel === jar.id,
-        targetable: !!sel && sel !== jar.id && g.pourable(sel, jar.id, state.pourAll) > 0
+        targetable: !!sel && sel !== jar.id && g.pourable(sel, jar.id) > 0
       });
     });
 
-    if (state.drainBtn) {
-      state.drainBtn.classList.toggle('is-target', !!sel);
-      state.drainBtn.disabled = false;
-    }
-
     $('stat-moves').textContent = g.moves;
 
-    var pct = g.matchPercent();
-    $('meter-fill').style.width = pct + '%';
-    $('meter-value').textContent = pct + '%';
-    $('current-swatch').style.background = g.main.volume > 0 ? C.toCss(g.main.colour) : '#0d1018';
-    $('current-name').textContent = UI.titleCase(g.main.volume > 0 ? C.name(g.main.colour) : 'empty');
+    var got = g.collected(), need = g.main.capacity;
+    $('meter-fill').style.width = (100 * got / need) + '%';
+    $('meter-fill').style.background = C.hex(g.target);
+    $('meter-value').textContent = got + '/' + need;
 
     $('undo').disabled = !g.canUndo() || g.won;
   }
 
   function setStatus(text, kind) {
     var node = $('status');
-    node.textContent = text || ' ';
+    node.textContent = text || ' ';
     node.classList.toggle('is-good', kind === 'good');
     node.classList.toggle('is-warn', kind === 'warn');
   }
@@ -336,21 +332,22 @@
         progress.guide[lvl.id] = { stars: stars, moves: g.moves };
       }
     } else {
-      var rec = progress.random[state.difficulty] || { won: 0, best: null };
+      var rec = progress.random[state.difficulty] || { won: 0, par3: 0 };
       rec.won++;
-      if (rec.best === null || g.moves < rec.best) rec.best = g.moves;
+      if (g.moves <= g.par) rec.par3++;
+      rec.bestPar = rec.par3 > 0;
       progress.random[state.difficulty] = rec;
     }
     save();
     renderMenu();
 
-    $('win-swatch').style.background = C.toCss(g.target);
+    $('win-swatch').style.background = C.hex(g.target);
     $('win-stars').innerHTML = starString(stars);
     $('win-stars').setAttribute('aria-label', stars + ' of 3 stars');
-    $('win-title').textContent = g.moves <= g.par ? 'Perfect match' : 'Matched!';
+    $('win-title').textContent = g.moves <= g.par ? 'Perfect — par' : 'Jar filled';
     $('win-line').textContent =
       g.moves + ' moves, par ' + g.par + '.' +
-      (g.moves > g.par ? ' ' + (g.moves - g.par) + ' over — the sink is not free.' : '') +
+      (g.moves > g.par ? ' ' + (g.moves - g.par) + ' over the best possible.' : '') +
       (g.hintsUsed ? ' Hint used.' : '');
 
     var next = $('win-next');
@@ -383,20 +380,28 @@
   function doHint() {
     var g = state.game;
     if (!g || g.won) return;
-    var h = g.useHint();
-    if (!h) { setStatus('Everything you need is already poured — check the amounts.', 'warn'); return; }
-    var view = state.jarViews[h.jarIndex];
-    if (view) view.flash('just-poured');
-    setStatus('Jar ' + (h.jarIndex + 1) + ' (' + C.name(g.jars[h.jarIndex].colour) + '): ' +
-              h.units + ' more unit' + (h.units === 1 ? '' : 's') + ' into the big jar.', 'good');
-    refresh();
-  }
 
-  function setPourMode(all) {
-    state.pourAll = all;
-    var b = $('pour-mode');
-    b.textContent = all ? 'Pour: fill up' : 'Pour: 1 unit';
-    b.setAttribute('aria-pressed', all ? 'true' : 'false');
+    var result = window.Solver.solve(g.position());
+    if (result.budgetExceeded) {
+      setStatus('This one is too tangled for me to work out from here — try undoing a move.', 'warn');
+      return;
+    }
+    if (result.par == null) {
+      setStatus('There is no way to finish from this position. Undo, or restart.', 'warn');
+      return;
+    }
+    if (!result.path.length) return;
+
+    g.hintsUsed++;
+    var mv = result.path[0];
+    var fromView = state.jarViews[mv.from];
+    if (fromView) fromView.flash('just-poured');
+    if (mv.to === -1) state.mainView.flash('just-poured');
+    else if (state.jarViews[mv.to]) state.jarViews[mv.to].flash('just-poured');
+
+    setStatus('Pour jar ' + (mv.from + 1) + ' into ' +
+              (mv.to === -1 ? 'the big jar' : 'jar ' + (mv.to + 1)) +
+              '. ' + result.par + ' move' + (result.par === 1 ? '' : 's') + ' left from here.', 'good');
     refresh();
   }
 
@@ -433,7 +438,6 @@
     });
 
     $('hint').addEventListener('click', doHint);
-    $('pour-mode').addEventListener('click', function () { setPourMode(!state.pourAll); });
 
     $('sound').addEventListener('click', function () {
       Sound.on = !Sound.on;
@@ -454,8 +458,6 @@
     $('how-to').addEventListener('click', function () { $('howto').hidden = false; $('howto-close').focus(); });
     $('howto-close').addEventListener('click', function () { $('howto').hidden = true; $('how-to').focus(); });
 
-    /* Two-step rather than a confirm() dialog, which a sandboxed frame can
-       block outright — leaving the button looking broken. */
     var resetArmed = false, resetTimer = null;
     $('reset-progress').addEventListener('click', function () {
       var btn = this;
@@ -496,13 +498,11 @@
     if (!$('screen-game').classList.contains('is-active') || !state.game) return;
 
     var k = e.key.toLowerCase();
-
-    if (k === 'escape')      { state.selected = null; refresh(); return; }
-    if (k === 'u')           { e.preventDefault(); $('undo').click(); return; }
-    if (k === 'h')           { e.preventDefault(); doHint(); return; }
-    if (k === 'r')           { e.preventDefault(); $('restart').click(); return; }
-    if (k === 'd')           { e.preventDefault(); if (state.game.level.drain) onJarClick(DRAIN); return; }
-    if (k === '0')           { e.preventDefault(); onJarClick(MAIN); return; }
+    if (k === 'escape') { state.selected = null; refresh(); return; }
+    if (k === 'u')      { e.preventDefault(); $('undo').click(); return; }
+    if (k === 'h')      { e.preventDefault(); doHint(); return; }
+    if (k === 'r')      { e.preventDefault(); $('restart').click(); return; }
+    if (k === '0')      { e.preventDefault(); onJarClick(MAIN); return; }
 
     if (k >= '1' && k <= '9') {
       var i = parseInt(k, 10) - 1;

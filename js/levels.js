@@ -1,11 +1,10 @@
 /* levels.js — the hand-built "Beginner's Guide".
  *
  * Level spec:
- *   main     { cap }            the big jar you have to fill
- *   target   [[colour, units]]  recipe the big jar has to end up matching
- *   jars     [{ cap, fills }]   shelf jars; two or more fills start pre-mixed
- *   drain    bool               whether the sink is available
- *   solution [{ jar, units }]   one known-good answer, used for hints and par
+ *   target   colour key the big jar has to be filled with
+ *   main     { cap }              the big jar; starts empty
+ *   jars     [{ cap, fills }]     fills are listed BOTTOM first
+ *   par      fewest possible moves (checked against the solver by the tests)
  */
 (function (global) {
   'use strict';
@@ -13,59 +12,55 @@
   var LEVELS = [
     {
       id: 'guide-1',
-      name: 'Straight Pour',
+      name: 'Top Pour',
       subtitle: 'Guide 1 of 3',
-      brief: 'Tap a shelf jar to pick it up, then tap the big jar to pour one ' +
-             'unit in. Fill the big jar to the brim with pure crimson.',
-      hint: 'Both crimson jars have to go in — the blue one is a decoy.',
-      teaches: 'Selecting and pouring',
+      teaches: 'Picking up and pouring',
+      brief: 'Tap a jar to pick it up, then tap the big jar to pour. The big jar ' +
+             'only ever accepts red, so you cannot spoil it — try the blue and see.',
+      hint: 'Both red jars go straight in.',
+      target: 'red',
       main: { cap: 4 },
-      target: [['red', 4]],
-      drain: false,
+      par: 2,
       jars: [
-        { cap: 4, fills: [['red', 2]] },
-        { cap: 4, fills: [['blue', 3]] },
-        { cap: 4, fills: [['red', 2]] }
-      ],
-      solution: [{ jar: 0, units: 2 }, { jar: 2, units: 2 }]
+        { cap: 4, fills: ['red', 'red'] },
+        { cap: 4, fills: ['blue', 'blue', 'blue'] },
+        { cap: 4, fills: ['red', 'red'] }
+      ]
     },
     {
       id: 'guide-2',
-      name: 'Two Make One',
+      name: 'Dig It Out',
       subtitle: 'Guide 2 of 3',
-      brief: 'No jar holds this colour, so you have to make it. Colours mix the ' +
-             'way paint does, so equal parts of two colours land between them.',
-      hint: 'Plum sits between crimson and blue: pour three of each.',
-      teaches: 'Mixing, and the sink',
-      main: { cap: 6 },
-      target: [['red', 3], ['blue', 3]],
-      drain: true,
+      teaches: 'Uncovering a buried colour',
+      brief: 'This time the yellow is trapped under blue. You can pour a colour ' +
+             'onto the same colour, so move the blue out of the way first.',
+      hint: 'Tip the two blues onto the lone blue, and the yellow underneath is free.',
+      target: 'yellow',
+      main: { cap: 4 },
+      par: 3,
       jars: [
-        { cap: 6, fills: [['red', 4]] },
-        { cap: 6, fills: [['yellow', 3]] },
-        { cap: 6, fills: [['blue', 4]] }
-      ],
-      solution: [{ jar: 0, units: 3 }, { jar: 2, units: 3 }]
+        { cap: 4, fills: ['yellow', 'yellow', 'blue', 'blue'] },
+        { cap: 4, fills: ['blue'] },
+        { cap: 4, fills: ['yellow', 'yellow'] }
+      ]
     },
     {
       id: 'guide-3',
-      name: 'Already Stirred',
+      name: 'Make Room',
       subtitle: 'Guide 3 of 3',
-      brief: 'Some jars arrive pre-mixed. A jar of orange counts as equal parts ' +
-             'crimson and yellow — and pouring part of a jar is allowed.',
-      hint: 'The orange jar is the only way to get enough yellow. All four ' +
-            'units of it go in, then top up with white.',
-      teaches: 'Pre-mixed jars and part pours',
-      main: { cap: 8 },
-      target: [['red', 2], ['yellow', 2], ['white', 4]],
-      drain: true,
+      teaches: 'Working through an empty jar',
+      brief: 'Nothing matches at first. An empty jar takes any colour, so it is ' +
+             'the way in — but there is only one, so think before you fill it.',
+      hint: 'Empty a jar completely and you have somewhere to put the next colour.',
+      target: 'green',
+      main: { cap: 6 },
+      par: 7,
       jars: [
-        { cap: 4, fills: [['red', 2], ['yellow', 2]] },
-        { cap: 6, fills: [['white', 5]] },
-        { cap: 4, fills: [['red', 2]] },
-        { cap: 4, fills: [['yellow', 1]] }
-      ],
-      solution: [{ jar: 0, units: 4 }, { jar: 1, units: 4 }]
+        { cap: 4, fills: ['green', 'green', 'red', 'red'] },
+        { cap: 4, fills: ['green', 'green', 'blue', 'blue'] },
+        { cap: 4, fills: ['green', 'green', 'red', 'blue'] },
+        { cap: 4, fills: [] }
+      ]
     }
   ];
 
