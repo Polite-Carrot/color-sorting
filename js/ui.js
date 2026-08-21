@@ -33,9 +33,10 @@
 
     var root = el('button', 'jar' + (this.isMain ? ' jar--main' : ''));
     root.type = 'button';
+    this.key = el('span', 'jar__key', root);
+    this.key.textContent = this.keyLabel;
     var glass = el('div', 'jar__glass', root);
     this.stack = el('div', 'jar__stack', glass);
-    this.tag = el('span', 'jar__tag', root);
 
     this.root = root;
     this.glass = glass;
@@ -60,11 +61,6 @@
       glyph.textContent = C.mark(run.colour);
     }
 
-    var topColour = jar.cells.length ? jar.cells[jar.cells.length - 1] : null;
-    this.tag.innerHTML = '';
-    if (this.keyLabel) el('span', 'jar__key', this.tag).textContent = this.keyLabel;
-    this.tag.appendChild(document.createTextNode(titleCase(topColour ? C.name(topColour) : 'empty')));
-
     this.root.classList.toggle('is-selected', !!state.selected);
     this.root.classList.toggle('is-target', !!state.targetable);
     this.root.classList.toggle('is-won', !!state.won);
@@ -81,6 +77,41 @@
       jar.cells.length + ' of ' + jar.capacity + ' full, from the top: ' + spoken +
       (state.selected ? ', picked up' : ''));
     this.root.setAttribute('aria-pressed', state.selected ? 'true' : 'false');
+  };
+
+  var still = global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)');
+  function calm() { return !!(still && still.matches); }
+
+  /* Tip the jar towards wherever it is pouring. dir is -1 for left, 1 right. */
+  JarView.prototype.tilt = function (dir) {
+    if (calm() || !this.root.animate) return;
+    this.root.animate([
+      { transform: 'rotate(0deg)' },
+      { transform: 'rotate(' + (dir * 21) + 'deg) translateY(-7px)', offset: .4 },
+      { transform: 'rotate(0deg)' }
+    ], { duration: 420, easing: 'cubic-bezier(.35,.05,.3,1)' });
+  };
+
+  /* Grow the band that just landed, and let the jar wobble as it settles. */
+  JarView.prototype.settle = function () {
+    if (calm() || !this.root.animate) return;
+    var band = this.stack.lastElementChild;
+    if (band) {
+      band.animate([{ height: '0%' }, { height: band.style.height }],
+        { duration: 320, easing: 'cubic-bezier(.2,.9,.3,1.35)' });
+    }
+    this.glass.animate([
+      { transform: 'scale(1, 1)' },
+      { transform: 'scale(1.07, .93)', offset: .35 },
+      { transform: 'scale(.985, 1.02)', offset: .68 },
+      { transform: 'scale(1, 1)' }
+    ], { duration: 380, easing: 'ease-out' });
+  };
+
+  /* Where this jar sits, so a pour can lean the right way. */
+  JarView.prototype.centreX = function () {
+    var r = this.root.getBoundingClientRect();
+    return r.left + r.width / 2;
   };
 
   JarView.prototype.flash = function (cls) {
@@ -135,5 +166,62 @@
     }
   };
 
-  global.UI = { JarView: JarView, Sound: Sound, el: el, titleCase: titleCase, runs: runs };
+  /* A burst in the puzzle's own colours. Canvas rather than a pile of DOM
+     nodes, and skipped entirely when motion is turned down. */
+  function confetti(colours) {
+    var canvas = document.getElementById('confetti');
+    if (!canvas || calm() || !canvas.getContext) return;
+
+    var ctx = canvas.getContext('2d');
+    var dpr = Math.min(global.devicePixelRatio || 1, 2);
+    var w = canvas.width = global.innerWidth * dpr;
+    var h = canvas.height = global.innerHeight * dpr;
+    canvas.style.width = global.innerWidth + 'px';
+    canvas.style.height = global.innerHeight + 'px';
+
+    var bits = [];
+    for (var i = 0; i < 130; i++) {
+      bits.push({
+        x: (0.18 + 0.64 * Math.random()) * w,
+        y: h * 0.42 + Math.random() * 50 * dpr,
+        vx: (Math.random() - 0.5) * 11 * dpr,
+        vy: (-9.5 - Math.random() * 9) * dpr,
+        size: (5 + Math.random() * 7) * dpr,
+        spin: Math.random() * Math.PI,
+        dspin: (Math.random() - 0.5) * 0.32,
+        colour: colours[Math.floor(Math.random() * colours.length)]
+      });
+    }
+
+    var start = performance.now();
+    var LIFE = 2500;
+    (function frame(now) {
+      var age = now - start;
+      ctx.clearRect(0, 0, w, h);
+      var onscreen = false;
+      for (var i = 0; i < bits.length; i++) {
+        var b = bits[i];
+        b.vy += 0.4 * dpr;
+        b.vx *= 0.994;
+        b.x += b.vx;
+        b.y += b.vy;
+        b.spin += b.dspin;
+        if (b.y < h + 40 * dpr) onscreen = true;
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(b.spin);
+        ctx.globalAlpha = Math.max(0, 1 - age / LIFE);
+        ctx.fillStyle = b.colour;
+        ctx.fillRect(-b.size / 2, -b.size / 2, b.size, b.size * 0.62);
+        ctx.restore();
+      }
+      if (onscreen && age < LIFE) requestAnimationFrame(frame);
+      else ctx.clearRect(0, 0, w, h);
+    })(start);
+  }
+
+  global.UI = {
+    JarView: JarView, Sound: Sound, el: el, titleCase: titleCase,
+    runs: runs, confetti: confetti, calm: calm
+  };
 })(window);

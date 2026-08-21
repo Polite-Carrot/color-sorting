@@ -10,16 +10,16 @@
      an initial would defeat the point, so the palette is chosen so all ten
      differ. */
   var PALETTE = {
-    red:     { hex: '#e2453f', mark: 'R', name: 'red' },
-    orange:  { hex: '#ef8b2c', mark: 'O', name: 'orange' },
-    yellow:  { hex: '#f0c92f', mark: 'Y', name: 'yellow' },
-    green:   { hex: '#35a85b', mark: 'G', name: 'green' },
-    teal:    { hex: '#14b3b0', mark: 'T', name: 'teal' },
-    blue:    { hex: '#3070e0', mark: 'B', name: 'blue' },
-    purple:  { hex: '#8b4ad2', mark: 'P', name: 'purple' },
-    magenta: { hex: '#e0559b', mark: 'M', name: 'magenta' },
-    white:   { hex: '#eef2f7', mark: 'W', name: 'white' },
-    slate:   { hex: '#64748b', mark: 'S', name: 'slate' }
+    red:     { hex: '#f5423c', mark: 'R', name: 'red' },
+    orange:  { hex: '#ff912b', mark: 'O', name: 'orange' },
+    yellow:  { hex: '#ffd028', mark: 'Y', name: 'yellow' },
+    green:   { hex: '#2fc15e', mark: 'G', name: 'green' },
+    teal:    { hex: '#0ec3c6', mark: 'T', name: 'teal' },
+    blue:    { hex: '#3b7bf7', mark: 'B', name: 'blue' },
+    purple:  { hex: '#9a53ef', mark: 'P', name: 'purple' },
+    magenta: { hex: '#ff5aae', mark: 'M', name: 'magenta' },
+    white:   { hex: '#fbfdff', mark: 'W', name: 'white' },
+    slate:   { hex: '#6b7c9c', mark: 'S', name: 'slate' }
   };
 
   var KEYS = Object.keys(PALETTE);
@@ -46,7 +46,8 @@
   /* Dark or light text for a mark sitting on the band. */
   function ink(key) {
     var c = rgb(key);
-    return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255 > 0.62 ? 'rgba(20,25,40,.55)' : 'rgba(255,255,255,.6)';
+    return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255 > 0.58
+      ? 'rgba(28, 20, 48, .55)' : 'rgba(255, 255, 255, .72)';
   }
 
   global.Colour = {

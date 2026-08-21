@@ -17,9 +17,8 @@ const path = require('path');
 /* Google serves woff2 only to browsers it recognises. */
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 const API = 'https://fonts.googleapis.com/css2?family=' + [
-  'Bricolage+Grotesque:opsz,wght@12..96,700',
-  'IBM+Plex+Mono:wght@500;600',
-  'Public+Sans:wght@400;500;600'
+  'Baloo+2:wght@700;800',
+  'Nunito:wght@600;700;800'
 ].join('&family=') + '&display=swap';
 
 const curl = (url, binary) =>

@@ -93,11 +93,10 @@ embedded in a host page that supplies its own `<!doctype>` — opened directly i
 would fall into quirks mode and lay out differently, which is what
 `--standalone` is for.
 
-Typefaces are Bricolage Grotesque for headings, Public Sans for interface text
-and IBM Plex Mono for anything measured, including the letter on each colour
-band. They live in `fonts.css` as inlined latin subsets, committed so the game
-never depends on the network. Re-run `node fetch-fonts.js` only if the type
-stack changes.
+Typefaces are Baloo 2 for display and Nunito for interface text, both rounded,
+to match the toy-shelf look. They live in `fonts.css` as inlined latin subsets,
+committed so the game never depends on the network. Re-run `node
+fetch-fonts.js` only if the type stack changes.
 
 ## Layout
 
@@ -122,6 +121,21 @@ difficulties were each verified to hold exactly one jarful of the target, to
 use no two lookalike colours, to fall inside their difficulty's par band, and
 to have the solver's own path play back through the engine to a win in exactly
 par moves.
+
+## Look
+
+One committed visual world — a bright shelf under a summer sky, drawn with
+cartoon weight: thick ink outlines and hard, unblurred drop shadows. The weight
+earns its place rather than being decoration. The liquids are vivid and so is
+the ground, so without an outline around every jar and band the two would sit
+at the same brightness and flatten into each other. For the same reason the
+glass is tinted cool: a jar of white liquid has to read as liquid and not as an
+empty jar, since white is one of the ten playable colours.
+
+There are deliberately no `prefers-color-scheme` blocks. A game screen is a
+place, not a document, so it does not follow the reader's theme — every colour
+is painted explicitly, including the ground, so the page holds whatever the
+host paints behind it.
 
 ## Accessibility
 

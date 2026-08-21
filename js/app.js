@@ -45,9 +45,13 @@
     try { localStorage.setItem(STORE_KEY, JSON.stringify(progress)); } catch (e) { /* ignore */ }
   }
 
-  function starString(n) {
+  function starString(n, lively) {
     var s = '';
-    for (var i = 0; i < 3; i++) s += i < n ? '★' : '<span class="off">★</span>';
+    for (var i = 0; i < 3; i++) {
+      s += i < n
+        ? '<span class="' + (lively ? 'win' : '') + '">★</span>'
+        : '<span class="off">★</span>';
+    }
     return s;
   }
 
@@ -251,10 +255,15 @@
 
     var dest = g.get(toId);
     Sound.pour(dest.cells.length / dest.capacity);
-    viewFor(toId).flash('just-poured');
+
+    var fromView = viewFor(fromId), toView = viewFor(toId);
+    var dir = toView.centreX() >= fromView.centreX() ? 1 : -1;
+    fromView.tilt(dir);
+
     state.selected = null;
     setStatus('', '');
     refresh();
+    toView.settle();
 
     if (g.won) {
       Sound.win();
@@ -342,7 +351,7 @@
     renderMenu();
 
     $('win-swatch').style.background = C.hex(g.target);
-    $('win-stars').innerHTML = starString(stars);
+    $('win-stars').innerHTML = starString(stars, true);
     $('win-stars').setAttribute('aria-label', stars + ' of 3 stars');
     $('win-title').textContent = g.moves <= g.par ? 'Perfect — par' : 'Jar filled';
     $('win-line').textContent =
@@ -371,6 +380,17 @@
 
     $('overlay').hidden = false;
     next.focus();
+
+    if (stars > 0) {
+      var palette = [C.hex(g.target), '#ffc93c', '#ff5d8f'];
+      lvl.jars.forEach(function (spec) {
+        spec.fills.forEach(function (key) {
+          var hex = C.hex(key);
+          if (palette.indexOf(hex) === -1) palette.push(hex);
+        });
+      });
+      UI.confetti(palette);
+    }
   }
 
   function closeOverlay() { $('overlay').hidden = true; }
