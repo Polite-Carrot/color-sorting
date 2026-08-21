@@ -1,7 +1,17 @@
 /* colour.js — palette, mixing and matching maths.
- * Liquids mix by volume-weighted average of their RGB channels, which keeps
- * the result predictable: pouring 2 red + 2 yellow always lands on the same
- * orange, whichever order you do it in. */
+ *
+ * Liquids mix subtractively, the way paint does: a volume-weighted GEOMETRIC
+ * mean of the RGB channels. That is what makes blue + yellow come out green
+ * rather than the grey an arithmetic average would give.
+ *
+ * A geometric mean is just an arithmetic mean in log space, so mixing stays
+ * associative and order-independent — pouring 2 red then 2 yellow lands on
+ * exactly the same orange as the reverse, and on exactly the colour the
+ * generator computed for the whole recipe in one go. The puzzle depends on
+ * that, so it is worth keeping if this function is ever changed again.
+ *
+ * A geometric mean is also bounded by the darkest and lightest of its inputs,
+ * so repeated mixing cannot spiral towards black. */
 (function (global) {
   'use strict';
 
@@ -40,7 +50,19 @@
     ['sky',       [143, 177, 236]],
     ['moss',      [104, 137, 91]],
     ['lilac',     [180, 158, 228]],
-    ['rust',      [181, 100, 60]]
+    ['rust',      [181, 100, 60]],
+    /* Subtractive mixing lands a lot of recipes in the greens, olives and
+       earths, so those regions need enough names to stay tellable apart —
+       the name is the fallback for anyone who cannot rely on the swatch. */
+    ['forest',    [70,  110, 75]],
+    ['fern',      [112, 162, 106]],
+    ['sage',      [142, 166, 132]],
+    ['khaki',     [172, 160, 104]],
+    ['ochre',     [190, 145, 64]],
+    ['brick',     [162, 80,  70]],
+    ['taupe',     [142, 126, 116]],
+    ['mauve',     [156, 124, 160]],
+    ['navy',      [58,  80,  140]]
   ];
 
   function clamp255(n) { return n < 0 ? 0 : n > 255 ? 255 : n; }
@@ -63,15 +85,20 @@
     return 'rgb(' + Math.round(clamp255(c.r)) + ',' + Math.round(clamp255(c.g)) + ',' + Math.round(clamp255(c.b)) + ')';
   }
 
+  /* Guard against log(0). No palette channel comes close, but a colour fed in
+     from elsewhere might. */
+  var FLOOR = 2;
+  function ln(v) { return Math.log(v < FLOOR ? FLOOR : v); }
+
   /* Volume-weighted blend of two liquids. */
   function mix(a, va, b, vb) {
     if (va <= 0) return { r: b.r, g: b.g, b: b.b };
     if (vb <= 0) return { r: a.r, g: a.g, b: a.b };
     var t = va + vb;
     return {
-      r: (a.r * va + b.r * vb) / t,
-      g: (a.g * va + b.g * vb) / t,
-      b: (a.b * va + b.b * vb) / t
+      r: Math.exp((ln(a.r) * va + ln(b.r) * vb) / t),
+      g: Math.exp((ln(a.g) * va + ln(b.g) * vb) / t),
+      b: Math.exp((ln(a.b) * va + ln(b.b) * vb) / t)
     };
   }
 
@@ -80,10 +107,10 @@
     var total = 0, r = 0, g = 0, b = 0;
     for (var i = 0; i < parts.length; i++) {
       var c = parse(parts[i][0]), v = parts[i][1];
-      r += c.r * v; g += c.g * v; b += c.b * v; total += v;
+      r += ln(c.r) * v; g += ln(c.g) * v; b += ln(c.b) * v; total += v;
     }
     if (total === 0) return null;
-    return { r: r / total, g: g / total, b: b / total };
+    return { r: Math.exp(r / total), g: Math.exp(g / total), b: Math.exp(b / total) };
   }
 
   function distance(a, b) {
@@ -112,13 +139,6 @@
     return best;
   }
 
-  /* Readable text colour for a label sitting on top of the liquid. */
-  function ink(c) {
-    if (!c) return '#e8ecf5';
-    var lum = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255;
-    return lum > 0.6 ? '#20263a' : '#f2f5fb';
-  }
-
   global.Colour = {
     PALETTE: PALETTE,
     parse: parse,
@@ -128,7 +148,6 @@
     distance: distance,
     matchPercent: matchPercent,
     name: name,
-    ink: ink,
     TOLERANCE: 6
   };
 })(typeof window !== 'undefined' ? window : globalThis);

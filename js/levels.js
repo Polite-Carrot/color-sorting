@@ -33,9 +33,9 @@
       id: 'guide-2',
       name: 'Two Make One',
       subtitle: 'Guide 2 of 3',
-      brief: 'No jar holds this colour, so you have to make it. Liquids blend ' +
-             'by volume, so equal parts of two colours land halfway between them.',
-      hint: 'Plum sits exactly between crimson and blue: pour three of each.',
+      brief: 'No jar holds this colour, so you have to make it. Colours mix the ' +
+             'way paint does, so equal parts of two colours land between them.',
+      hint: 'Plum sits between crimson and blue: pour three of each.',
       teaches: 'Mixing, and the sink',
       main: { cap: 6 },
       target: [['red', 3], ['blue', 3]],

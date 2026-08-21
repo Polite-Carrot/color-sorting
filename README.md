@@ -3,9 +3,10 @@
 A browser puzzle game about pouring liquids between jars to mix an exact shade.
 
 There is one big jar and a shelf of smaller ones. Fill the big jar **to the brim**
-so its colour matches the target exactly. Liquids blend by volume, and once two
-colours are in the same jar there is no separating them again — so the puzzle is
-working out which jars, and how much of each, before you commit.
+so its colour matches the target exactly. Colours mix like paint — blue and yellow
+make green — and once two colours are in the same jar there is no separating them
+again, so the puzzle is working out which jars, and how much of each, before you
+commit.
 
 **To play:** open `index.html` in a browser. No install, no build step, no server.
 
@@ -36,7 +37,8 @@ Leave the seed blank for a fresh one.
 
 - Tap a jar to pick it up, then tap another to pour into it. Tap it again to put it down.
 - One unit poured is one move. **Par** is the fewest moves possible.
-- Colours blend by volume: 2 crimson + 2 yellow makes 4 orange.
+- Colours mix subtractively, like paint: 2 crimson + 2 yellow makes 4 orange.
+  Only the proportions matter, never the order you pour in.
 - The big jar must be **full *and* the right shade**. Full but wrong does not count.
 - The **sink** throws liquid away, so an overpour is recoverable — but it costs moves.
 - Not every jar is meant to be used, and not every jar is meant to be emptied.
@@ -58,12 +60,18 @@ Anything that would spoil the puzzle is rejected and regenerated: recipes a
 single pure colour already matches, and single jars that on their own equal the
 answer.
 
+This works because mixing is **order-independent**. Colours are blended as a
+volume-weighted geometric mean, which is an arithmetic mean in log space, so
+pouring a pre-mixed jar in gives bit-for-bit the same result as pouring its
+ingredients in separately. Any future change to the mixing function has to
+preserve that, or generated targets stop being reachable.
+
 ## Layout
 
 ```
 index.html        markup and screens
 styles.css        all styling
-js/colour.js      palette, volume-weighted mixing, colour matching
+js/colour.js      palette, subtractive paint mixing, colour matching
 js/levels.js      the three guide levels
 js/engine.js      jars, pouring, undo, win check  (no DOM)
 js/generator.js   seeded random puzzle generation
@@ -74,4 +82,5 @@ js/app.js         screens, progress, input
 The engine is pure logic with no DOM dependency, so it runs under Node — which is
 how the generator was verified: 9,000 generated puzzles (3,000 per difficulty)
 were each played through both their recorded answer and their hint path, and all
-9,000 were solvable.
+9,000 were solvable. The same harness measured the guess odds in the table above,
+by brute-forcing every way to fill the big jar.
