@@ -21,7 +21,8 @@
     difficulty: 'easy',
     selected: null,
     mainView: null,
-    jarViews: []
+    jarViews: [],
+    hintTimer: null
   };
 
   /* ───────── progress ───────── */
@@ -157,6 +158,8 @@
     var g = state.game;
     var lvl = g.level;
 
+    clearTimeout(state.hintTimer);
+
     $('level-name').textContent = lvl.name;
     $('level-sub').textContent = lvl.subtitle || '';
     $('brief').textContent = lvl.brief || '';
@@ -259,6 +262,7 @@
     var fromView = viewFor(fromId), toView = viewFor(toId);
     var dir = toView.centreX() >= fromView.centreX() ? 1 : -1;
     fromView.tilt(dir);
+    clearTimeout(state.hintTimer);
 
     state.selected = null;
     setStatus('', '');
@@ -415,9 +419,15 @@
     g.hintsUsed++;
     var mv = result.path[0];
     var fromView = state.jarViews[mv.from];
-    if (fromView) fromView.flash('just-poured');
-    if (mv.to === -1) state.mainView.flash('just-poured');
-    else if (state.jarViews[mv.to]) state.jarViews[mv.to].flash('just-poured');
+    var toView = mv.to === -1 ? state.mainView : state.jarViews[mv.to];
+
+    /* Two beats, so the hint reads as a sentence: shake the jar to pick up,
+       then shake where it goes. Overlapping them would just look like noise. */
+    clearTimeout(state.hintTimer);
+    if (fromView) fromView.shake();
+    state.hintTimer = setTimeout(function () {
+      if (toView) toView.shake();
+    }, UI.SHAKE_MS + 90);
 
     setStatus('Pour jar ' + (mv.from + 1) + ' into ' +
               (mv.to === -1 ? 'the big jar' : 'jar ' + (mv.to + 1)) +
@@ -453,6 +463,7 @@
       if (!state.game) return;
       state.game.restart();
       state.selected = null;
+      clearTimeout(state.hintTimer);
       setStatus('Back to the start.', '');
       refresh();
     });

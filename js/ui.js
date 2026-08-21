@@ -79,6 +79,8 @@
     this.root.setAttribute('aria-pressed', state.selected ? 'true' : 'false');
   };
 
+  var SHAKE_MS = 520;
+
   var still = global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)');
   function calm() { return !!(still && still.matches); }
 
@@ -106,6 +108,21 @@
       { transform: 'scale(.985, 1.02)', offset: .68 },
       { transform: 'scale(1, 1)' }
     ], { duration: 380, easing: 'ease-out' });
+  };
+
+  /* A "look at me" wobble, used by the hint to point out a jar.
+     Applied to the glass rather than the button, so a jar that is currently
+     picked up keeps its raised, tilted pose instead of snapping flat first. */
+  JarView.prototype.shake = function () {
+    if (calm() || !this.glass.animate) return;
+    this.glass.animate([
+      { transform: 'translateX(0) rotate(0deg)' },
+      { transform: 'translateX(-6px) rotate(-6deg)' },
+      { transform: 'translateX(6px) rotate(6deg)' },
+      { transform: 'translateX(-4px) rotate(-4deg)' },
+      { transform: 'translateX(4px) rotate(4deg)' },
+      { transform: 'translateX(0) rotate(0deg)' }
+    ], { duration: SHAKE_MS, easing: 'ease-in-out' });
   };
 
   /* Where this jar sits, so a pour can lean the right way. */
@@ -222,6 +239,6 @@
 
   global.UI = {
     JarView: JarView, Sound: Sound, el: el, titleCase: titleCase,
-    runs: runs, confetti: confetti, calm: calm
+    runs: runs, confetti: confetti, calm: calm, SHAKE_MS: SHAKE_MS
   };
 })(window);

@@ -52,7 +52,8 @@ Keyboard: `1`–`9` jars · `0` big jar · `U` undo · `H` hint · `R` restart �
 jobs: it proves a generated puzzle can be finished, it sets par to the genuine
 fewest moves rather than an estimate, and it answers the hint button from
 wherever the player currently is — so a hint is always correct even after a
-detour. It also means the game can say *"this position cannot be finished any
+detour. A hint shows its move as two beats: the jar to pick up shakes, then a
+moment later so does where it goes. It also means the game can say *"this position cannot be finished any
 more"* the moment it becomes true, instead of leaving someone stuck without
 knowing why.
 
