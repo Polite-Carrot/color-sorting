@@ -54,7 +54,10 @@ jobs: it proves a generated puzzle can be finished, it sets par to the genuine
 fewest moves rather than an estimate, and it answers the hint button from
 wherever the player currently is — so a hint is always correct even after a
 detour. A hint shows its move as two beats: the jar to pick up shakes, then a
-moment later so does where it goes. It also means the game can say *"this position cannot be finished any
+moment later so does where it goes. Both stay ringed — the one to lift in pink,
+its destination in green — until the next move, so the pair can still be seen
+once the shakes have finished. The jars carry no numbers, so the rings and the
+colour named in the hint are what identify them. It also means the game can say *"this position cannot be finished any
 more"* the moment it becomes true, instead of leaving someone stuck without
 knowing why.
 
@@ -178,10 +181,12 @@ only then does the shelf scroll inside itself — the buttons and the hint line
 stay put either way.
 
 Jars have a floor, because a hard jar holds six bands and below about 78px
-they stop being bands and become stripes. On a phone the jar's number moves
-onto the glass rather than sitting above it — it has to stay visible, since
-hints name jars by number, but that reclaims 28px per shelf row for the jars
-themselves.
+they stop being bands and become stripes.
+
+The shelf reserves head-room at the top, because a picked-up jar lifts and
+tilts, and the shelf can scroll on a short window — without it the top row was
+clipped mid-lift while lower rows were fine. A picked-up jar also rises above
+its neighbours, so it is never behind the next jar along.
 
 ## Look
 

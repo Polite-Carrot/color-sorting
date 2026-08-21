@@ -483,6 +483,7 @@ input:focus-visible {
 
 .jar {
   appearance: none;
+  position: relative;
   border: 0;
   background: none;
   padding: 0;
@@ -498,20 +499,6 @@ input:focus-visible {
 .jar:disabled { cursor: default; }
 .jar:hover:not(:disabled):not(.is-selected) { transform: translateY(-3px); }
 
-.jar__key {
-  display: grid;
-  place-items: center;
-  min-width: 21px;
-  height: 21px;
-  padding: 0 6px;
-  border-radius: 99px;
-  border: 2px solid rgba(43, 33, 66, .35);
-  background: rgba(255, 255, 255, .78);
-  color: var(--ink-soft);
-  font-family: "Baloo 2", sans-serif;
-  font-weight: 700;
-  font-size: 12px;
-}
 
 .jar__glass {
   position: relative;
@@ -573,9 +560,10 @@ input:focus-visible {
   user-select: none;
 }
 
-.jar.is-selected { transform: translateY(-14px) rotate(-4deg); }
+/* Raised above its neighbours as well as lifted, so it is never behind the
+   next jar along or the plank of the row below. */
+.jar.is-selected { transform: translateY(-14px) rotate(-4deg); z-index: 5; }
 .jar.is-selected .jar__glass { box-shadow: 0 8px 0 var(--ink); }
-.jar.is-selected .jar__key { background: var(--gold); color: var(--ink); }
 
 /* somewhere this jar may legally go */
 .jar.is-target .jar__glass {
@@ -583,6 +571,15 @@ input:focus-visible {
 }
 @keyframes beckon {
   50% { box-shadow: 0 var(--lift) 0 var(--ink), 0 0 0 5px rgba(53, 196, 107, .5); }
+}
+
+/* The hint leaves these on until the next move, so the pair it pointed out
+   can still be seen once the shakes have finished. */
+.jar.is-hint-from .jar__glass {
+  box-shadow: 0 var(--lift) 0 var(--ink), 0 0 0 5px var(--accent);
+}
+.jar.is-hint-to .jar__glass {
+  box-shadow: 0 var(--lift) 0 var(--ink), 0 0 0 5px var(--grass);
 }
 
 .jar.is-blocked { animation: nope .34s ease; }
@@ -597,7 +594,6 @@ input:focus-visible {
   --w: calc(var(--h) * .62);
   border-radius: 11px 11px 26px 26px;
 }
-.jar--main .jar__key { display: none; }
 .jar--main.is-won .jar__glass { animation: cheer .5s ease .05s 2; }
 @keyframes cheer {
   30% { transform: scale(1.07, .94); }
@@ -615,7 +611,9 @@ input:focus-visible {
   align-items: flex-end;
   column-gap: var(--shelf-gap);
   row-gap: 46px;          /* a wrapped row needs clearance for its own plank */
-  padding: 0 8px;
+  /* Head-room for the lift a picked-up jar does. The shelf can scroll on a
+     short window, and without this the top row is clipped mid-lift. */
+  padding: 20px 8px 0;
 }
 
 .slot { position: relative; }
@@ -758,18 +756,6 @@ input:focus-visible {
   .goal { width: 100%; max-width: 330px; }
   .shelf { --shelf-gap: 9px; row-gap: 36px; }
 
-  /* On a phone the number sits on the jar rather than above it. It has to stay
-     visible — the hint names jars by number — but the row it occupied is
-     28px per shelf row that the jars themselves can use. */
-  .jar { position: relative; }
-  .shelf .jar__key {
-    position: absolute;
-    top: 3px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 3;
-    background: rgba(255, 255, 255, .9);
-  }
   .toolbar { gap: 7px; }
   .toolbar .btn { padding: 9px 11px; font-size: 15px; }
   .goal { padding: 12px; }

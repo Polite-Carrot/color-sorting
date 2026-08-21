@@ -37,8 +37,6 @@
     var root = el('button', 'jar' + (this.isMain ? ' jar--main' : ''), slot);
     root.type = 'button';
     this.mount = slot;
-    this.key = el('span', 'jar__key', root);
-    this.key.textContent = this.keyLabel;
     var glass = el('div', 'jar__glass', root);
     this.stack = el('div', 'jar__stack', glass);
 

@@ -268,6 +268,7 @@
         return;
       }
       state.selected = id;
+      clearHintMarks();
       Sound.pick();
       setStatus('Now tap where it should go.', '');
       refresh();
@@ -313,6 +314,7 @@
     var dir = toView.centreX() >= fromView.centreX() ? 1 : -1;
     fromView.tilt(dir);
     clearTimeout(state.hintTimer);
+    clearHintMarks();
 
     state.selected = null;
     setStatus('', '');
@@ -339,6 +341,15 @@
     if (!check.budgetExceeded && check.par == null) {
       setStatus('This position cannot be finished any more — undo a move.', 'warn');
     }
+  }
+
+  /* The hint marks its pair of jars. Cleared as soon as play resumes, so a
+     stale ring never points at a move that has already been made. */
+  function clearHintMarks() {
+    var all = state.jarViews.concat(state.mainView ? [state.mainView] : []);
+    all.forEach(function (v) {
+      v.root.classList.remove('is-hint-from', 'is-hint-to');
+    });
   }
 
   function viewFor(id) {
@@ -471,6 +482,10 @@
     var fromView = state.jarViews[mv.from];
     var toView = mv.to === -1 ? state.mainView : state.jarViews[mv.to];
 
+    clearHintMarks();
+    if (fromView) fromView.root.classList.add('is-hint-from');
+    if (toView) toView.root.classList.add('is-hint-to');
+
     /* Two beats, so the hint reads as a sentence: shake the jar to pick up,
        then shake where it goes. Overlapping them would just look like noise. */
     clearTimeout(state.hintTimer);
@@ -479,9 +494,14 @@
       if (toView) toView.shake();
     }, UI.SHAKE_MS + 90);
 
-    setStatus('Pour jar ' + (mv.from + 1) + ' into ' +
-              (mv.to === -1 ? 'the big jar' : 'jar ' + (mv.to + 1)) +
-              '. ' + result.par + ' move' + (result.par === 1 ? '' : 's') + ' left from here.', 'good');
+    var moving = C.name(g.jars[mv.from].cells[g.jars[mv.from].cells.length - 1]);
+    var landing;
+    if (mv.to === -1) landing = 'into the big jar';
+    else if (!g.jars[mv.to].cells.length) landing = 'into the empty jar';
+    else landing = 'onto the ' + C.name(g.jars[mv.to].cells[g.jars[mv.to].cells.length - 1]) + ' jar';
+
+    setStatus('Pour ' + mv.amount + ' ' + moving + ' ' + landing + '. ' +
+              result.par + ' move' + (result.par === 1 ? '' : 's') + ' left from here.', 'good');
     refresh();
   }
 
@@ -503,6 +523,7 @@
     $('undo').addEventListener('click', function () {
       if (state.game && state.game.undo()) {
         state.selected = null;
+        clearHintMarks();
         Sound.pick();
         setStatus('Undone.', '');
         refresh();
@@ -514,6 +535,7 @@
       state.game.restart();
       state.selected = null;
       clearTimeout(state.hintTimer);
+      clearHintMarks();
       setStatus('Back to the start.', '');
       refresh();
     });
