@@ -153,6 +153,27 @@ reference reaches every board size:
 | 2 | Normal | The same search run with a deliberately weaker bound — still never an overestimate, so it must agree, but it takes a very different route (~290x more states) |
 | 3 | Normal + hard | The bound itself: walking real solutions and confirming it never claims more moves are needed than the remaining path actually takes |
 
+## Fitting the window
+
+While a puzzle is on screen the whole game is sized to the window and nothing
+scrolls, so the shelf, the buttons and the hint line are always in view. The
+jars are what give way: `fitBoard()` searches for the largest jar height that
+still fits.
+
+It searches against real layout rather than calculating a size, because how
+many jars land on a row — and so how tall the shelf is — depends on the very
+size being chosen. Measuring sidesteps that circularity, and eight steps of
+bisection settle it. If even the smallest readable jars will not fit, the
+optional lines go first (the keyboard legend, then the level briefing), and
+only then does the shelf scroll inside itself — the buttons and the hint line
+stay put either way.
+
+Jars have a floor, because a hard jar holds six bands and below about 78px
+they stop being bands and become stripes. On a phone the jar's number moves
+onto the glass rather than sitting above it — it has to stay visible, since
+hints name jars by number, but that reclaims 28px per shelf row for the jars
+themselves.
+
 ## Look
 
 One committed visual world — a bright shelf under a summer sky, drawn with

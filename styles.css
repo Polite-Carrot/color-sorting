@@ -70,6 +70,44 @@ body {
 .screen { display: none; }
 .screen.is-active { display: block; animation: rise .34s cubic-bezier(.2, .9, .3, 1.2) both; }
 
+/* While a puzzle is on screen the whole game is sized to the window: nothing
+   scrolls, so the shelf, the buttons and the hint line are all in view at
+   once. The jars are what give way — fitBoard() in app.js shrinks them until
+   the column fits. The menu is left to scroll normally. */
+body.playing { overflow: hidden; }
+body.playing .app {
+  height: 100vh;
+  height: 100dvh;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+body.playing #screen-game.is-active {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+/* Zero the vertical margins only — the gap between rows handles that now.
+   Blanket `margin: 0` would also clear the `auto` side margins that centre
+   the briefing and the hint line. */
+body.playing #screen-game.is-active > * { flex: none; margin-block: 0; }
+/* If a window is so short that even the smallest readable jars will not fit,
+   the shelf scrolls inside itself rather than the whole page scrolling — the
+   buttons and the hint line stay where they are. */
+body.playing .shelf-wrap {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+body.playing .board { margin-block: 0; }
+body.playing .shelf-wrap { margin-block: 0; }
+
 @keyframes rise {
   from { opacity: 0; transform: translateY(14px) scale(.985); }
   to   { opacity: 1; transform: none; }
@@ -364,7 +402,7 @@ input:focus-visible {
 /* a stand, so the big jar rests on something like the shelf jars do */
 .board__main::after {
   content: "";
-  width: 152px;
+  width: calc(var(--jar-h, 122px) * 1.24);
   height: 17px;
   margin-top: -2px;
   border: var(--stroke) solid var(--ink);
@@ -476,8 +514,8 @@ input:focus-visible {
 
 .jar__glass {
   position: relative;
-  width: var(--w, 66px);
-  height: var(--h, 122px);
+  width: var(--w);
+  height: var(--h);
   border: var(--stroke) solid var(--ink);
   border-radius: 9px 9px 21px 21px;
   background: rgba(203, 233, 248, .72);
@@ -500,8 +538,9 @@ input:focus-visible {
 .jar__glass::before {
   content: "";
   position: absolute;
-  top: 6px; left: 7px;
-  width: 11px;
+  top: 6px;
+  left: calc(var(--w) * .1);
+  width: calc(var(--w) * .17);
   height: 62%;
   border-radius: 99px;
   background: rgba(255, 255, 255, .72);
@@ -528,7 +567,7 @@ input:focus-visible {
 /* The letter is how bands are told apart without relying on hue alone. */
 .band span {
   font-family: "Baloo 2", sans-serif;
-  font-size: 12px;
+  font-size: clamp(9px, calc(var(--jar-h, 122px) * .1), 12px);
   font-weight: 800;
   user-select: none;
 }
@@ -551,8 +590,12 @@ input:focus-visible {
   75% { transform: translateX(6px) rotate(3deg); }
 }
 
-.jar--main .jar__glass { --w: 124px; --h: 200px; border-radius: 11px 11px 26px 26px; }
-.jar--main .jar__glass::before { width: 17px; left: 11px; }
+.shelf .jar__glass { --h: var(--jar-h, 122px); --w: calc(var(--h) * .54); }
+.jar--main .jar__glass {
+  --h: calc(var(--jar-h, 122px) * 1.64);
+  --w: calc(var(--h) * .62);
+  border-radius: 11px 11px 26px 26px;
+}
 .jar--main .jar__key { display: none; }
 .jar--main.is-won .jar__glass { animation: cheer .5s ease .05s 2; }
 @keyframes cheer {
@@ -616,7 +659,9 @@ input:focus-visible {
   text-align: center;
   margin: 18px auto 0;
   max-width: 52ch;
-  min-height: 1.6em;
+  /* Room for two lines always, so a long hint appearing cannot push the
+     shelf around or reintroduce a scrollbar. */
+  min-height: 2.7em;
   font-size: 15px;
   font-weight: 700;
   color: var(--ink-soft);
@@ -710,10 +755,24 @@ input:focus-visible {
   .app { padding: 16px 12px 48px; }
   .board { gap: 18px; }
   .goal { width: 100%; max-width: 330px; }
-  .jar__glass { --w: 54px; --h: 100px; }
-  .jar--main .jar__glass { --w: 108px; --h: 172px; }
-  .board__main::after { width: 132px; }
-  .shelf { --shelf-gap: 9px; row-gap: 42px; }
+  .shelf { --shelf-gap: 9px; row-gap: 36px; }
+
+  /* On a phone the number sits on the jar rather than above it. It has to stay
+     visible — the hint names jars by number — but the row it occupied is
+     28px per shelf row that the jars themselves can use. */
+  .jar { position: relative; }
+  .shelf .jar__key {
+    position: absolute;
+    top: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    background: rgba(255, 255, 255, .9);
+  }
+  .toolbar { gap: 7px; }
+  .toolbar .btn { padding: 9px 11px; font-size: 15px; }
+  .goal { padding: 12px; }
+  .swatch { width: 38px; height: 38px; flex-basis: 38px; border-radius: 11px; }
   .topbar { padding: 9px 11px; gap: 8px; }
   .topbar__title h2 { font-size: 17px; }
   /* keep "Normal · seed 905063537" on one line so the bar stays short */

@@ -19,6 +19,12 @@
 
   var $ = function (id) { return document.getElementById(id); };
 
+  /* Jar height, in pixels, that fitBoard() searches between. The floor is the
+     smallest a jar can get while its bands still hold a readable letter — a
+     hard jar holds six, so below this they turn into stripes. Rather than go
+     under it, the shelf is allowed to scroll inside itself. */
+  var JAR_MIN = 78, JAR_MAX = 122;
+
   var state = {
     game: null,
     mode: 'guide',
@@ -65,7 +71,9 @@
   function showScreen(which) {
     $('screen-menu').classList.toggle('is-active', which === 'menu');
     $('screen-game').classList.toggle('is-active', which === 'game');
+    document.body.classList.toggle('playing', which === 'game');
     window.scrollTo(0, 0);
+    if (which === 'game') fitBoard();
   }
 
   function renderMenu() {
@@ -194,6 +202,44 @@
     });
 
     refresh();
+    fitBoard();
+  }
+
+  /* ───────── fitting the board to the window ───────── */
+
+  /* Shrink the jars until the whole play screen fits, so nothing has to be
+     scrolled to reach the shelf, the buttons or the hint line.
+     
+     The jar size is searched against real layout rather than calculated,
+     because how many jars land on a row — and therefore how tall the shelf
+     is — depends on the very size being chosen. Measuring sidesteps that
+     circularity. Eight steps of bisection settle it to within a pixel.
+     
+     If even the smallest jars overflow, the optional lines go: first the
+     keyboard legend, then the level briefing. */
+  function fitBoard() {
+    var screen = $('screen-game');
+    if (!screen.classList.contains('is-active')) return;
+
+    var optional = [$('keys'), $('brief')];
+    optional.forEach(function (el) { if (el) el.hidden = false; });
+
+    for (var drop = 0; drop <= optional.length; drop++) {
+      var lo = JAR_MIN, hi = JAR_MAX, best = -1;
+      while (lo <= hi) {
+        var mid = (lo + hi) >> 1;
+        setJarHeight(mid);
+        if (screen.scrollHeight <= screen.clientHeight) { best = mid; lo = mid + 1; }
+        else hi = mid - 1;
+      }
+      if (best > 0) { setJarHeight(best); return; }
+      if (drop < optional.length && optional[drop]) optional[drop].hidden = true;
+    }
+    setJarHeight(JAR_MIN);
+  }
+
+  function setJarHeight(px) {
+    document.documentElement.style.setProperty('--jar-h', px + 'px');
   }
 
   /* ───────── interaction ───────── */
@@ -517,6 +563,13 @@
     });
 
     document.addEventListener('keydown', onKey);
+
+    /* Rotating a phone or resizing a window changes the room available. */
+    var refit = null;
+    window.addEventListener('resize', function () {
+      clearTimeout(refit);
+      refit = setTimeout(fitBoard, 120);
+    });
   }
 
   function onKey(e) {
