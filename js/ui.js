@@ -31,8 +31,12 @@
     this.isMain = !!opts.main;
     this.keyLabel = opts.keyLabel || '';
 
-    var root = el('button', 'jar' + (this.isMain ? ' jar--main' : ''));
+    /* The jar itself lifts and tilts, so the plank it stands on lives on a
+       wrapper outside the transform — otherwise the shelf would lift too. */
+    var slot = el('div', 'slot');
+    var root = el('button', 'jar' + (this.isMain ? ' jar--main' : ''), slot);
     root.type = 'button';
+    this.mount = slot;
     this.key = el('span', 'jar__key', root);
     this.key.textContent = this.keyLabel;
     var glass = el('div', 'jar__glass', root);

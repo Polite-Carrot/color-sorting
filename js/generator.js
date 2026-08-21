@@ -12,23 +12,31 @@
   var DIFFICULTY = {
     easy: {
       label: 'Easy',
-      blurb: 'A small stack, shallow digging, plenty of room to work.',
-      mainCap: 4, sideJars: 4, sideCap: 4, fillers: 2, fillerUnits: 5, par: [3, 6]
+      blurb: 'Six jars, three colours in the way, and room to work.',
+      mainCap: 5, sideJars: 6, sideCap: 4, fillers: 3, fillerUnits: 10, par: [5, 10]
     },
     normal: {
       label: 'Normal',
-      blurb: 'More colours in the way, and less spare space to park them.',
-      mainCap: 6, sideJars: 5, sideCap: 5, fillers: 3, fillerUnits: 10, par: [7, 12]
+      blurb: 'Seven jars and four colours, with less spare space to park them.',
+      mainCap: 7, sideJars: 7, sideCap: 5, fillers: 4, fillerUnits: 17, par: [11, 17]
     },
     hard: {
       label: 'Hard',
-      blurb: 'The target is buried deep and the jars are nearly full.',
-      mainCap: 8, sideJars: 6, sideCap: 5, fillers: 4, fillerUnits: 15, par: [13, 22]
+      blurb: 'Nine jars, six colours, and the target buried right down.',
+      mainCap: 10, sideJars: 9, sideCap: 6, fillers: 6, fillerUnits: 30, par: [18, 28]
     }
   };
 
   /* Two colours closer than this are too easily confused to use together. */
   var MIN_GAP = 150;
+
+  /* Ceiling on the search when sizing up a candidate deal. Proving a board
+     CANNOT be finished is the expensive case — there is no goal for the
+     search to home in on, so it has to exhaust the space, and on a nine-jar
+     shelf that takes seconds. Generation never needs that proof: a deal it
+     cannot settle quickly is simply thrown back. Boards that do work are
+     settled in a few thousand states, far inside this. */
+  var SIZE_UP_BUDGET = 2500;
 
   function rng(seed) {
     var a = seed >>> 0;
@@ -94,12 +102,14 @@
       open[Math.floor(rand() * open.length)].fills.push(deck[i]);
     }
 
-    /* A jar showing the target on top from the start is a free move. Allowing
-       one is fine; a board full of them is not a puzzle. */
+    /* A jar showing the target on top from the start is a free move. A couple
+       are fine; a board full of them is not a puzzle. The allowance scales
+       with the shelf — on a nine-jar board a flat limit of one would throw
+       away most deals, since more jars simply means more chances of it. */
     var freebies = jars.filter(function (j) {
       return j.fills.length && j.fills[j.fills.length - 1] === target;
     }).length;
-    if (freebies > 1) return null;
+    if (freebies > Math.max(1, Math.floor(cfg.sideJars / 3))) return null;
 
     return { target: target, main: { cap: cfg.mainCap }, jars: jars, colours: colours };
   }
@@ -120,7 +130,7 @@
         jars: candidate.jars.map(function (j, i) {
           return { id: 'jar' + i, capacity: j.cap, cells: j.fills.slice() };
         })
-      });
+      }, SIZE_UP_BUDGET);
 
       if (result.budgetExceeded || result.par == null) continue;
       if (result.par < cfg.par[0] || result.par > cfg.par[1]) continue;

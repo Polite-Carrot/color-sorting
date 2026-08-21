@@ -17,6 +17,10 @@
   --sky-low:   #d3f1fc;
   --wood:      #f7cd97;
   --wood-edge: #d89a55;
+  /* Solid, not translucent: the shelf is drawn as one segment per jar, and
+     two overlapping see-through shadows would darken at every join and stripe
+     the plank. */
+  --wood-under:#a86f36;
 
   /* surfaces and ink */
   --paper:     #fffdf7;
@@ -366,7 +370,7 @@ input:focus-visible {
   border: var(--stroke) solid var(--ink);
   border-radius: 7px;
   background: linear-gradient(180deg, var(--wood) 0 55%, var(--wood-edge) 55%);
-  box-shadow: 0 5px 0 rgba(43, 33, 66, .22);
+  box-shadow: 0 5px 0 var(--wood-under);
 }
 
 .goal {
@@ -558,22 +562,44 @@ input:focus-visible {
 
 /* ───────── the shelf ───────── */
 
-.shelf-wrap { margin-top: 8px; }
+.shelf-wrap { margin-top: 8px; padding-bottom: 28px; }
 .shelf {
+  --shelf-gap: 14px;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: flex-end;
-  gap: 14px;
+  column-gap: var(--shelf-gap);
+  row-gap: 46px;          /* a wrapped row needs clearance for its own plank */
   padding: 0 8px;
 }
-.plank {
+
+.slot { position: relative; }
+
+/* Each jar carries its own length of plank, reaching into the gaps on both
+   sides so neighbours join into one continuous shelf. Doing it per jar rather
+   than as a single bar underneath means a shelf that wraps to a second row
+   gets a plank on both rows instead of leaving the top row in mid-air. */
+.shelf .slot::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--shelf-gap) / -2 - 1px);
+  right: calc(var(--shelf-gap) / -2 - 1px);
+  bottom: -22px;
   height: 20px;
-  margin-top: -2px;
-  border: var(--stroke) solid var(--ink);
-  border-radius: 8px;
   background: linear-gradient(180deg, var(--wood) 0 55%, var(--wood-edge) 55%);
-  box-shadow: 0 6px 0 rgba(43, 33, 66, .22);
+  border-top: var(--stroke) solid var(--ink);
+  border-bottom: var(--stroke) solid var(--ink);
+  box-shadow: 0 6px 0 var(--wood-under);
+}
+/* cap the open ends of the run */
+.shelf .slot:first-child::after {
+  border-left: var(--stroke) solid var(--ink);
+  border-radius: 8px 0 0 8px;
+}
+.shelf .slot:last-child::after {
+  border-right: var(--stroke) solid var(--ink);
+  border-radius: 0 8px 8px 0;
 }
 
 /* ───────── toolbar ───────── */
@@ -687,7 +713,7 @@ input:focus-visible {
   .jar__glass { --w: 54px; --h: 100px; }
   .jar--main .jar__glass { --w: 108px; --h: 172px; }
   .board__main::after { width: 132px; }
-  .shelf { gap: 9px; }
+  .shelf { --shelf-gap: 9px; row-gap: 42px; }
   .topbar { padding: 9px 11px; gap: 8px; }
   .topbar__title h2 { font-size: 17px; }
   /* keep "Normal · seed 905063537" on one line so the bar stays short */

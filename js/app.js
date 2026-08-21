@@ -8,10 +8,14 @@
   var MAIN = window.Engine.MAIN;
   var STORE_KEY = 'colourjars.progress.v2';
 
-  /* Budget for the after-every-move "is this still winnable" check. Small
-     enough to never be felt; positions too tangled to settle inside it simply
-     get no warning rather than a stutter. */
-  var WATCH_BUDGET = 40000;
+  /* Limits for the two searches that run while someone is playing. Proving a
+     position CANNOT be won is the slow case — there is no goal to home in on,
+     so the search has to exhaust the space — and on the biggest boards that
+     runs into seconds. Both are capped in milliseconds so the game never
+     stalls between taps; a position too tangled to settle in time simply gets
+     no warning rather than a freeze. */
+  var WATCH_BUDGET = 40000, WATCH_MS = 150;
+  var HINT_MS = 1200;
 
   var $ = function (id) { return document.getElementById(id); };
 
@@ -176,7 +180,7 @@
       keyLabel: '0',
       onClick: function () { onJarClick(MAIN); }
     });
-    mainSlot.appendChild(state.mainView.root);
+    mainSlot.appendChild(state.mainView.mount);
 
     var shelf = $('shelf');
     shelf.innerHTML = '';
@@ -185,7 +189,7 @@
         keyLabel: String(i + 1),
         onClick: function () { onJarClick(jar.id); }
       });
-      shelf.appendChild(view.root);
+      shelf.appendChild(view.mount);
       return view;
     });
 
@@ -285,7 +289,7 @@
       setStatus('No moves left. Undo, or restart.', 'warn');
       return;
     }
-    var check = window.Solver.solve(g.position(), WATCH_BUDGET);
+    var check = window.Solver.solve(g.position(), WATCH_BUDGET, WATCH_MS);
     if (!check.budgetExceeded && check.par == null) {
       setStatus('This position cannot be finished any more — undo a move.', 'warn');
     }
@@ -405,7 +409,7 @@
     var g = state.game;
     if (!g || g.won) return;
 
-    var result = window.Solver.solve(g.position());
+    var result = window.Solver.solve(g.position(), null, HINT_MS);
     if (result.budgetExceeded) {
       setStatus('This one is too tangled for me to work out from here — try undoing a move.', 'warn');
       return;
