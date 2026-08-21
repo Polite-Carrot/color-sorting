@@ -24,6 +24,12 @@
       label: 'Hard',
       blurb: 'Nine jars, six colours, and the target buried right down.',
       mainCap: 10, sideJars: 9, sideCap: 6, fillers: 6, fillerUnits: 30, par: [18, 28]
+    },
+    extraHard: {
+      label: 'Extra Hard',
+      blurb: 'Eleven jars, seven colours, and a big jar that takes some filling.',
+      mainCap: 14, sideJars: 11, sideCap: 6, fillers: 7, fillerUnits: 40,
+      burial: 0.6, par: [28, 42]
     }
   };
 
@@ -95,7 +101,20 @@
     var jars = [];
     for (i = 0; i < cfg.sideJars; i++) jars.push({ cap: cfg.sideCap, fills: [] });
 
-    var deck = shuffle(rand, units);
+    /* burial nudges the target towards the front of the deck, and so towards
+       the bottom of the jars, leaving more on top of it to clear away.
+       
+       It is not only a difficulty knob. Simply adding jars barely raises par,
+       because extra jars bring extra room to work in; burying the target
+       raises it properly. And because more of the deals it produces land in
+       the intended range, far fewer are dealt and thrown away — which is what
+       keeps the largest boards quick to produce rather than the slowest. */
+    var deck = cfg.burial
+      ? units
+          .map(function (u) { return { unit: u, order: rand() - (u === target ? cfg.burial : 0) }; })
+          .sort(function (a, b) { return a.order - b.order; })
+          .map(function (x) { return x.unit; })
+      : shuffle(rand, units);
     for (i = 0; i < deck.length; i++) {
       var open = jars.filter(function (j) { return j.fills.length < j.cap; });
       if (!open.length) return null;

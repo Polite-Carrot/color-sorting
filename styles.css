@@ -273,7 +273,8 @@ input:focus-visible {
 .level-btn__stars { font-size: 15px; letter-spacing: 1px; white-space: nowrap; color: var(--gold); }
 .level-btn__stars .off { color: rgba(43, 33, 66, .18); }
 
-.difficulty { display: flex; gap: 9px; }
+/* Four settings sit two by two — "Extra Hard" needs the width. */
+.difficulty { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
 .diff {
   flex: 1;
   padding: 11px 6px;

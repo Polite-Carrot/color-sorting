@@ -30,6 +30,7 @@ Each level unlocks the next. Stars and best scores are kept in `localStorage`.
 | Easy | 5 units | 6 | 3 | 5–10 moves |
 | Normal | 7 units | 7 | 4 | 11–17 moves |
 | Hard | 10 units | 9 | 6 | 18–28 moves |
+| Extra Hard | 14 units | 11 | 7 | 28–42 moves |
 
 Puzzles are built from a seed, so typing the same seed replays the same puzzle.
 Leave the seed blank for a fresh one.
@@ -101,6 +102,14 @@ Sizing up a candidate uses a much smaller search limit than play does. Deals
 that cannot be settled quickly are discarded rather than proved impossible,
 which is what keeps dealing a nine-jar board down to a fraction of a second.
 
+Extra Hard also deals the target nearer the bottom of the jars, so there is
+more sitting on top of it to clear away. That is not only a difficulty knob:
+adding jars on its own barely raises par, because extra jars bring extra room
+to work in, whereas burying the target raises it properly. It also makes far
+more deals land in the intended range, so far fewer are dealt and thrown
+away — which is why the largest boards are quick to produce rather than the
+slowest.
+
 ## Building
 
 ```
@@ -139,7 +148,7 @@ js/app.js         screens, progress, input
 ## Checking
 
 The engine and solver are pure logic with no DOM dependency, so they run under
-Node. 820 generated puzzles across the three difficulties are each verified to
+Node. 880 generated puzzles across the four difficulties are each verified to
 hold exactly one jarful of the target, to use no two lookalike colours, to fall
 inside their difficulty's par band, and to have the solver's own path play back
 through the engine to a win in exactly par moves.
@@ -151,7 +160,7 @@ reference reaches every board size:
 |------|--------|-----------------|
 | 1 | Guide + easy | The old exhaustive breadth-first search, optimal by construction |
 | 2 | Normal | The same search run with a deliberately weaker bound — still never an overestimate, so it must agree, but it takes a very different route (~290x more states) |
-| 3 | Normal + hard | The bound itself: walking real solutions and confirming it never claims more moves are needed than the remaining path actually takes |
+| 3 | Normal, hard, extra hard | The bound itself: walking real solutions and confirming it never claims more moves are needed than the remaining path actually takes |
 
 ## Fitting the window
 

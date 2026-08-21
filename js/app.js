@@ -108,7 +108,7 @@
 
     var diffs = $('difficulty');
     if (!diffs.childNodes.length) {
-      ['easy', 'normal', 'hard'].forEach(function (key) {
+      ['easy', 'normal', 'hard', 'extraHard'].forEach(function (key) {
         var b = UI.el('button', 'diff', diffs);
         b.type = 'button';
         b.textContent = window.Generator.DIFFICULTY[key].label;
