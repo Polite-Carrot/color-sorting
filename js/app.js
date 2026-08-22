@@ -19,11 +19,17 @@
 
   var $ = function (id) { return document.getElementById(id); };
 
-  /* Jar height, in pixels, that fitBoard() searches between. The floor is the
-     smallest a jar can get while its bands still hold a readable letter — a
-     hard jar holds six, so below this they turn into stripes. Rather than go
-     under it, the shelf is allowed to scroll inside itself. */
-  var JAR_MIN = 78, JAR_MAX = 122;
+  /* Jar height, in pixels, that fitBoard() searches between. The floor keeps
+     each band tall enough to hold a readable letter, so it has to follow how
+     many bands a jar can hold — a deeper jar needs to be taller to stay
+     legible. Rather than go under it, the shelf scrolls inside itself. */
+  var BAND_MIN = 13, JAR_FLOOR = 78, JAR_MAX = 122;
+
+  function smallestReadableJar() {
+    if (!state.game) return JAR_FLOOR;
+    var deepest = state.game.jars.reduce(function (n, j) { return Math.max(n, j.capacity); }, 0);
+    return Math.max(JAR_FLOOR, deepest * BAND_MIN);
+  }
 
   var state = {
     game: null,
@@ -224,18 +230,43 @@
     var optional = [$('keys'), $('brief')];
     optional.forEach(function (el) { if (el) el.hidden = false; });
 
+    var floor = smallestReadableJar();
+    var ceiling = Math.max(floor, JAR_MAX);
+
+    /* First choice: everything on screen AND the whole shelf in view at once,
+       dropping the optional lines only if that is what it takes. */
     for (var drop = 0; drop <= optional.length; drop++) {
-      var lo = JAR_MIN, hi = JAR_MAX, best = -1;
-      while (lo <= hi) {
-        var mid = (lo + hi) >> 1;
-        setJarHeight(mid);
-        if (screen.scrollHeight <= screen.clientHeight) { best = mid; lo = mid + 1; }
-        else hi = mid - 1;
-      }
+      var best = largestThatFits(floor, ceiling, true);
       if (best > 0) { setJarHeight(best); return; }
       if (drop < optional.length && optional[drop]) optional[drop].hidden = true;
     }
-    setJarHeight(JAR_MIN);
+
+    /* Last resort: let the shelf scroll inside itself. Seeing every jar at
+       once is worth more than big jars, so this is only reached when no
+       readable size shows them all. */
+    var loose = largestThatFits(floor, ceiling, false);
+    setJarHeight(loose > 0 ? loose : floor);
+  }
+
+  function largestThatFits(lo, hi, wholeShelfVisible) {
+    var best = -1;
+    while (lo <= hi) {
+      var mid = (lo + hi) >> 1;
+      setJarHeight(mid);
+      if (layoutSettles(wholeShelfVisible)) { best = mid; lo = mid + 1; }
+      else hi = mid - 1;
+    }
+    return best;
+  }
+
+  function layoutSettles(wholeShelfVisible) {
+    var screen = $('screen-game');
+    if (screen.scrollHeight > screen.clientHeight) return false;
+    if (!wholeShelfVisible) return true;
+    var wrap = document.querySelector('.shelf-wrap');
+    /* The shelf can shrink and scroll, so the page fitting is not enough on
+       its own — check the shelf is not hiding jars inside itself. */
+    return !wrap || wrap.scrollHeight <= wrap.clientHeight + 1;
   }
 
   function setJarHeight(px) {

@@ -25,11 +25,17 @@
       blurb: 'Nine jars, six colours, and the target buried right down.',
       mainCap: 10, sideJars: 9, sideCap: 6, fillers: 6, fillerUnits: 30, par: [18, 28]
     },
+    /* The jars here are deeper rather than more numerous. Depth is what makes
+       it hard — there is more sitting on top of the target — while the extra
+       capacity leaves room to put things down. An earlier version had the
+       same jars one unit shallower, and with only twelve free cells across
+       the whole shelf a run of ordinary moves could leave it unwinnable
+       roughly one game in ten. */
     extraHard: {
       label: 'Extra Hard',
-      blurb: 'Eleven jars, seven colours, and a big jar that takes some filling.',
-      mainCap: 14, sideJars: 11, sideCap: 6, fillers: 7, fillerUnits: 40,
-      burial: 0.6, par: [28, 42]
+      blurb: 'Eleven deep jars, seven colours, and a big jar that takes some filling.',
+      mainCap: 14, sideJars: 11, sideCap: 7, fillers: 7, fillerUnits: 40,
+      burial: 0.6, sizeUp: 600, par: [28, 44]
     }
   };
 
@@ -43,6 +49,13 @@
      cannot settle quickly is simply thrown back. Boards that do work are
      settled in a few thousand states, far inside this. */
   var SIZE_UP_BUDGET = 2500;
+
+  /* Deeper jars make each abandoned deal more expensive to give up on, so the
+     deepest setting gives up sooner. It costs nothing: the boards that come
+     out have the same spread of par either way, it simply stops sooner on the
+     ones that were never going to work. Kept per setting rather than lowered
+     across the board so the other three still deal exactly what they did
+     before for a given seed. */
 
   function rng(seed) {
     var a = seed >>> 0;
@@ -149,7 +162,7 @@
         jars: candidate.jars.map(function (j, i) {
           return { id: 'jar' + i, capacity: j.cap, cells: j.fills.slice() };
         })
-      }, SIZE_UP_BUDGET);
+      }, cfg.sizeUp || SIZE_UP_BUDGET);
 
       if (result.budgetExceeded || result.par == null) continue;
       if (result.par < cfg.par[0] || result.par > cfg.par[1]) continue;

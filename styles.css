@@ -98,8 +98,13 @@ body.playing #screen-game.is-active {
 body.playing #screen-game.is-active > * { flex: none; margin-block: 0; }
 /* If a window is so short that even the smallest readable jars will not fit,
    the shelf scrolls inside itself rather than the whole page scrolling — the
-   buttons and the hint line stay where they are. */
-body.playing .shelf-wrap {
+   buttons and the hint line stay where they are.
+   
+   Selected through the same `#screen-game.is-active >` path as the rule above,
+   which would otherwise out-specify it and pin the shelf at `flex: none`. With
+   that, the shelf could not shrink, so the valve never opened and the toolbar
+   was clipped off the bottom instead. */
+body.playing #screen-game.is-active > .shelf-wrap {
   flex: 0 1 auto;
   min-height: 0;
   overflow-y: auto;

@@ -30,7 +30,7 @@ Each level unlocks the next. Stars and best scores are kept in `localStorage`.
 | Easy | 5 units | 6 | 3 | 5–10 moves |
 | Normal | 7 units | 7 | 4 | 11–17 moves |
 | Hard | 10 units | 9 | 6 | 18–28 moves |
-| Extra Hard | 14 units | 11 | 7 | 28–42 moves |
+| Extra Hard | 14 units | 11 deep | 7 | 28–44 moves |
 
 Puzzles are built from a seed, so typing the same seed replays the same puzzle.
 Leave the seed blank for a fresh one.
@@ -105,8 +105,16 @@ Sizing up a candidate uses a much smaller search limit than play does. Deals
 that cannot be settled quickly are discarded rather than proved impossible,
 which is what keeps dealing a nine-jar board down to a fraction of a second.
 
-Extra Hard also deals the target nearer the bottom of the jars, so there is
-more sitting on top of it to clear away. That is not only a difficulty knob:
+Extra Hard's jars are deeper rather than more numerous. Depth is what makes it
+hard — there is more sitting on top of the target — while the extra capacity
+leaves somewhere to put things down. An earlier version had the same eleven
+jars one unit shallower, and with only twelve free cells across the whole
+shelf, an ordinary run of moves could leave it unwinnable about one game in
+ten. Twenty-three free cells later, that is nought in sixty, with par
+unchanged.
+
+It also deals the target nearer the bottom of the jars, so there is more
+sitting on top of it to clear away. That is not only a difficulty knob:
 adding jars on its own barely raises par, because extra jars bring extra room
 to work in, whereas burying the target raises it properly. It also makes far
 more deals land in the intended range, so far fewer are dealt and thrown
@@ -180,8 +188,13 @@ optional lines go first (the keyboard legend, then the level briefing), and
 only then does the shelf scroll inside itself — the buttons and the hint line
 stay put either way.
 
-Jars have a floor, because a hard jar holds six bands and below about 78px
-they stop being bands and become stripes.
+Jars have a floor, because below about 13px a band stops being a band and
+becomes a stripe. The floor therefore follows how many bands a jar can hold —
+a deeper jar has to be taller to stay legible.
+
+Seeing every jar at once beats seeing big ones, so the search first looks for
+a size that shows the whole shelf, and only lets the shelf scroll inside
+itself when no readable size manages that.
 
 The shelf reserves head-room at the top, because a picked-up jar lifts and
 tilts, and the shelf can scroll on a short window — without it the top row was
