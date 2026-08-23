@@ -7,6 +7,9 @@
   var Sound = UI.Sound;
   var MAIN = window.Engine.MAIN;
   var STORE_KEY = 'colourjars.progress.v3';
+  /* Kept apart from progress on purpose. It is a preference, not something
+     earned, and writing it must never put anything near the record of stars. */
+  var PREF_KEY = 'colourjars.difficulty';
 
   /* Limits for the two searches that run while someone is playing. Proving a
      position CANNOT be won is the slow case — there is no goal to home in on,
@@ -47,19 +50,31 @@
 
   function load() {
     try {
-      var raw = localStorage.getItem(STORE_KEY);
+      var raw = window.Store.read(STORE_KEY);
       if (raw) {
         var p = JSON.parse(raw);
         p.levels = p.levels || {};
         p.random = p.random || {};
         return p;
       }
-    } catch (e) { /* private mode, or corrupt — start fresh */ }
+    } catch (e) { /* corrupt — start fresh rather than refuse to run */ }
     return { levels: {}, random: {} };
   }
 
+  function loadDifficulty() {
+    var saved = window.Store.read(PREF_KEY);
+    if (saved && window.Generator.DIFFICULTY[saved]) state.difficulty = saved;
+  }
+
+  /* Progress is written the moment something is earned, and at no other time.
+     There is deliberately no write when the page closes: that would put
+     whatever is in memory over the stored copy, so a page that had failed to
+     read the store would wipe real progress with nothing. A guard that checks
+     the store first cannot help either — the case it exists for is the one
+     where reading is what has failed. Not writing is the only thing that
+     actually holds. */
   function save() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(progress)); } catch (e) { /* ignore */ }
+    return window.Store.write(STORE_KEY, JSON.stringify(progress));
   }
 
   function starString(n, lively) {
@@ -114,6 +129,16 @@
 
     if (nextUp >= 0) grid.children[nextUp].firstChild.classList.add('is-next');
 
+    var warn = $('save-warning');
+    if (window.Store.survivesClosing) {
+      warn.hidden = true;
+    } else {
+      warn.hidden = false;
+      warn.textContent = window.Store.kind === 'this-visit'
+        ? 'This browser will not keep your progress after you close the game — stars will last until you close this tab.'
+        : 'This browser is not letting the game store anything, so progress will be lost when you close it. Allowing site data for this page will fix it.';
+    }
+
     $('campaign-note').textContent = done === list.length
       ? 'All ' + list.length + ' done · ' + stars + ' of ' + (list.length * 3) + ' stars'
       : done + ' of ' + list.length + ' done · ' + stars + ' of ' + (list.length * 3) + ' stars';
@@ -126,7 +151,7 @@
         b.textContent = window.Generator.DIFFICULTY[key].label;
         b.setAttribute('role', 'radio');
         b.dataset.key = key;
-        b.addEventListener('click', function () { setDifficulty(key); });
+        b.addEventListener('click', function () { setDifficulty(key); window.Store.write(PREF_KEY, key); });
       });
     }
     setDifficulty(state.difficulty);
@@ -359,8 +384,13 @@
     toView.settle();
 
     if (g.won) {
+      /* Written now rather than with the celebration. The card is on a timer
+         for the animation, and anyone who closes the game in that moment —
+         or whose phone puts it to sleep — would otherwise lose the level they
+         just finished. */
+      recordResult();
       Sound.win();
-      setTimeout(onWin, 420);
+      setTimeout(showWinCard, 420);
     } else {
       watchForDeadEnd();
     }
@@ -432,7 +462,7 @@
 
   /* ───────── winning ───────── */
 
-  function onWin() {
+  function recordResult() {
     var g = state.game;
     var stars = g.stars();
     var lvl = g.level;
@@ -451,6 +481,12 @@
     }
     save();
     renderMenu();
+  }
+
+  function showWinCard() {
+    var g = state.game;
+    var stars = g.stars();
+    var lvl = g.level;
 
     $('win-swatch').style.background = C.hex(g.target);
     $('win-stars').innerHTML = starString(stars, true);
@@ -545,6 +581,7 @@
   /* ───────── wiring ───────── */
 
   function init() {
+    loadDifficulty();
     renderMenu();
 
     $('play-random').addEventListener('click', startRandom);
@@ -622,6 +659,7 @@
     });
 
     document.addEventListener('keydown', onKey);
+
 
     /* Rotating a phone or resizing a window changes the room available. */
     var refit = null;

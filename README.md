@@ -23,7 +23,8 @@ and teach one rule each; the rest widen steadily from six jars to eleven.
 | 13–19 | Eight to nine jars, deeper stacks | 16–26 |
 | 20–25 | Ten to eleven deep jars, up to seven colours | 29–41 |
 
-Each level unlocks the next. Stars and best scores are kept in `localStorage`.
+Each level unlocks the next. See **Keeping progress** below for how stars and
+best scores are stored.
 
 **Random Puzzle** — endlessly generated, in three settings:
 
@@ -165,6 +166,7 @@ fonts.css         generated — inlined webfont subsets
 build.js          bundles everything into one file
 fetch-fonts.js    regenerates fonts.css from Google Fonts
 make-levels.js    builds and verifies the 25-level campaign
+js/store.js       progress storage, and whether it can be trusted
 js/colour.js      the palette, and how far apart two colours look
 js/levels.js      generated — the 25 campaign levels
 js/engine.js      stacked jars, pouring, undo, win check  (no DOM)
@@ -192,6 +194,36 @@ reference reaches every board size:
 | 1 | Guide + easy | The old exhaustive breadth-first search, optimal by construction |
 | 2 | Normal | The same search run with a deliberately weaker bound — still never an overestimate, so it must agree, but it takes a very different route (~290x more states) |
 | 3 | Normal, hard, extra hard | The bound itself: walking real solutions and confirming it never claims more moves are needed than the remaining path actually takes |
+
+## Keeping progress
+
+Stars, best scores and the chosen difficulty live in the browser's own storage,
+because progress belongs to the person playing rather than to everyone who
+opens the page.
+
+That storage is not guaranteed. A private window, an embedded view, or a
+browser set to block site data can refuse it — sometimes by throwing, and
+sometimes, worse, by accepting a write and keeping nothing. So `js/store.js`
+picks its backing store by testing it: write a probe, read it back, and only
+trust it if the value survives the round trip. Failing that it drops to session
+storage, then to memory, and the menu says plainly which of the three is in use
+rather than letting someone earn stars that quietly vanish.
+
+Two rules keep a finished level from being lost:
+
+- **A result is written the moment it is earned**, not when the celebration
+  appears. The card is on a short timer for its animation, and anyone who
+  closed the game in that window — or whose phone put it to sleep — used to
+  lose the level they had just finished.
+- **Nothing is written when the page closes.** A close-time flush puts whatever
+  is in memory over the stored copy, so a page that had failed to read the
+  store would wipe real progress with nothing. A guard that checks the store
+  first does not help either: the case it exists for is the one where reading
+  is what has failed. Not writing at all is the only thing that holds.
+
+The chosen difficulty is kept under its own key for the same reason — it is a
+preference, not something earned, and saving it must never put anything near
+the record of stars.
 
 ## Fitting the window
 
