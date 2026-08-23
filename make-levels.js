@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* make-levels.js — build the 50-level campaign into js/levels.js.
+/* make-levels.js — build the 75-level campaign into js/levels.js.
  *
  *   node make-levels.js
  *
@@ -25,11 +25,13 @@ require('./js/generator.js');
 const C = globalThis.Colour, { Game, top } = globalThis.Engine,
       S = globalThis.Solver, G = globalThis.Generator;
 
-const TOTAL = 50, TAUGHT = 5;
-/* Levels 6-25 were built against this end point and must keep their exact
-   shapes — people have progress against them — so the first ramp is pinned
-   here rather than derived from TOTAL. */
-const FIRST_DEALT = TAUGHT + 1, RAMP_ONE_END = 25;
+const TOTAL = 75, TAUGHT = 5;
+/* Each ramp is pinned to the end point it was built against rather than to
+   TOTAL. People have progress against these levels, so a later ramp being
+   added must not change the shape of a single board that came before it —
+   and every one of these numbers appears in a curve that would quietly redeal
+   the lot if it moved. */
+const FIRST_DEALT = TAUGHT + 1, RAMP_ONE_END = 25, RAMP_TWO_END = 50;
 
 /* ── the five that teach ───────────────────────────────────────────────── */
 
@@ -143,29 +145,69 @@ function shape(level) {
      number, which keeps room to work in proportional while the shelf grows.
      Levels 25 and Extra Hard both work at 30%, so 36% down to 33% stays on
      the safe side of proven while leaving churn its room. */
-  const u = (level - (RAMP_ONE_END + 1)) / (TOTAL - (RAMP_ONE_END + 1));
-  const jars = lerp(12, 14, u);
-  const cap = lerp(7, 8, u);
+  if (level <= RAMP_TWO_END) {
+    const u = (level - (RAMP_ONE_END + 1)) / (RAMP_TWO_END - (RAMP_ONE_END + 1));
+    const jars = lerp(12, 14, u);
+    const cap = lerp(7, 8, u);
+    const cells = jars * cap;
+    /* Units are set directly and slack is whatever is left over, rather than
+       the other way round. Jars and depth can only move in whole steps, so
+       deriving units from them puts the ramp on four flat shelves of six
+       levels each; setting units gives a step of roughly one per level, and
+       slack still lands between 31% and 37% of the shelf the whole way. */
+    const units = lerp(54, 75, u);
+    const slack = cells - units;
+    const mainCap = lerp(16, 26, u);
+    return {
+      label: 'Campaign', blurb: '',
+      mainCap, sideJars: jars, sideCap: cap,
+      /* Nine filler colours plus a target would need the whole palette, and
+         orange and yellow are too close to sit on one shelf, so eight is the
+         ceiling. */
+      fillers: lerp(7, 8, u),
+      fillerUnits: units - mainCap,
+      burial: 0.6,
+      churn: 0.55 + 0.2 * u,
+      sizeUp: 600,
+      par: [1, 999]
+    };
+  }
+
+  /* Third ramp. Units still drive par, but what limits this one is neither the
+     shelf nor the palette — it is the solver. Every level's par has to be
+     PROVEN minimal, and that search grows steeply with the board.
+
+     Two things were measured before settling on these numbers. First, the
+     ceiling on colour: nine fillers plus a target would need all ten palette
+     entries, and orange and yellow are too close to share a shelf, so ramp two
+     already reached the limit at eight. Second, and the real find: churn is
+     what makes a board expensive to search, because scattering each colour
+     into thin layers is exactly what denies the search anything to home in on.
+     At fifteen jars with ramp two's churn of 0.75, not one deal in two hundred
+     seconds could be settled at all. Lowering churn to 0.45 on the same shape
+     produced boards of par 58-67 that the solver settled in TEN MILLISECONDS.
+
+     So ramp two's lever is deliberately wound back here and the unit count
+     does the work instead — which it could not do in ramp two, where the shelf
+     had nowhere left to grow. Nineteen jars at eight deep is the widest shelf
+     that still shows every jar at once on a laptop. */
+  const u = (level - (RAMP_TWO_END + 1)) / (TOTAL - (RAMP_TWO_END + 1));
+  const jars = lerp(16, 19, u);
+  const cap = 8;
   const cells = jars * cap;
-  /* Units are set directly and slack is whatever is left over, rather than the
-     other way round. Jars and depth can only move in whole steps, so deriving
-     units from them puts the ramp on four flat shelves of six levels each;
-     setting units gives a step of roughly one per level, and slack still lands
-     between 31% and 37% of the shelf the whole way. */
-  const units = lerp(54, 75, u);
-  const slack = cells - units;
-  const mainCap = lerp(16, 26, u);
+  const units = lerp(86, 102, u);
   return {
     label: 'Campaign', blurb: '',
-    mainCap, sideJars: jars, sideCap: cap,
-    /* Nine filler colours plus a target would need the whole palette, and
-       orange and yellow are too close to sit on one shelf, so eight is the
-       ceiling. */
-    fillers: lerp(7, 8, u),
-    fillerUnits: units - mainCap,
+    mainCap: lerp(29, 34, u),
+    sideJars: jars, sideCap: cap,
+    fillers: 8,
+    fillerUnits: units - lerp(29, 34, u),
     burial: 0.6,
-    churn: 0.55 + 0.2 * u,
-    sizeUp: 600,
+    churn: 0.30 + 0.10 * u,
+    /* A wider gate than ramp two's 600. The gate is not only a validity check:
+       it is what keeps boards the search cannot settle out of the campaign,
+       and on a board this size 600 nodes throws away almost everything. */
+    sizeUp: 2500,
     par: [1, 999]
   };
 }
@@ -238,7 +280,12 @@ const ADJECTIVES = ['Stacked', 'Buried', 'Layered', 'Sunken', 'Packed', 'Tangled
                     'Riddled', 'Woven', 'Snarled', 'Cluttered', 'Stranded', 'Salted',
                     'Threaded', 'Marbled', 'Shuffled', 'Split', 'Steeped', 'Stirred',
                     'Speckled', 'Banded', 'Sunk', 'Clouded', 'Wound', 'Dredged',
-                    'Silted', 'Braided', 'Fractured'];
+                    'Silted', 'Braided', 'Fractured',
+                    'Strewn', 'Warped', 'Lodged', 'Swamped', 'Ravelled', 'Sundered',
+                    'Flooded', 'Grated', 'Sluiced', 'Winnowed', 'Quartered', 'Harrowed',
+                    'Shattered', 'Wrung', 'Roiled', 'Interleaved', 'Combed',
+                    'Sieved', 'Decanted', 'Rifted', 'Scrambled', 'Unspooled',
+                    'Overlaid', 'Entwined', 'Meshed'];
 
 const built = [];
 let prevPar = 0;
@@ -355,16 +402,31 @@ for (let level = FIRST_DEALT; level <= RAMP_ONE_END; level++) {
    fact about the boards rather than a hope about the dealing. */
 const rampTwo = [];
 const FLOOR = prevPar;
-for (let level = RAMP_ONE_END + 1; level <= TOTAL; level++) {
+for (let level = RAMP_ONE_END + 1; level <= RAMP_TWO_END; level++) {
   const cfg = shape(level);
   G.DIFFICULTY.__campaign = cfg;
   const picked = pickBoard(level, cfg, FLOOR);
   rampTwo.push(picked);
-  console.log('     dealt ' + (level - RAMP_ONE_END) + '/' + (TOTAL - RAMP_ONE_END) +
+  console.log('     dealt ' + (level - RAMP_ONE_END) + '/' + (RAMP_TWO_END - RAMP_ONE_END) +
     ' for the second ramp — ' + picked.board.jars.length + ' jars, par ' + picked.par);
 }
 rampTwo.sort((a, b) => a.par - b.par);
 rampTwo.forEach(function (picked, i) { emit(RAMP_ONE_END + 1 + i, picked); });
+
+/* The third ramp, dealt and ordered the same way, with the floor set by where
+   the second one finished. */
+const rampThree = [];
+const FLOOR_THREE = rampTwo[rampTwo.length - 1].par;
+for (let level = RAMP_TWO_END + 1; level <= TOTAL; level++) {
+  const cfg = shape(level);
+  G.DIFFICULTY.__campaign = cfg;
+  const picked = pickBoard(level, cfg, FLOOR_THREE);
+  rampThree.push(picked);
+  console.log('     dealt ' + (level - RAMP_TWO_END) + '/' + (TOTAL - RAMP_TWO_END) +
+    ' for the third ramp — ' + picked.board.jars.length + ' jars, par ' + picked.par);
+}
+rampThree.sort((a, b) => a.par - b.par);
+rampThree.forEach(function (picked, i) { emit(RAMP_TWO_END + 1 + i, picked); });
 
 /* ── emit ──────────────────────────────────────────────────────────────── */
 

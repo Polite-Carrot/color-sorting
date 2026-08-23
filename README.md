@@ -17,8 +17,9 @@ The home screen offers two ways in — Campaign and Random Puzzle — and each
 opens its own screen. The campaign's icon is a jar that fills with how far
 through you are.
 
-**Campaign** — fifty levels, in order. The first five are written by hand and
-teach one rule each; the rest widen steadily from six jars to fourteen.
+**Campaign** — seventy-five levels, in order. The first five are written by
+hand and teach one rule each; the rest widen steadily from six jars to
+nineteen.
 
 | Levels | | Par |
 |--------|--|-----|
@@ -30,6 +31,10 @@ teach one rule each; the rest widen steadily from six jars to fourteen.
 | 32–37 | Jars eight deep, and the whole palette bar one | 49–51 |
 | 38–43 | A big jar taking twenty-odd, colours split across the shelf | 54–59 |
 | 44–50 | Fourteen jars eight deep, nine colours, nowhere spare to park | 59–62 |
+| 51–56 | Sixteen to eighteen jars, a big jar taking thirty | 62–67 |
+| 57–62 | The same shelf again, holding more | 67–69 |
+| 63–69 | Up to nineteen jars, ninety-odd units to move | 70–73 |
+| 70–75 | The widest shelf that still shows every jar at once | 74–83 |
 
 Each level unlocks the next. See **Keeping progress** below for how stars and
 best scores are stored.
@@ -172,6 +177,22 @@ sets a bar the shape cannot clear again, and every level after it settles for
 less, so the ramp decays instead of climbing. Ordering afterwards makes the
 progression a fact about the boards rather than a hope about the dealing.
 
+The third ramp is dealt and ordered the same way, but what limits it is neither
+the shelf nor the palette — it is the solver. Every level's par has to be
+*proven* minimal, and that search grows steeply with the board. Churn is what
+makes a board expensive to search, because scattering each colour into thin
+layers is exactly what denies the search anything to home in on. At fifteen
+jars with the second ramp's churn of 0.75, not one deal in two hundred seconds
+could be settled at all; lowering churn to 0.45 on the same shape produced
+boards of par 58–67 that the solver settled in ten milliseconds. So the third
+ramp winds that lever back and lets the unit count do the work instead — which
+it could not do in the second ramp, where the shelf had nowhere left to grow.
+
+Each ramp is pinned to the end point it was built against rather than to the
+campaign total. Every one of those numbers appears in a curve that would
+quietly redeal every earlier level if it moved, and people have progress
+against those boards.
+
 Both inline every stylesheet, script and font face, so the result has no
 external references at all. The default output is a fragment meant to be
 embedded in a host page that supplies its own `<!doctype>` — opened directly it
@@ -191,10 +212,10 @@ styles.css        all styling
 fonts.css         generated — inlined webfont subsets
 build.js          bundles everything into one file
 fetch-fonts.js    regenerates fonts.css from Google Fonts
-make-levels.js    builds and verifies the 50-level campaign
+make-levels.js    builds and verifies the 75-level campaign
 js/store.js       progress storage, and whether it can be trusted
 js/colour.js      the palette, and how far apart two colours look
-js/levels.js      generated — the 50 campaign levels
+js/levels.js      generated — the 75 campaign levels
 js/engine.js      stacked jars, pouring, undo, win check  (no DOM)
 js/solver.js      breadth-first search: par, hints, solvability  (no DOM)
 js/generator.js   seeded random puzzles, validated by the solver
