@@ -13,13 +13,15 @@ Or run `node build.js --standalone` for the whole game as one shareable file.
 
 ## What's in it
 
-**Beginner's Guide** — three hand-built levels that teach the whole game:
+**Campaign** — twenty-five levels, in order. The first five are written by hand
+and teach one rule each; the rest widen steadily from six jars to eleven.
 
-| # | Level | Jars | Par | Teaches |
-|---|-------|------|-----|---------|
-| 1 | Top Pour | 6 | 3 | Picking a jar up and pouring it |
-| 2 | Dig It Out | 6 | 6 | Uncovering a buried colour by stacking on a match |
-| 3 | Make Room | 7 | 8 | Working through the one empty jar |
+| Levels | | Par |
+|--------|--|-----|
+| 1–5 | Taught: pouring, collecting, uncovering, how much fits, the empty jar | 2–5 |
+| 6–12 | Six to eight jars, three or four colours in the way | 7–15 |
+| 13–19 | Eight to nine jars, deeper stacks | 16–26 |
+| 20–25 | Ten to eleven deep jars, up to seven colours | 29–41 |
 
 Each level unlocks the next. Stars and best scores are kept in `localStorage`.
 
@@ -126,7 +128,22 @@ slowest.
 ```
 node build.js               # artifact fragment, no <!doctype> wrapper
 node build.js --standalone  # complete document, opens from disk
+node make-levels.js         # rebuild the campaign into js/levels.js
 ```
+
+`make-levels.js` writes the campaign. The five taught levels are written by
+hand — each exists to teach one rule, which is not something a generator can be
+asked for. The rest are dealt by the ordinary puzzle generator along a widening
+curve and kept only if the solver can finish them, their par is no lower than
+the level before, and playing them badly still leaves them winnable. Boards are
+baked into the file rather than dealt on load, so the campaign is the same for
+everyone and par is known to be the true minimum.
+
+Difficulty is left to the board shapes; par is used only as a ratchet. Chasing
+a separate par curve fights the shapes and stalls the moment the two disagree,
+and picking the gentlest board that merely beats the level before leaves the
+middle of the campaign flat while the boards visibly grow. Each level takes a
+board from the harder end of what its shape produces.
 
 Both inline every stylesheet, script and font face, so the result has no
 external references at all. The default output is a fragment meant to be
@@ -147,8 +164,9 @@ styles.css        all styling
 fonts.css         generated — inlined webfont subsets
 build.js          bundles everything into one file
 fetch-fonts.js    regenerates fonts.css from Google Fonts
+make-levels.js    builds and verifies the 25-level campaign
 js/colour.js      the palette, and how far apart two colours look
-js/levels.js      the three guide levels
+js/levels.js      generated — the 25 campaign levels
 js/engine.js      stacked jars, pouring, undo, win check  (no DOM)
 js/solver.js      breadth-first search: par, hints, solvability  (no DOM)
 js/generator.js   seeded random puzzles, validated by the solver
@@ -159,7 +177,9 @@ js/app.js         screens, progress, input
 ## Checking
 
 The engine and solver are pure logic with no DOM dependency, so they run under
-Node. 880 generated puzzles across the four difficulties are each verified to
+Node. Every campaign level is verified to solve at par for three stars with a
+par no lower than the level before, and 880 generated puzzles across the four
+difficulties are each verified to
 hold exactly one jarful of the target, to use no two lookalike colours, to fall
 inside their difficulty's par band, and to have the solver's own path play back
 through the engine to a win in exactly par moves.

@@ -6,7 +6,7 @@
   var UI = window.UI;
   var Sound = UI.Sound;
   var MAIN = window.Engine.MAIN;
-  var STORE_KEY = 'colourjars.progress.v2';
+  var STORE_KEY = 'colourjars.progress.v3';
 
   /* Limits for the two searches that run while someone is playing. Proving a
      position CANNOT be won is the slow case — there is no goal to home in on,
@@ -33,7 +33,7 @@
 
   var state = {
     game: null,
-    mode: 'guide',
+    mode: 'campaign',
     difficulty: 'easy',
     selected: null,
     mainView: null,
@@ -50,12 +50,12 @@
       var raw = localStorage.getItem(STORE_KEY);
       if (raw) {
         var p = JSON.parse(raw);
-        p.guide = p.guide || {};
+        p.levels = p.levels || {};
         p.random = p.random || {};
         return p;
       }
     } catch (e) { /* private mode, or corrupt — start fresh */ }
-    return { guide: {}, random: {} };
+    return { levels: {}, random: {} };
   }
 
   function save() {
@@ -83,34 +83,40 @@
   }
 
   function renderMenu() {
-    var list = $('guide-list');
-    list.innerHTML = '';
+    var grid = $('level-grid');
+    grid.innerHTML = '';
 
-    window.Levels.list.forEach(function (lvl, i) {
-      var prev = i === 0 ? null : window.Levels.list[i - 1];
-      var unlocked = i === 0 || !!progress.guide[prev.id];
-      var done = progress.guide[lvl.id];
+    var list = window.Levels.list;
+    var nextUp = -1, done = 0, stars = 0;
 
-      var li = UI.el('li', null, list);
-      var btn = UI.el('button', 'level-btn', li);
+    list.forEach(function (lvl, i) {
+      var record = progress.levels[lvl.id];
+      var unlocked = i === 0 || !!progress.levels[list[i - 1].id];
+      if (record) { done++; stars += record.stars; }
+      if (unlocked && !record && nextUp < 0) nextUp = i;
+
+      var li = UI.el('li', null, grid);
+      var btn = UI.el('button', 'tile', li);
       btn.type = 'button';
       btn.disabled = !unlocked;
 
-      UI.el('span', 'level-btn__no', btn).textContent = unlocked ? String(i + 1) : '🔒';
+      UI.el('span', 'tile__no', btn).textContent = unlocked ? String(i + 1) : '🔒';
+      UI.el('span', 'tile__stars', btn).innerHTML = starString(record ? record.stars : 0);
 
-      var main = UI.el('div', 'level-btn__main', btn);
-      UI.el('span', 'level-btn__name', main).textContent = lvl.name;
-      UI.el('span', 'level-btn__sub', main).textContent =
-        unlocked ? lvl.teaches : 'Finish “' + prev.name + '” first';
+      btn.setAttribute('aria-label', unlocked
+        ? 'Level ' + (i + 1) + ', ' + lvl.name + ', ' +
+          (record ? record.stars + ' of 3 stars, best ' + record.moves + ' moves' : 'not played yet')
+        : 'Level ' + (i + 1) + ', locked — finish level ' + i + ' first');
+      btn.title = unlocked ? lvl.name + ' — ' + lvl.teaches : 'Locked';
 
-      var stars = UI.el('span', 'level-btn__stars', btn);
-      stars.innerHTML = starString(done ? done.stars : 0);
-      stars.setAttribute('role', 'img');
-      stars.setAttribute('aria-label',
-        done ? done.stars + ' of 3 stars, best ' + done.moves + ' moves' : 'not completed');
-
-      btn.addEventListener('click', function () { startLevel(lvl, 'guide'); });
+      btn.addEventListener('click', function () { startLevel(lvl, 'campaign'); });
     });
+
+    if (nextUp >= 0) grid.children[nextUp].firstChild.classList.add('is-next');
+
+    $('campaign-note').textContent = done === list.length
+      ? 'All ' + list.length + ' done · ' + stars + ' of ' + (list.length * 3) + ' stars'
+      : done + ' of ' + list.length + ' done · ' + stars + ' of ' + (list.length * 3) + ' stars';
 
     var diffs = $('difficulty');
     if (!diffs.childNodes.length) {
@@ -431,10 +437,10 @@
     var stars = g.stars();
     var lvl = g.level;
 
-    if (state.mode === 'guide') {
-      var old = progress.guide[lvl.id];
+    if (state.mode === 'campaign') {
+      var old = progress.levels[lvl.id];
       if (!old || stars > old.stars || (stars === old.stars && g.moves < old.moves)) {
-        progress.guide[lvl.id] = { stars: stars, moves: g.moves };
+        progress.levels[lvl.id] = { stars: stars, moves: g.moves };
       }
     } else {
       var rec = progress.random[state.difficulty] || { won: 0, par3: 0 };
@@ -456,13 +462,13 @@
       (g.hintsUsed ? ' Hint used.' : '');
 
     var next = $('win-next');
-    if (state.mode === 'guide') {
+    if (state.mode === 'campaign') {
       var i = window.Levels.indexOf(lvl.id);
       var hasNext = i >= 0 && i + 1 < window.Levels.list.length;
       next.textContent = hasNext ? 'Next level' : 'Try a random puzzle';
       next.onclick = function () {
         closeOverlay();
-        if (hasNext) startLevel(window.Levels.list[i + 1], 'guide');
+        if (hasNext) startLevel(window.Levels.list[i + 1], 'campaign');
         else { showScreen('menu'); $('play-random').focus(); }
       };
     } else {
@@ -610,7 +616,7 @@
         return;
       }
       disarm();
-      progress = { guide: {}, random: {} };
+      progress = { levels: {}, random: {} };
       save();
       renderMenu();
     });

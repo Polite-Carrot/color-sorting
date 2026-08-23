@@ -227,17 +227,27 @@ input:focus-visible {
 .card__body { margin: 0 0 16px; color: var(--ink-soft); font-size: 15px; }
 .card__note { margin: 14px 0 0; color: var(--ink-soft); font-size: 14px; min-height: 1.2em; }
 
-.level-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 11px; }
+.level-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
 
-.level-btn {
+.tile {
   width: 100%;
+  /* Slightly wider than tall: five rows of squares made the card overflow the
+     window before the Random Puzzle panel beside it had been read. */
+  aspect-ratio: 1 / 0.78;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 13px;
-  text-align: left;
-  padding: 12px 14px;
-  border-radius: 13px;
+  justify-content: center;
+  gap: 1px;
   border: var(--stroke) solid var(--ink);
+  border-radius: 12px;
   background: var(--paper-warm);
   color: var(--ink);
   font: inherit;
@@ -245,40 +255,35 @@ input:focus-visible {
   box-shadow: 0 var(--lift) 0 var(--ink);
   transition: transform .09s ease, box-shadow .09s ease, background .14s ease;
 }
-.level-btn:hover:not(:disabled) { background: #ffe8c6; }
-.level-btn:active:not(:disabled) { transform: translateY(var(--lift)); box-shadow: 0 0 0 var(--ink); }
-.level-btn:disabled {
-  opacity: .55;
+.tile:hover:not(:disabled) { background: #ffe8c6; }
+.tile:active:not(:disabled) { transform: translateY(var(--lift)); box-shadow: 0 0 0 var(--ink); }
+.tile:disabled {
   cursor: default;
+  color: rgba(43, 33, 66, .45);
   background: rgba(255, 255, 255, .6);
   box-shadow: 0 var(--lift) 0 var(--ink-faint);
 }
+/* the one to play next */
+.tile.is-next { background: var(--gold); }
 
-.level-btn__no {
-  flex: 0 0 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  border: 2px solid var(--ink);
-  background: var(--gold);
+.tile__no {
   font-family: "Baloo 2", sans-serif;
   font-weight: 800;
-  font-size: 17px;
+  font-size: 19px;
+  line-height: 1;
 }
-.level-btn__main { flex: 1; min-width: 0; }
-.level-btn__name {
-  display: block;
-  font-family: "Baloo 2", sans-serif;
-  font-weight: 700;
-  font-size: 17px;
-  line-height: 1.15;
+.tile__stars {
+  font-size: 8px;
+  letter-spacing: .5px;
+  line-height: 1;
+  color: var(--gold);
 }
-.level-btn__sub { display: block; color: var(--ink-soft); font-size: 13px; }
-.level-btn__stars { font-size: 15px; letter-spacing: 1px; white-space: nowrap; color: var(--gold); }
-.level-btn__stars .off { color: rgba(43, 33, 66, .18); }
+.tile__stars .off { color: rgba(43, 33, 66, .2); }
+/* A locked level has no score to show, so show nothing rather than three
+   empty stars — this has to come last to beat the .off colour above. */
+.tile:disabled .tile__stars,
+.tile:disabled .tile__stars .off { color: transparent; }
 
-/* Four settings sit two by two — "Extra Hard" needs the width. */
 .difficulty { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
 .diff {
   flex: 1;
@@ -764,6 +769,8 @@ input:focus-visible {
   .toolbar { gap: 7px; }
   .toolbar .btn { padding: 9px 11px; font-size: 15px; }
   .goal { padding: 12px; }
+  .level-grid { gap: 6px; }
+  .tile__no { font-size: 17px; }
   .swatch { width: 38px; height: 38px; flex-basis: 38px; border-radius: 11px; }
   .topbar { padding: 9px 11px; gap: 8px; }
   .topbar__title h2 { font-size: 17px; }
