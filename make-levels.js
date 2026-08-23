@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* make-levels.js — build the 25-level campaign into js/levels.js.
+/* make-levels.js — build the 50-level campaign into js/levels.js.
  *
  *   node make-levels.js
  *
@@ -25,7 +25,11 @@ require('./js/generator.js');
 const C = globalThis.Colour, { Game, top } = globalThis.Engine,
       S = globalThis.Solver, G = globalThis.Generator;
 
-const TOTAL = 25, TAUGHT = 5;
+const TOTAL = 50, TAUGHT = 5;
+/* Levels 6-25 were built against this end point and must keep their exact
+   shapes — people have progress against them — so the first ramp is pinned
+   here rather than derived from TOTAL. */
+const FIRST_DEALT = TAUGHT + 1, RAMP_ONE_END = 25;
 
 /* ── the five that teach ───────────────────────────────────────────────── */
 
@@ -107,21 +111,61 @@ const TEACH = [
 const lerp = (a, b, t) => Math.round(a + (b - a) * t);
 
 function shape(level) {
-  const t = (level - (TAUGHT + 1)) / (TOTAL - (TAUGHT + 1));
-  const jars = lerp(6, 11, t);
-  const cap = lerp(4, 7, t);
-  const mainCap = lerp(5, 14, t);
-  /* Room to work in grows with the board. Too little and an ordinary run of
-     moves can leave a level unwinnable, which is unacceptable in a campaign
-     someone has to get through in order. */
-  const slack = lerp(10, 23, t);
+  if (level <= RAMP_ONE_END) {
+    /* First ramp: six jars to eleven, widening and deepening. */
+    const t = (level - FIRST_DEALT) / (RAMP_ONE_END - FIRST_DEALT);
+    const jars = lerp(6, 11, t);
+    const cap = lerp(4, 7, t);
+    const mainCap = lerp(5, 14, t);
+    /* Room to work in grows with the board. Too little and an ordinary run of
+       moves can leave a level unwinnable, which is unacceptable in a campaign
+       someone has to get through in order. */
+    const slack = lerp(10, 23, t);
+    return {
+      label: 'Campaign', blurb: '',
+      mainCap, sideJars: jars, sideCap: cap,
+      fillers: lerp(3, 7, t),
+      fillerUnits: jars * cap - mainCap - slack,
+      burial: t > 0.65 ? 0.6 : 0,
+      sizeUp: cap >= 7 ? 600 : 2500,
+      par: [1, 999]
+    };
+  }
+
+  /* Second ramp, driven by how much liquid is on the shelf.
+     Measuring the first ramp settled what par actually follows: not the
+     number of jars, not the size of the big jar, but the number of units in
+     play, at roughly par = units - 10 (54 units gave par 43, 59 gave 51, 69
+     gave 59). An earlier attempt at this ramp widened the shelf while raising
+     slack alongside it, and the two cancelled: the unit count went from 50
+     down to 49 across twenty-five levels, and par sat flat at 41-45 the whole
+     way. So slack is set as a fraction of capacity here rather than as a
+     number, which keeps room to work in proportional while the shelf grows.
+     Levels 25 and Extra Hard both work at 30%, so 36% down to 33% stays on
+     the safe side of proven while leaving churn its room. */
+  const u = (level - (RAMP_ONE_END + 1)) / (TOTAL - (RAMP_ONE_END + 1));
+  const jars = lerp(12, 14, u);
+  const cap = lerp(7, 8, u);
+  const cells = jars * cap;
+  /* Units are set directly and slack is whatever is left over, rather than the
+     other way round. Jars and depth can only move in whole steps, so deriving
+     units from them puts the ramp on four flat shelves of six levels each;
+     setting units gives a step of roughly one per level, and slack still lands
+     between 31% and 37% of the shelf the whole way. */
+  const units = lerp(54, 75, u);
+  const slack = cells - units;
+  const mainCap = lerp(16, 26, u);
   return {
     label: 'Campaign', blurb: '',
     mainCap, sideJars: jars, sideCap: cap,
-    fillers: lerp(3, 7, t),
-    fillerUnits: jars * cap - mainCap - slack,
-    burial: t > 0.65 ? 0.6 : 0,
-    sizeUp: cap >= 7 ? 600 : 2500,
+    /* Nine filler colours plus a target would need the whole palette, and
+       orange and yellow are too close to sit on one shelf, so eight is the
+       ceiling. */
+    fillers: lerp(7, 8, u),
+    fillerUnits: units - mainCap,
+    burial: 0.6,
+    churn: 0.55 + 0.2 * u,
+    sizeUp: 600,
     par: [1, 999]
   };
 }
@@ -190,7 +234,11 @@ function survivable(lvl, trials) {
 const ADJECTIVES = ['Stacked', 'Buried', 'Layered', 'Sunken', 'Packed', 'Tangled',
                     'Jumbled', 'Deep', 'Crowded', 'Knotted', 'Folded', 'Heaped',
                     'Wedged', 'Sealed', 'Nested', 'Hidden', 'Pressed', 'Bottled',
-                    'Locked', 'Drowned'];
+                    'Locked', 'Drowned', 'Sifted', 'Churned', 'Muddled', 'Scattered',
+                    'Riddled', 'Woven', 'Snarled', 'Cluttered', 'Stranded', 'Salted',
+                    'Threaded', 'Marbled', 'Shuffled', 'Split', 'Steeped', 'Stirred',
+                    'Speckled', 'Banded', 'Sunk', 'Clouded', 'Wound', 'Dredged',
+                    'Silted', 'Braided', 'Fractured'];
 
 const built = [];
 let prevPar = 0;
@@ -206,69 +254,117 @@ TEACH.forEach((spec, i) => {
     ' taught  jars ' + String(lvl.jars.length).padStart(2) + '  par ' + String(r.par).padStart(2));
 });
 
-for (let level = TAUGHT + 1; level <= TOTAL; level++) {
-  const cfg = shape(level);
-  G.DIFFICULTY.__campaign = cfg;
+function pickBoard(level, cfg, floor) {
+  let ordered, candidates = 0;
 
-  /* Collect a spread of workable boards for this shape, then take the gentlest
-     one that is still no easier than the level before. Letting the shape set
-     the difficulty and using par only as a ratchet keeps the ramp as smooth as
-     the shapes allow — an independent par curve just fights them, and stalls
-     the moment the two disagree. */
-  const pool = [];
-  const deal = (from, until, want) => {
-    for (let seed = from; seed < until && pool.length < 20; seed++) {
+  if (level <= RAMP_ONE_END) {
+    /* The first ramp is pinned: this is exactly how levels 6-25 were chosen,
+       and changing it would deal a different campaign for anyone who already
+       has progress against this one. */
+    const pool = [];
+    const deal = (from, until, want) => {
+      for (let seed = from; seed < until && pool.length < 20; seed++) {
+        const cand = G.generate('__campaign', seed);
+        if (cand.jars.length !== cfg.sideJars) continue;        /* the fallback board */
+        const r = inspect(cand);
+        if (r.bad) continue;
+        if (want && r.par < want) continue;
+        pool.push({ level: cand, par: r.par });
+      }
+    };
+    deal(level * 1000, level * 1000 + 500, 0);
+    if (!pool.some(c => c.par >= floor)) deal(level * 1000 + 500, level * 1000 + 3000, floor);
+    pool.sort((a, b) => a.par - b.par);
+    candidates = pool.length;
+
+    const eligible = pool.filter(c => c.par >= floor);
+    if (eligible.length) {
+      const aim = eligible[Math.min(eligible.length - 1, Math.floor(eligible.length * 0.65))].par;
+      ordered = eligible.slice().sort((a, b) => Math.abs(a.par - aim) - Math.abs(b.par - aim));
+    } else {
+      ordered = pool.slice().reverse();    /* nothing harder exists: take the hardest there is */
+    }
+  } else {
+    /* One board per level, not a pool. These are slow to deal — a fourteen jar
+       board takes the best part of a minute — and a pool buys nothing here,
+       because the shape pins par tightly: four deals of the same shape came
+       back 60, 58, 59, 58. The floor is all the choosing that is needed, and
+       the ordering pass afterwards does the rest. */
+    const pool = [];
+    for (let seed = level * 1000; seed < level * 1000 + 60 && !pool.length; seed++) {
       const cand = G.generate('__campaign', seed);
-      if (cand.jars.length !== cfg.sideJars) continue;        /* the fallback board */
+      if (cand.jars.length !== cfg.sideJars) continue;
       const r = inspect(cand);
       if (r.bad) continue;
-      if (want && r.par < want) continue;
+      if (r.par < floor) continue;
       pool.push({ level: cand, par: r.par });
+      candidates = seed - level * 1000 + 1;
     }
-  };
-  deal(level * 1000, level * 1000 + 500, 0);
-  /* Two shapes running back to back can produce the same spread, so a level
-     can find nothing harder than the one before it purely by luck. Go looking
-     specifically before settling for a step backwards. */
-  if (!pool.some(c => c.par >= prevPar)) deal(level * 1000 + 500, level * 1000 + 3000, prevPar);
-  pool.sort((a, b) => a.par - b.par);
-
-  /* Aim at the harder end of what this shape produces, not the gentlest board
-     that merely beats the level before. Hugging the bottom of each range left
-     the middle of the campaign flat — five levels running at the same par
-     while the boards visibly grew — and a finale easier than a random puzzle. */
-  const eligible = pool.filter(c => c.par >= prevPar);
-  var ordered;
-  if (eligible.length) {
-    const aim = eligible[Math.min(eligible.length - 1, Math.floor(eligible.length * 0.65))].par;
-    ordered = eligible.slice().sort((a, b) => Math.abs(a.par - aim) - Math.abs(b.par - aim));
-  } else {
-    ordered = pool.slice().reverse();      /* nothing harder exists: take the hardest there is */
+    if (!pool.length) throw new Error('level ' + level + ': nothing dealt at or above par ' + floor);
+    ordered = pool;
   }
-  let chosen = null;
+
+  /* Only take a board that can be played badly and still finished. */
   for (const c of ordered) {
-    if (survivable(c.level, level > 20 ? 4 : 3)) { chosen = c; break; }
+    if (survivable(c.level, level > 20 ? 4 : 3)) {
+      return { board: c.level, par: c.par, candidates: candidates };
+    }
   }
-  if (!chosen) throw new Error('level ' + level + ': no board that can be played badly and still won');
+  throw new Error('level ' + level + ': no board that can be played badly and still won');
+}
 
-  const colour = C.name(chosen.level.target);
-  built.push({
+function describe(level, picked) {
+  const colour = C.name(picked.board.target);
+  return {
     id: 'level-' + String(level).padStart(2, '0'),
     name: ADJECTIVES[(level - TAUGHT - 1) % ADJECTIVES.length] + ' ' +
           colour.charAt(0).toUpperCase() + colour.slice(1),
-    teaches: chosen.level.jars.length + ' jars · ' + chosen.par + ' moves',
+    teaches: picked.board.jars.length + ' jars · ' + picked.par + ' moves',
     brief: '',
-    target: chosen.level.target,
-    main: { cap: chosen.level.main.cap },
-    par: chosen.par,
-    jars: chosen.level.jars.map(j => ({ cap: j.cap, fills: j.fills }))
-  });
-  prevPar = chosen.par;
-  console.log('  ' + String(level).padStart(2) + '. ' + built[built.length - 1].name.padEnd(18) +
-    ' dealt   jars ' + String(chosen.level.jars.length).padStart(2) +
-    '  cap ' + chosen.level.jars[0].cap + '  par ' + String(chosen.par).padStart(2) +
-    '  (from ' + pool.length + ' candidates)');
+    target: picked.board.target,
+    main: { cap: picked.board.main.cap },
+    par: picked.par,
+    jars: picked.board.jars.map(j => ({ cap: j.cap, fills: j.fills }))
+  };
 }
+
+function emit(level, picked) {
+  const entry = describe(level, picked);
+  built.push(entry);
+  console.log('  ' + String(level).padStart(2) + '. ' + entry.name.padEnd(18) +
+    ' dealt   jars ' + String(picked.board.jars.length).padStart(2) +
+    '  cap ' + picked.board.jars[0].cap + '  par ' + String(picked.par).padStart(2) +
+    '  (from ' + picked.candidates + ' candidates)');
+}
+
+for (let level = FIRST_DEALT; level <= RAMP_ONE_END; level++) {
+  const cfg = shape(level);
+  G.DIFFICULTY.__campaign = cfg;
+  const picked = pickBoard(level, cfg, prevPar);
+  prevPar = picked.par;
+  emit(level, picked);
+}
+
+/* The second ramp is dealt as a set and then put in order of the par the
+   solver measured, rather than each board being ratcheted past the one before
+   as it is dealt.
+   
+   Dealing in order does not work here: one lucky board early sets a bar the
+   shape cannot clear again, and every level after it settles for less, so the
+   ramp decays instead of climbing. Ordering afterwards makes the progression a
+   fact about the boards rather than a hope about the dealing. */
+const rampTwo = [];
+const FLOOR = prevPar;
+for (let level = RAMP_ONE_END + 1; level <= TOTAL; level++) {
+  const cfg = shape(level);
+  G.DIFFICULTY.__campaign = cfg;
+  const picked = pickBoard(level, cfg, FLOOR);
+  rampTwo.push(picked);
+  console.log('     dealt ' + (level - RAMP_ONE_END) + '/' + (TOTAL - RAMP_ONE_END) +
+    ' for the second ramp — ' + picked.board.jars.length + ' jars, par ' + picked.par);
+}
+rampTwo.sort((a, b) => a.par - b.par);
+rampTwo.forEach(function (picked, i) { emit(RAMP_ONE_END + 1 + i, picked); });
 
 /* ── emit ──────────────────────────────────────────────────────────────── */
 

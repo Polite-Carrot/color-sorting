@@ -17,8 +17,8 @@ The home screen offers two ways in — Campaign and Random Puzzle — and each
 opens its own screen. The campaign's icon is a jar that fills with how far
 through you are.
 
-**Campaign** — twenty-five levels, in order. The first five are written by hand
-and teach one rule each; the rest widen steadily from six jars to eleven.
+**Campaign** — fifty levels, in order. The first five are written by hand and
+teach one rule each; the rest widen steadily from six jars to fourteen.
 
 | Levels | | Par |
 |--------|--|-----|
@@ -26,6 +26,10 @@ and teach one rule each; the rest widen steadily from six jars to eleven.
 | 6–12 | Six to eight jars, three or four colours in the way | 7–15 |
 | 13–19 | Eight to nine jars, deeper stacks | 16–26 |
 | 20–25 | Ten to eleven deep jars, up to seven colours | 29–41 |
+| 26–31 | Twelve to thirteen jars, eight colours | 41–48 |
+| 32–37 | Jars eight deep, and the whole palette bar one | 49–51 |
+| 38–43 | A big jar taking twenty-odd, colours split across the shelf | 54–59 |
+| 44–50 | Fourteen jars eight deep, nine colours, nowhere spare to park | 59–62 |
 
 Each level unlocks the next. See **Keeping progress** below for how stars and
 best scores are stored.
@@ -150,6 +154,24 @@ and picking the gentlest board that merely beats the level before leaves the
 middle of the campaign flat while the boards visibly grow. Each level takes a
 board from the harder end of what its shape produces.
 
+The curve is in two parts, and the second is built differently, because the
+first ran out of the room it was using. Measuring it settled what par actually
+follows: not the number of jars, and not the size of the big jar, but the
+number of units on the shelf, at roughly par = units − 10. Widening the shelf
+while raising the room to work in alongside it cancels out — an early attempt
+at levels 26–50 did exactly that, held the unit count still at 50, and left par
+flat at 41–45 for twenty-five levels. So the second ramp sets units directly,
+one more per level, and takes the leftover capacity as slack, which stays
+between 30% and 38% of the shelf throughout. Colours split further apart as it
+goes, which is what fills the gap between the unit count and par.
+
+The second ramp is also dealt as a whole set and then put in order of the par
+the solver measured, rather than each board being ratcheted past the one dealt
+before it. Ratcheting in order does not survive here: one lucky board early
+sets a bar the shape cannot clear again, and every level after it settles for
+less, so the ramp decays instead of climbing. Ordering afterwards makes the
+progression a fact about the boards rather than a hope about the dealing.
+
 Both inline every stylesheet, script and font face, so the result has no
 external references at all. The default output is a fragment meant to be
 embedded in a host page that supplies its own `<!doctype>` — opened directly it
@@ -169,10 +191,10 @@ styles.css        all styling
 fonts.css         generated — inlined webfont subsets
 build.js          bundles everything into one file
 fetch-fonts.js    regenerates fonts.css from Google Fonts
-make-levels.js    builds and verifies the 25-level campaign
+make-levels.js    builds and verifies the 50-level campaign
 js/store.js       progress storage, and whether it can be trusted
 js/colour.js      the palette, and how far apart two colours look
-js/levels.js      generated — the 25 campaign levels
+js/levels.js      generated — the 50 campaign levels
 js/engine.js      stacked jars, pouring, undo, win check  (no DOM)
 js/solver.js      breadth-first search: par, hints, solvability  (no DOM)
 js/generator.js   seeded random puzzles, validated by the solver

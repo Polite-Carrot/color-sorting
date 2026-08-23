@@ -131,7 +131,28 @@
     for (i = 0; i < deck.length; i++) {
       var open = jars.filter(function (j) { return j.fills.length < j.cap; });
       if (!open.length) return null;
-      open[Math.floor(rand() * open.length)].fills.push(deck[i]);
+
+      /* churn steers a unit away from a jar already showing its colour, so
+         colours settle in thin layers rather than gathering into blocks.
+         
+         It is the only lever that really raises par on a big board. Par counts
+         pours, not units, so simply widening the shelf or enlarging the big
+         jar changes little — the same liquid just arrives in fewer, larger
+         runs. Breaking it up means more runs to deliver and more runs sitting
+         in the way, which is what actually makes a board long.
+         
+         The cost is deadlock: a fragmented board is likelier to be
+         unwinnable, so anything using churn needs more room spare to
+         compensate. `cfg.churn &&` short-circuits so a setting without it
+         draws no random number here and deals exactly as it did before. */
+      var pool = open;
+      if (cfg.churn && rand() < cfg.churn) {
+        var mixed = open.filter(function (j) {
+          return !j.fills.length || j.fills[j.fills.length - 1] !== deck[i];
+        });
+        if (mixed.length) pool = mixed;
+      }
+      pool[Math.floor(rand() * pool.length)].fills.push(deck[i]);
     }
 
     /* A jar showing the target on top from the start is a free move. A couple

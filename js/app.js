@@ -167,7 +167,19 @@
       btn.addEventListener('click', function () { startLevel(lvl, 'campaign'); });
     });
 
-    if (nextUp >= 0) grid.children[nextUp].firstChild.classList.add('is-next');
+    if (nextUp >= 0) {
+      var tile = grid.children[nextUp].firstChild;
+      tile.classList.add('is-next');
+      /* The grid is taller than the window once there are fifty of them, so
+         bring the next one to play into view instead of opening at level 1
+         every time. Only when it would otherwise be off screen — scrolling a
+         tile that is already visible just shoves the heading away. */
+      requestAnimationFrame(function () {
+        if (tile.getBoundingClientRect().bottom > window.innerHeight) {
+          tile.scrollIntoView({ block: 'center', behavior: UI.calm() ? 'auto' : 'smooth' });
+        }
+      });
+    }
 
     $('campaign-note').textContent = done + ' of ' + list.length + ' done · ' +
       stars + ' of ' + (list.length * 3) + ' stars';
