@@ -11,36 +11,34 @@
 
 <div class="app">
 
-  <!-- ─────────────── menu ─────────────── -->
-  <section id="screen-menu" class="screen is-active">
+  <!-- ─────────────── home ─────────────── -->
+  <section id="screen-home" class="screen is-active">
     <header class="masthead">
       <div class="masthead__mark" aria-hidden="true">
-        <span style="--c:#e2453f"></span><span style="--c:#f0c92f"></span><span style="--c:#3070e0"></span>
+        <span style="--c:#f5423c"></span><span style="--c:#ffd028"></span><span style="--c:#3b7bf7"></span>
       </div>
       <h1>Colour&nbsp;Jars</h1>
       <p class="masthead__tag">Dig the colour out, and fill the big jar to the brim.</p>
     </header>
 
-    <div class="menu-grid">
-      <div class="card">
-        <h2 class="card__title">Campaign</h2>
-        <p class="card__body">Twenty-five levels. The first few teach you the game, then they get steadily harder.</p>
-        <ol id="level-grid" class="level-grid"></ol>
-        <p id="campaign-note" class="card__note"></p>
-      </div>
+    <div class="choices">
+      <button id="go-campaign" class="choice" type="button">
+        <span class="choice__jar" aria-hidden="true"><i id="home-fill"></i></span>
+        <span class="choice__body">
+          <span class="choice__name">Campaign</span>
+          <span class="choice__sub" id="home-campaign-sub">Twenty-five levels</span>
+        </span>
+        <span class="choice__go" aria-hidden="true">›</span>
+      </button>
 
-      <div class="card">
-        <h2 class="card__title">Random Puzzle</h2>
-        <p class="card__body">Endless fresh puzzles. Every one is checked solvable before you see it.</p>
-        <div id="difficulty" class="difficulty" role="radiogroup" aria-label="Difficulty"></div>
-        <p id="difficulty-blurb" class="difficulty__blurb"></p>
-        <button id="play-random" class="btn btn--primary btn--wide">Deal me a puzzle</button>
-        <label class="seed">
-          <span>Seed</span>
-          <input id="seed-input" type="text" inputmode="numeric" placeholder="random" autocomplete="off">
-        </label>
-        <p id="random-record" class="card__note"></p>
-      </div>
+      <button id="go-random" class="choice" type="button">
+        <span class="choice__shelf" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="choice__body">
+          <span class="choice__name">Random Puzzle</span>
+          <span class="choice__sub" id="home-random-sub">Endless puzzles</span>
+        </span>
+        <span class="choice__go" aria-hidden="true">›</span>
+      </button>
     </div>
 
     <p id="save-warning" class="save-warning" role="status" hidden></p>
@@ -49,6 +47,42 @@
       <button id="how-to" class="btn btn--ghost">How to play</button>
       <button id="reset-progress" class="btn btn--ghost btn--quiet">Reset progress</button>
     </footer>
+  </section>
+
+  <!-- ─────────────── levels ─────────────── -->
+  <section id="screen-levels" class="screen">
+    <header class="subhead">
+      <button id="levels-back" class="btn btn--ghost">&larr; Home</button>
+      <div class="subhead__title">
+        <h2>Campaign</h2>
+        <span id="campaign-note"></span>
+      </div>
+      <span class="subhead__balance" aria-hidden="true"></span>
+    </header>
+    <ol id="level-grid" class="level-grid"></ol>
+  </section>
+
+  <!-- ─────────────── random ─────────────── -->
+  <section id="screen-random" class="screen">
+    <header class="subhead">
+      <button id="random-back" class="btn btn--ghost">&larr; Home</button>
+      <div class="subhead__title">
+        <h2>Random Puzzle</h2>
+        <span>Freshly dealt, and always solvable</span>
+      </div>
+      <span class="subhead__balance" aria-hidden="true"></span>
+    </header>
+
+    <div class="card card--single">
+      <div id="difficulty" class="difficulty" role="radiogroup" aria-label="Difficulty"></div>
+      <p id="difficulty-blurb" class="difficulty__blurb"></p>
+      <button id="play-random" class="btn btn--primary btn--wide">Deal me a puzzle</button>
+      <label class="seed">
+        <span>Seed</span>
+        <input id="seed-input" type="text" inputmode="numeric" placeholder="random" autocomplete="off">
+      </label>
+      <p id="random-record" class="card__note"></p>
+    </div>
   </section>
 
   <!-- ─────────────── game ─────────────── -->

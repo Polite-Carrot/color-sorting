@@ -41,7 +41,8 @@
     selected: null,
     mainView: null,
     jarViews: [],
-    hintTimer: null
+    hintTimer: null,
+    from: 'levels'
   };
 
   /* ───────── progress ───────── */
@@ -89,15 +90,54 @@
 
   /* ───────── screens ───────── */
 
+  var SCREENS = ['home', 'levels', 'random', 'game'];
+
   function showScreen(which) {
-    $('screen-menu').classList.toggle('is-active', which === 'menu');
-    $('screen-game').classList.toggle('is-active', which === 'game');
+    SCREENS.forEach(function (name) {
+      $('screen-' + name).classList.toggle('is-active', name === which);
+    });
     document.body.classList.toggle('playing', which === 'game');
     window.scrollTo(0, 0);
+    if (which === 'home') renderHome();
+    if (which === 'levels') renderLevels();
+    if (which === 'random') renderRandom();
     if (which === 'game') fitBoard();
   }
 
-  function renderMenu() {
+  function renderHome() {
+    var list = window.Levels.list;
+    var done = 0, stars = 0, nextUp = -1;
+    list.forEach(function (lvl, i) {
+      var record = progress.levels[lvl.id];
+      if (record) { done++; stars += record.stars; }
+      var unlocked = i === 0 || !!progress.levels[list[i - 1].id];
+      if (unlocked && !record && nextUp < 0) nextUp = i;
+    });
+
+    $('home-fill').style.height = (100 * done / list.length) + '%';
+    $('home-campaign-sub').textContent = done === 0
+      ? list.length + ' levels · start with the basics'
+      : done === list.length
+        ? 'All ' + list.length + ' done · ' + stars + ' of ' + (list.length * 3) + ' stars'
+        : 'Next up: level ' + (nextUp + 1) + ' · ' + done + ' of ' + list.length + ' done';
+
+    var cfg = window.Generator.DIFFICULTY[state.difficulty];
+    var rec = progress.random[state.difficulty];
+    $('home-random-sub').textContent = cfg.label +
+      (rec ? ' · ' + rec.won + ' solved' : ' · none solved yet');
+
+    var warn = $('save-warning');
+    if (window.Store.survivesClosing) {
+      warn.hidden = true;
+    } else {
+      warn.hidden = false;
+      warn.textContent = window.Store.kind === 'this-visit'
+        ? 'This browser will not keep your progress after you close the game — stars will last until you close this tab.'
+        : 'This browser is not letting the game store anything, so progress will be lost when you close it. Allowing site data for this page will fix it.';
+    }
+  }
+
+  function renderLevels() {
     var grid = $('level-grid');
     grid.innerHTML = '';
 
@@ -129,20 +169,11 @@
 
     if (nextUp >= 0) grid.children[nextUp].firstChild.classList.add('is-next');
 
-    var warn = $('save-warning');
-    if (window.Store.survivesClosing) {
-      warn.hidden = true;
-    } else {
-      warn.hidden = false;
-      warn.textContent = window.Store.kind === 'this-visit'
-        ? 'This browser will not keep your progress after you close the game — stars will last until you close this tab.'
-        : 'This browser is not letting the game store anything, so progress will be lost when you close it. Allowing site data for this page will fix it.';
-    }
+    $('campaign-note').textContent = done + ' of ' + list.length + ' done · ' +
+      stars + ' of ' + (list.length * 3) + ' stars';
+  }
 
-    $('campaign-note').textContent = done === list.length
-      ? 'All ' + list.length + ' done · ' + stars + ' of ' + (list.length * 3) + ' stars'
-      : done + ' of ' + list.length + ' done · ' + stars + ' of ' + (list.length * 3) + ' stars';
-
+  function renderRandom() {
     var diffs = $('difficulty');
     if (!diffs.childNodes.length) {
       ['easy', 'normal', 'hard', 'extraHard'].forEach(function (key) {
@@ -151,7 +182,10 @@
         b.textContent = window.Generator.DIFFICULTY[key].label;
         b.setAttribute('role', 'radio');
         b.dataset.key = key;
-        b.addEventListener('click', function () { setDifficulty(key); window.Store.write(PREF_KEY, key); });
+        b.addEventListener('click', function () {
+          setDifficulty(key);
+          window.Store.write(PREF_KEY, key);
+        });
       });
     }
     setDifficulty(state.difficulty);
@@ -178,6 +212,7 @@
   function startLevel(level, mode) {
     state.game = new window.Engine.Game(level);
     state.mode = mode;
+    state.from = mode === 'campaign' ? 'levels' : 'random';
     state.selected = null;
     buildBoard();
     showScreen('game');
@@ -480,7 +515,7 @@
       progress.random[state.difficulty] = rec;
     }
     save();
-    renderMenu();
+    renderHome();
   }
 
   function showWinCard() {
@@ -505,7 +540,7 @@
       next.onclick = function () {
         closeOverlay();
         if (hasNext) startLevel(window.Levels.list[i + 1], 'campaign');
-        else { showScreen('menu'); $('play-random').focus(); }
+        else { showScreen('random'); $('play-random').focus(); }
       };
     } else {
       next.textContent = 'Another one';
@@ -582,16 +617,21 @@
 
   function init() {
     loadDifficulty();
-    renderMenu();
+    renderHome();
 
     $('play-random').addEventListener('click', startRandom);
     $('seed-input').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') startRandom();
     });
 
+    $('go-campaign').addEventListener('click', function () { showScreen('levels'); });
+    $('go-random').addEventListener('click', function () { showScreen('random'); });
+    $('levels-back').addEventListener('click', function () { showScreen('home'); });
+    $('random-back').addEventListener('click', function () { showScreen('home'); });
+
     $('back').addEventListener('click', function () {
       state.selected = null;
-      showScreen('menu');
+      showScreen(state.from);
     });
 
     $('undo').addEventListener('click', function () {
@@ -630,7 +670,7 @@
       refresh();
       setStatus('', '');
     });
-    $('win-menu').addEventListener('click', function () { closeOverlay(); showScreen('menu'); });
+    $('win-menu').addEventListener('click', function () { closeOverlay(); showScreen(state.from); });
 
     $('how-to').addEventListener('click', function () { $('howto').hidden = false; $('howto-close').focus(); });
     $('howto-close').addEventListener('click', function () { $('howto').hidden = true; $('how-to').focus(); });
@@ -655,7 +695,7 @@
       disarm();
       progress = { levels: {}, random: {} };
       save();
-      renderMenu();
+      renderHome();
     });
 
     document.addEventListener('keydown', onKey);
@@ -677,7 +717,7 @@
       return;
     }
     if (!$('overlay').hidden) {
-      if (e.key === 'Escape') { closeOverlay(); showScreen('menu'); }
+      if (e.key === 'Escape') { closeOverlay(); showScreen(state.from); }
       return;
     }
     if (!$('screen-game').classList.contains('is-active') || !state.game) return;

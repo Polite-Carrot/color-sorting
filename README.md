@@ -13,6 +13,10 @@ Or run `node build.js --standalone` for the whole game as one shareable file.
 
 ## What's in it
 
+The home screen offers two ways in — Campaign and Random Puzzle — and each
+opens its own screen. The campaign's icon is a jar that fills with how far
+through you are.
+
 **Campaign** — twenty-five levels, in order. The first five are written by hand
 and teach one rule each; the rest widen steadily from six jars to eleven.
 
