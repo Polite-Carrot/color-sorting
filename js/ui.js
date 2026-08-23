@@ -141,12 +141,22 @@
     setTimeout(function () { node.classList.remove(cls); }, 420);
   };
 
+  /* A running AudioContext holds the output device open, and an open device
+     hums audibly on a lot of hardware with nothing playing at all. The graph
+     itself is silent between sounds — measured, not assumed — so the hum is
+     the open stream, and the only way to stop it is to hand the device back.
+     So the context is suspended once nothing has sounded for a moment, and
+     resumed by the next sound; and it is never opened at all while sound is
+     switched off, which is what made the hum impossible to turn off before. */
+  var IDLE_MS = 1500;   /* comfortably longer than the longest sound (~0.5s) */
+
   var Sound = {
     on: true,
     ctx: null,
     broken: false,
+    idle: null,
     ensure: function () {
-      if (this.broken) return null;
+      if (!this.on || this.broken) return null;
       try {
         if (!this.ctx && global.AudioContext) this.ctx = new global.AudioContext();
         if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
@@ -156,11 +166,28 @@
       }
       return this.ctx;
     },
+    /* Give the device back shortly after the last sound. Every blip pushes
+       this out, so a run of taps never suspends between them. */
+    rest: function () {
+      var self = this;
+      if (this.idle) clearTimeout(this.idle);
+      this.idle = setTimeout(function () {
+        self.idle = null;
+        self.hush();
+      }, IDLE_MS);
+    },
+    hush: function () {
+      if (this.idle) { clearTimeout(this.idle); this.idle = null; }
+      try {
+        if (this.ctx && this.ctx.state === 'running') this.ctx.suspend();
+      } catch (e) { /* nothing to give back */ }
+    },
     blip: function (freq, dur, type, gain) {
       if (!this.on) return;
       var ctx = this.ensure();
       if (!ctx) return;
       try { this._blip(ctx, freq, dur, type, gain); } catch (e) { this.broken = true; }
+      this.rest();
     },
     _blip: function (ctx, freq, dur, type, gain) {
       var osc = ctx.createOscillator();

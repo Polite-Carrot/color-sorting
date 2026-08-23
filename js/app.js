@@ -673,6 +673,7 @@
       this.textContent = Sound.on ? 'Sound on' : 'Sound off';
       this.setAttribute('aria-pressed', Sound.on ? 'true' : 'false');
       if (Sound.on) { Sound.ensure(); Sound.pick(); }
+      else Sound.hush();          /* off means the device goes quiet too */
     });
 
     $('win-retry').addEventListener('click', function () {

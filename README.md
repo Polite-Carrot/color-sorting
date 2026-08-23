@@ -251,6 +251,19 @@ The chosen difficulty is kept under its own key for the same reason — it is a
 preference, not something earned, and saving it must never put anything near
 the record of stars.
 
+## Sound
+
+The blips are made with oscillators rather than audio files, so nothing has to
+be downloaded. There is no background music and nothing loops.
+
+The audio device is only held open while something is actually sounding. A
+running `AudioContext` keeps the output stream open, and an open stream hums
+audibly on a lot of hardware even when the graph feeding it is silent — which,
+measured at the destination, it is between sounds. So the context is suspended
+once a second and a half has passed with nothing played, and the next sound
+resumes it; and it is never opened at all while sound is switched off, which is
+what previously made the hum impossible to turn off.
+
 ## Fitting the window
 
 While a puzzle is on screen the whole game is sized to the window and nothing
