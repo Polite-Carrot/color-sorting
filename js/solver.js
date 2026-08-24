@@ -75,32 +75,45 @@
 
   /* A lower bound on the moves still needed — never an overestimate, which is
      what keeps the search's answer exactly optimal.
-     
-     Two counts, and no pour can serve both, so they add:
+
+     Walk each jar from its DEEPEST target cell upwards and count the runs:
        - every run of the target colour still outside the big jar needs a pour
-         to get there, and one pour shifts at most one run;
-       - every run sitting on top of the target somewhere is in the way and
-         has to move at least once. */
+         to get there;
+       - every other run above that point is sitting on target and has to move
+         at least once.
+
+     One pour moves exactly one run, so neither count can fall by more than one
+     per move, and no pour serves both — a pour either carries target or clears
+     something off it. So the two add, and the total is a true lower bound.
+     Each move also changes it by at most one either way, which is what lets
+     the search close a position off once it has been reached.
+
+     Counting from the deepest target rather than the shallowest is the whole
+     point. An earlier version looked only above the HIGHEST target in a jar,
+     so a colour lying between two target runs — [target, blue, target] — was
+     invisible to it, even though the blue plainly has to move before the lower
+     target can come out. That is the commonest shape on a deeply shuffled
+     board, and missing it is what made the biggest boards unsearchable: at
+     twenty jars every deal was being thrown back with the search out of
+     budget, none of them for being unwinnable. */
   function estimate(pos, jars) {
-    var need = 0, buried = 0;
+    var need = 0, covering = 0;
     for (var i = 0; i < jars.length; i++) {
       var cells = jars[i].cells;
       if (!cells.length) continue;
 
-      var highest = -1;
-      for (var k = cells.length - 1; k >= 0; k--) {
-        if (cells[k] === pos.target) { highest = k; break; }
+      var lowest = -1;
+      for (var k = 0; k < cells.length; k++) {
+        if (cells[k] === pos.target) { lowest = k; break; }
       }
-      if (highest < 0) continue;
+      if (lowest < 0) continue;                /* nothing of ours in this jar */
 
-      for (var a = 0; a <= highest; a++) {
-        if (cells[a] === pos.target && (a === 0 || cells[a - 1] !== pos.target)) need++;
-      }
-      for (var b = highest + 1; b < cells.length; b++) {
-        if (b === highest + 1 || cells[b] !== cells[b - 1]) buried++;
+      for (var a = lowest; a < cells.length; a++) {
+        if (a > lowest && cells[a] === cells[a - 1]) continue;      /* same run */
+        if (cells[a] === pos.target) need++; else covering++;
       }
     }
-    return need + buried;
+    return need + covering;
   }
 
   function apply(main, jars, mv) {

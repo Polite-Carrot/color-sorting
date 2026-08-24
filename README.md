@@ -17,9 +17,9 @@ The home screen offers two ways in — Campaign and Random Puzzle — and each
 opens its own screen. The campaign's icon is a jar that fills with how far
 through you are.
 
-**Campaign** — seventy-five levels, in order. The first five are written by
+**Campaign** — one hundred levels, in order. The first five are written by
 hand and teach one rule each; the rest widen steadily from six jars to
-nineteen.
+twenty-two.
 
 | Levels | | Par |
 |--------|--|-----|
@@ -34,7 +34,11 @@ nineteen.
 | 51–56 | Sixteen to eighteen jars, a big jar taking thirty | 62–67 |
 | 57–62 | The same shelf again, holding more | 67–69 |
 | 63–69 | Up to nineteen jars, ninety-odd units to move | 70–73 |
-| 70–75 | The widest shelf that still shows every jar at once | 74–83 |
+| 70–75 | Nineteen jars, a hundred units to move | 74–83 |
+| 76–81 | Twenty jars, and colours scattered far thinner | 87–91 |
+| 82–88 | Twenty-one jars, a big jar taking forty | 93–101 |
+| 89–94 | Over a hundred moves at their shortest | 102–105 |
+| 95–100 | Twenty-two jars — the widest shelf that still shows whole | 107–114 |
 
 Each level unlocks the next. See **Keeping progress** below for how stars and
 best scores are stored.
@@ -65,7 +69,7 @@ Keyboard: `1`–`9` jars · `0` big jar · `U` undo · `H` hint · `R` restart �
 
 ## The solver
 
-`js/solver.js` is a breadth-first search over pour states, and it does three
+`js/solver.js` is a best-first (A*) search over pour states, and it does three
 jobs: it proves a generated puzzle can be finished, it sets par to the genuine
 fewest moves rather than an estimate, and it answers the hint button from
 wherever the player currently is — so a hint is always correct even after a
@@ -86,18 +90,36 @@ Three things keep it fast enough to run inside a keypress:
   frees space. Merging target runs elsewhere first costs a move and saves at
   most one, so it can never come out ahead. When such a move exists the search
   takes it and ignores everything else.
-- It is a best-first search, guided by a lower bound on the moves still needed:
-  every run of the target still outside the big jar needs a pour to get there,
-  and every run sitting on top of the target has to move at least once. No pour
-  can serve both, so the two counts add. Because the bound never overshoots,
-  the first finished position to come off the queue is reached by a shortest
-  route, so par stays exact.
+- It is a best-first search, guided by a lower bound on the moves still
+  needed. The bound walks each jar from its **deepest** target cell upwards and
+  counts runs: target runs still needing a pour, and everything above them that
+  is in the way. One pour moves exactly one run and no pour serves both counts,
+  so the two add and never overshoot — which is why the first finished position
+  off the queue is reached by a shortest route, and par stays exact. Each move
+  also shifts the bound by at most one either way, which is what lets a
+  position be closed off once reached.
 
 A plain breadth-first search managed six jars and became hopeless at eight; the
-bound is what makes the nine-jar boards searchable at all.
+bound is what makes the large boards searchable at all.
 
-Both shortcuts are claims about optimality, so they are checked rather than
-assumed. See **Checking** below.
+Counting from the deepest target rather than the shallowest is the whole point
+of it, and getting that wrong was for a long time the single biggest limit on
+the game. An earlier version looked only above the *highest* target in a jar,
+so a colour lying between two target runs — `[target, blue, target]` — was
+invisible to it, even though the blue plainly has to move before the lower
+target can come out. That is the commonest shape on a deeply shuffled board.
+
+The symptom was that boards of twenty jars could not be generated at all: six
+hundred deals thrown back in two minutes, every one of them because the search
+ran out of budget and *not one* because it was unwinnable. That split is what
+pointed at the bound rather than at the boards. With it corrected, the first
+deal of every shape is accepted in under a second, generating a Hard random
+puzzle went from 14 seconds to 3 and an Extra Hard one from 5 seconds to under
+half of one, and a hint on the largest board in the game — twenty-two jars, 114
+moves — takes 73ms.
+
+All of this is a claim about optimality, so it is checked rather than assumed.
+See **Checking** below.
 
 Proving a position *cannot* be won is the slow case — there is no goal to home
 in on, so the search must exhaust the space. Both searches that run while
@@ -188,21 +210,20 @@ boards of par 58–67 that the solver settled in ten milliseconds. So the third
 ramp winds that lever back and lets the unit count do the work instead — which
 it could not do in the second ramp, where the shelf had nowhere left to grow.
 
+The fourth ramp could not be dealt at all until the solver's estimate was
+fixed — see **Searching** below. With that corrected it needed nothing new of
+its own, and it could afford to wind churn back up, since churn is the
+strongest lever on par there is and only the search cost had been holding it
+down.
+
 Each ramp is pinned to the end point it was built against rather than to the
 campaign total. Every one of those numbers appears in a curve that would
 quietly redeal every earlier level if it moved, and people have progress
-against those boards.
-
-Both inline every stylesheet, script and font face, so the result has no
-external references at all. The default output is a fragment meant to be
-embedded in a host page that supplies its own `<!doctype>` — opened directly it
-would fall into quirks mode and lay out differently, which is what
-`--standalone` is for.
-
-Typefaces are Baloo 2 for display and Nunito for interface text, both rounded,
-to match the toy-shelf look. They live in `fonts.css` as inlined latin subsets,
-committed so the game never depends on the network. Re-run `node
-fetch-fonts.js` only if the type stack changes.
+against those boards. Levels that already exist are read back from
+`js/levels.js` and re-verified rather than dealt again, which is both far
+faster and the stronger check: it proves the boards that actually ship are
+sound, rather than proving a fresh deal would have been. `node make-levels.js
+--rebuild-all` deals everything from scratch.
 
 ## Layout
 
@@ -212,12 +233,12 @@ styles.css        all styling
 fonts.css         generated — inlined webfont subsets
 build.js          bundles everything into one file
 fetch-fonts.js    regenerates fonts.css from Google Fonts
-make-levels.js    builds and verifies the 75-level campaign
+make-levels.js    builds and verifies the 100-level campaign
 js/store.js       progress storage, and whether it can be trusted
 js/colour.js      the palette, and how far apart two colours look
-js/levels.js      generated — the 75 campaign levels
+js/levels.js      generated — the 100 campaign levels
 js/engine.js      stacked jars, pouring, undo, win check  (no DOM)
-js/solver.js      breadth-first search: par, hints, solvability  (no DOM)
+js/solver.js      best-first search: par, hints, solvability  (no DOM)
 js/generator.js   seeded random puzzles, validated by the solver
 js/ui.js          jar rendering and sound
 js/app.js         screens, progress, input
@@ -234,13 +255,17 @@ inside their difficulty's par band, and to have the solver's own path play back
 through the engine to a win in exactly par moves.
 
 Par being the *true* minimum is checked in three tiers, because no single
-reference reaches every board size:
+reference reaches every board size. Tier 2 builds its weaker reference by
+cutting a term out of the bound's own source, which means it can stop matching
+if that source is reworded — it did exactly that once, and spent a run
+comparing the solver against an identical copy of itself and passing. It now
+refuses to run rather than pass vacuously.
 
 | Tier | Boards | Checked against |
 |------|--------|-----------------|
 | 1 | Guide + easy | The old exhaustive breadth-first search, optimal by construction |
-| 2 | Normal | The same search run with a deliberately weaker bound — still never an overestimate, so it must agree, but it takes a very different route (~290x more states) |
-| 3 | Normal, hard, extra hard | The bound itself: walking real solutions and confirming it never claims more moves are needed than the remaining path actually takes |
+| 2 | Normal | The same search run with a deliberately weaker bound — still never an overestimate, so it must agree, but it takes a very different route (~350x more states) |
+| 3 | Normal, hard, extra hard | The bound itself: walking real solutions and confirming it never claims more moves are needed than the remaining path actually takes (it is exactly right 94% of the time) |
 
 ## Keeping progress
 

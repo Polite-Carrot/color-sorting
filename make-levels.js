@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* make-levels.js — build the 75-level campaign into js/levels.js.
+/* make-levels.js — build the 100-level campaign into js/levels.js.
  *
  *   node make-levels.js
  *
@@ -25,13 +25,14 @@ require('./js/generator.js');
 const C = globalThis.Colour, { Game, top } = globalThis.Engine,
       S = globalThis.Solver, G = globalThis.Generator;
 
-const TOTAL = 75, TAUGHT = 5;
+const TOTAL = 100, TAUGHT = 5;
 /* Each ramp is pinned to the end point it was built against rather than to
    TOTAL. People have progress against these levels, so a later ramp being
    added must not change the shape of a single board that came before it —
    and every one of these numbers appears in a curve that would quietly redeal
    the lot if it moved. */
-const FIRST_DEALT = TAUGHT + 1, RAMP_ONE_END = 25, RAMP_TWO_END = 50;
+const FIRST_DEALT = TAUGHT + 1,
+      RAMP_ONE_END = 25, RAMP_TWO_END = 50, RAMP_THREE_END = 75;
 
 /* ── the five that teach ───────────────────────────────────────────────── */
 
@@ -191,22 +192,52 @@ function shape(level) {
      does the work instead — which it could not do in ramp two, where the shelf
      had nowhere left to grow. Nineteen jars at eight deep is the widest shelf
      that still shows every jar at once on a laptop. */
-  const u = (level - (RAMP_TWO_END + 1)) / (TOTAL - (RAMP_TWO_END + 1));
-  const jars = lerp(16, 19, u);
+  if (level <= RAMP_THREE_END) {
+    const u = (level - (RAMP_TWO_END + 1)) / (RAMP_THREE_END - (RAMP_TWO_END + 1));
+    const jars = lerp(16, 19, u);
+    const cap = 8;
+    const units = lerp(86, 102, u);
+    return {
+      label: 'Campaign', blurb: '',
+      mainCap: lerp(29, 34, u),
+      sideJars: jars, sideCap: cap,
+      fillers: 8,
+      fillerUnits: units - lerp(29, 34, u),
+      burial: 0.6,
+      churn: 0.30 + 0.10 * u,
+      /* A wider gate than ramp two's 600. The gate is not only a validity
+         check: it is what keeps boards the search cannot settle out of the
+         campaign, and on a board this size 600 nodes throws away almost
+         everything. */
+      sizeUp: 2500,
+      par: [1, 999]
+    };
+  }
+
+  /* Fourth ramp. This one could not be dealt at all until the solver's
+     estimate was fixed. At twenty jars every single deal was being thrown
+     back — six hundred of them, in two minutes, ALL of them for the search
+     running out of budget and not one for being unwinnable — which is what
+     pointed at the estimate rather than at the shape. With that corrected the
+     first deal of every shape here is accepted in under a second.
+
+     That also freed churn, which the third ramp had to keep low to stay
+     searchable. It is the strongest lever on par there is, so this ramp winds
+     it back up: at twenty jars, churn 0.40 gives par 79-89 and churn 0.70
+     gives 98-100. Twenty-three jars still show whole on every desktop size in
+     the viewport sweep, so stopping at twenty-two leaves a margin. */
+  const u = (level - (RAMP_THREE_END + 1)) / (TOTAL - (RAMP_THREE_END + 1));
+  const jars = lerp(20, 22, u);
   const cap = 8;
-  const cells = jars * cap;
-  const units = lerp(86, 102, u);
+  const units = lerp(107, 122, u);
+  const mainCap = lerp(35, 42, u);
   return {
     label: 'Campaign', blurb: '',
-    mainCap: lerp(29, 34, u),
-    sideJars: jars, sideCap: cap,
+    mainCap, sideJars: jars, sideCap: cap,
     fillers: 8,
-    fillerUnits: units - lerp(29, 34, u),
+    fillerUnits: units - mainCap,
     burial: 0.6,
-    churn: 0.30 + 0.10 * u,
-    /* A wider gate than ramp two's 600. The gate is not only a validity check:
-       it is what keeps boards the search cannot settle out of the campaign,
-       and on a board this size 600 nodes throws away almost everything. */
+    churn: 0.45 + 0.25 * u,
     sizeUp: 2500,
     par: [1, 999]
   };
@@ -285,7 +316,43 @@ const ADJECTIVES = ['Stacked', 'Buried', 'Layered', 'Sunken', 'Packed', 'Tangled
                     'Flooded', 'Grated', 'Sluiced', 'Winnowed', 'Quartered', 'Harrowed',
                     'Shattered', 'Wrung', 'Roiled', 'Interleaved', 'Combed',
                     'Sieved', 'Decanted', 'Rifted', 'Scrambled', 'Unspooled',
-                    'Overlaid', 'Entwined', 'Meshed'];
+                    'Overlaid', 'Entwined', 'Meshed',
+                    'Furrowed', 'Plaited', 'Stippled', 'Culled', 'Racked',
+                    'Fathomed', 'Barrelled', 'Cellared', 'Brimming', 'Capsized',
+                    'Sedimented', 'Percolated', 'Clarified', 'Filtered',
+                    'Distilled', 'Fermented', 'Casked', 'Crated', 'Siloed',
+                    'Stowed', 'Ballasted', 'Bilged', 'Hoarded', 'Vaulted',
+                    'Labyrinthine'];
+
+/* Levels that already exist are read back and re-verified rather than dealt
+   again. Every ramp is pinned, so a rebuild deals precisely the boards it dealt
+   last time — at a cost that is now hours of search, and with the standing risk
+   that an edit to a curve quietly redeals levels people have progress against.
+   Verifying what is on disk is both faster and the stronger check: it proves
+   the boards that actually ship are sound, rather than proving that a fresh
+   deal would have been. Pass --rebuild-all to deal every level from scratch. */
+const REBUILD_ALL = process.argv.includes('--rebuild-all');
+const EXISTING = (() => {
+  if (REBUILD_ALL) return new Map();
+  try {
+    require('./js/levels.js');
+    return new Map(globalThis.Levels.list.map(l => [l.id, l]));
+  } catch (e) {
+    return new Map();                     /* first build, or nothing on disk */
+  }
+})();
+
+function stored(level) {
+  const lvl = EXISTING.get('level-' + String(level).padStart(2, '0'));
+  if (!lvl) return null;
+  const r = inspect(lvl);
+  if (r.bad) throw new Error('level ' + level + ' on disk (' + lvl.name + '): ' + r.bad);
+  if (r.par !== lvl.par) {
+    throw new Error('level ' + level + ' on disk (' + lvl.name + '): stored par ' +
+      lvl.par + ', but the solver makes it ' + r.par);
+  }
+  return lvl;
+}
 
 const built = [];
 let prevPar = 0;
@@ -384,49 +451,60 @@ function emit(level, picked) {
     '  (from ' + picked.candidates + ' candidates)');
 }
 
-for (let level = FIRST_DEALT; level <= RAMP_ONE_END; level++) {
-  const cfg = shape(level);
-  G.DIFFICULTY.__campaign = cfg;
-  const picked = pickBoard(level, cfg, prevPar);
-  prevPar = picked.par;
-  emit(level, picked);
+/* One ramp, either read back from disk or dealt.
+   'ratchet' deals in order, each board having to beat the one before — which
+   is how the first ramp was built. 'sorted' deals the whole set against a
+   fixed floor and then puts it in order of the par the solver measured, which
+   is what every ramp since has used: dealing in order decays, because one
+   lucky board early sets a bar the shape cannot clear again and every level
+   after it settles for less. Returns the par the ramp finished on, which
+   becomes the next ramp's floor. */
+function buildRamp(label, from, to, floor, mode) {
+  const kept = [];
+  for (let level = from; level <= to; level++) {
+    const lvl = stored(level);
+    if (!lvl) { kept.length = 0; break; }
+    kept.push(lvl);
+  }
+  if (kept.length === to - from + 1) {
+    kept.forEach(function (lvl, i) {
+      built.push(lvl);
+      console.log('  ' + String(from + i).padStart(3) + '. ' + lvl.name.padEnd(18) +
+        ' kept    jars ' + String(lvl.jars.length).padStart(2) +
+        '  cap ' + lvl.jars[0].cap + '  par ' + String(lvl.par).padStart(2) +
+        '   (verified against the solver)');
+    });
+    return kept[kept.length - 1].par;
+  }
+
+  if (mode === 'ratchet') {
+    let par = floor;
+    for (let level = from; level <= to; level++) {
+      G.DIFFICULTY.__campaign = shape(level);
+      const picked = pickBoard(level, G.DIFFICULTY.__campaign, par);
+      par = picked.par;
+      emit(level, picked);
+    }
+    return par;
+  }
+
+  const set = [];
+  for (let level = from; level <= to; level++) {
+    G.DIFFICULTY.__campaign = shape(level);
+    const picked = pickBoard(level, G.DIFFICULTY.__campaign, floor);
+    set.push(picked);
+    console.log('     dealt ' + (level - from + 1) + '/' + (to - from + 1) +
+      ' for the ' + label + ' — ' + picked.board.jars.length + ' jars, par ' + picked.par);
+  }
+  set.sort((a, b) => a.par - b.par);
+  set.forEach(function (picked, i) { emit(from + i, picked); });
+  return set[set.length - 1].par;
 }
 
-/* The second ramp is dealt as a set and then put in order of the par the
-   solver measured, rather than each board being ratcheted past the one before
-   as it is dealt.
-   
-   Dealing in order does not work here: one lucky board early sets a bar the
-   shape cannot clear again, and every level after it settles for less, so the
-   ramp decays instead of climbing. Ordering afterwards makes the progression a
-   fact about the boards rather than a hope about the dealing. */
-const rampTwo = [];
-const FLOOR = prevPar;
-for (let level = RAMP_ONE_END + 1; level <= RAMP_TWO_END; level++) {
-  const cfg = shape(level);
-  G.DIFFICULTY.__campaign = cfg;
-  const picked = pickBoard(level, cfg, FLOOR);
-  rampTwo.push(picked);
-  console.log('     dealt ' + (level - RAMP_ONE_END) + '/' + (RAMP_TWO_END - RAMP_ONE_END) +
-    ' for the second ramp — ' + picked.board.jars.length + ' jars, par ' + picked.par);
-}
-rampTwo.sort((a, b) => a.par - b.par);
-rampTwo.forEach(function (picked, i) { emit(RAMP_ONE_END + 1 + i, picked); });
-
-/* The third ramp, dealt and ordered the same way, with the floor set by where
-   the second one finished. */
-const rampThree = [];
-const FLOOR_THREE = rampTwo[rampTwo.length - 1].par;
-for (let level = RAMP_TWO_END + 1; level <= TOTAL; level++) {
-  const cfg = shape(level);
-  G.DIFFICULTY.__campaign = cfg;
-  const picked = pickBoard(level, cfg, FLOOR_THREE);
-  rampThree.push(picked);
-  console.log('     dealt ' + (level - RAMP_TWO_END) + '/' + (TOTAL - RAMP_TWO_END) +
-    ' for the third ramp — ' + picked.board.jars.length + ' jars, par ' + picked.par);
-}
-rampThree.sort((a, b) => a.par - b.par);
-rampThree.forEach(function (picked, i) { emit(RAMP_TWO_END + 1 + i, picked); });
+prevPar = buildRamp('first ramp',  FIRST_DEALT,        RAMP_ONE_END,   prevPar, 'ratchet');
+prevPar = buildRamp('second ramp', RAMP_ONE_END + 1,   RAMP_TWO_END,   prevPar, 'sorted');
+prevPar = buildRamp('third ramp',  RAMP_TWO_END + 1,   RAMP_THREE_END, prevPar, 'sorted');
+prevPar = buildRamp('fourth ramp', RAMP_THREE_END + 1, TOTAL,          prevPar, 'sorted');
 
 /* ── emit ──────────────────────────────────────────────────────────────── */
 
