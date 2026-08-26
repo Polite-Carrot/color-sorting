@@ -359,12 +359,10 @@
     var screen = $('screen-game');
     if (!screen.classList.contains('is-active')) return;
 
-    var optional = [$('keys'), $('brief'), $('recipes')];
-    optional.forEach(function (el) {
-      /* The recipe legend only belongs to merge levels; never un-hide it
-         anywhere else. */
-      if (el && !(el.id === 'recipes' && !state.game.merging)) el.hidden = false;
-    });
+    var optional = [$('keys'), $('brief')];
+    var recipes = $('recipes');
+    optional.forEach(function (el) { if (el) el.hidden = false; });
+    if (recipes) recipes.hidden = !state.game.merging;
 
     var floor = smallestReadableJar();
     var ceiling = Math.max(floor, JAR_MAX);
@@ -377,10 +375,19 @@
       if (drop < optional.length && optional[drop]) optional[drop].hidden = true;
     }
 
-    /* Last resort: let the shelf scroll inside itself. Seeing every jar at
+    /* Next resort: let the shelf scroll inside itself. Seeing every jar at
        once is worth more than big jars, so this is only reached when no
        readable size shows them all. */
     var loose = largestThatFits(floor, ceiling, false);
+    if (loose > 0) { setJarHeight(loose); return; }
+
+    /* Only now give up the recipe list. In merge mode that list is the rules
+       of the mode, so it goes last of everything — after the keyboard legend,
+       after the briefing, and after letting the shelf scroll. */
+    if (recipes && !recipes.hidden) {
+      recipes.hidden = true;
+      loose = largestThatFits(floor, ceiling, false);
+    }
     setJarHeight(loose > 0 ? loose : floor);
   }
 

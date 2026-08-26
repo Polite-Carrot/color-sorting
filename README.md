@@ -43,7 +43,8 @@ twenty-two.
 Each level unlocks the next. See **Keeping progress** below for how stars and
 best scores are stored.
 
-**Merge Colours** — five levels, and a rule the ordinary game does not have.
+**Merge Colours** — twenty-five levels, and a rule the ordinary game does not
+have.
 Pour a colour onto one it mixes with and the two become a third, so the colour
 the big jar wants is usually not on the shelf at all — it has to be made.
 
@@ -71,6 +72,30 @@ cannot be spoiled.
 | 3 | A colour that mixes with nothing, in the way | 3 |
 | 4 | Gathering a colour before mixing it | 3 |
 | 5 | All three at once, with nothing to spare | 4 |
+| 6–10 | Four or five jars, the parents lightly scattered | 5–9 |
+| 11–15 | Five jars, deeper, more in the way | 10–12 |
+| 16–20 | Six or seven jars, the parents buried and split | 14–17 |
+| 21–25 | The most the search can still answer a hint on | 18–21 |
+
+The dealt levels are built so that **no wrong merge is possible**. Only the two
+parents of the target ever appear as mixable colours — the third primary is
+left out entirely — so every merge a player can make produces the target, and
+no careless pour can destroy a unit that was needed. Everything else on the
+shelf is inert: no partner present, so it can only stack on its own colour or
+sit in an empty jar. What is left to get wrong is space and order, which is
+what the ordinary game asks too.
+
+The five taught levels are the exception, deliberately: level 4 puts a rival
+recipe on the shelf precisely because spending a colour on the wrong partner is
+the thing it teaches. They are the only levels in the mode that can be spoiled.
+
+What caps the curve at par 21 is not the shelf or the palette but the search.
+Merge Colours has no admissible estimate to guide it, so it is breadth-first,
+and the states climb steeply with the size of the big jar. The in-game hint has
+1.2 seconds to answer from the opening position — the worst case — and every
+level here settles well inside it, the hardest in about fourteen thousand
+states. Going further would mean giving the mode a real estimate first, not
+simply dealing bigger boards.
 
 **Random Puzzle** — endlessly generated, in three settings:
 
@@ -103,8 +128,18 @@ share the one below. That bound is proved against rules where every pour keeps
 the number of units on the shelf the same; merging destroys units, so it does
 not hold there, and quietly reusing it would give a wrong par. The merge search
 is a plain breadth-first one instead — slower, but optimal by construction,
-which matters more on boards that size. `tools/check-merge.js` checks every
-merge level the way `make-levels.js` checks the campaign.
+which matters more on boards that size.
+
+It does keep one shortcut from the ordinary game: when the target can go into
+the big jar, nothing else is worth considering. The reasoning carries over
+because the target here is always a secondary colour and so is never an
+ingredient — nothing can consume it and no merge needs it — and the big jar
+never gives it back. That is an optimality claim, so it is checked rather than
+assumed: against a search with the shortcut removed, over 120 dealt boards,
+every par identical. It roughly halves the states on the largest levels.
+
+`tools/make-merge-levels.js` builds the mode's levels and `tools/check-merge.js`
+checks them, the way `make-levels.js` does both for the campaign.
 
 `js/solver.js` is a best-first (A*) search over pour states, and it does three
 jobs: it proves a generated puzzle can be finished, it sets par to the genuine
@@ -271,12 +306,14 @@ fonts.css         generated — inlined webfont subsets
 build.js          bundles everything into one file
 fetch-fonts.js    regenerates fonts.css from Google Fonts
 make-levels.js    builds and verifies the 100-level campaign
+tools/make-merge-levels.js  builds the Merge Colours levels
+tools/merge-deal.js   deals Merge Colours boards
 tools/check-merge.js  checks the Merge Colours levels the same way
 js/store.js       progress storage, and whether it can be trusted
 js/colour.js      the palette, and how far apart two colours look
 js/levels.js      generated — the 100 campaign levels
 js/merge.js       Merge Colours: the recipes, and its own search  (no DOM)
-js/merge-levels.js  the five Merge Colours levels, written by hand
+js/merge-levels.js  generated — the 25 Merge Colours levels
 js/engine.js      stacked jars, pouring, undo, win check  (no DOM)
 js/solver.js      best-first search: par, hints, solvability  (no DOM)
 js/generator.js   seeded random puzzles, validated by the solver

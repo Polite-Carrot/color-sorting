@@ -323,6 +323,12 @@ input:focus-visible {
   border-radius: 12px;
   background: var(--paper-warm);
 }
+/* The hidden attribute alone is not enough once a rule sets display: an
+   element-level `display: flex` out-specifies the browser's own
+   `[hidden] { display: none }`, and the list then goes on taking up its band
+   of the board while reporting itself hidden. It cost the campaign's biggest
+   level a row of shelf before it was spotted. */
+.recipes[hidden] { display: none; }
 .recipe { display: flex; align-items: center; gap: 4px; }
 .recipe__dot {
   width: 15px;

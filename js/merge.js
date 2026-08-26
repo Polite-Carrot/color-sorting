@@ -81,8 +81,16 @@
       var colour = top(from.cells);
       var run = topRun(from.cells);
 
+      /* Pouring the target into the big jar is never a wrong move, so when one
+         is available nothing else is worth considering. The big jar takes
+         nothing else, always has room until it is finished, and emptying that
+         run frees space; gathering target elsewhere first costs a move and
+         saves at most one. The ordinary game leans on the same rule, and the
+         reasoning carries over because the target here is a secondary colour
+         and so is never an ingredient — nothing can consume it, and no merge
+         ever needs it. */
       if (colour === pos.target && main.cells.length < main.capacity) {
-        out.push({ from: i, to: -1, amount: Math.min(run, main.capacity - main.cells.length) });
+        return [{ from: i, to: -1, amount: Math.min(run, main.capacity - main.cells.length) }];
       }
 
       for (var j = 0; j < jars.length; j++) {
