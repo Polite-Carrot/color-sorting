@@ -23,6 +23,7 @@
       target: 'purple',
       main: { cap: 2 },
       par: 2,
+      path: [[0,1], [1,-1]],
       jars: [
         { cap: 4, fills: ['red', 'red'] },
         { cap: 4, fills: ['blue', 'blue'] }
@@ -38,6 +39,7 @@
       target: 'purple',
       main: { cap: 2 },
       par: 2,
+      path: [[1,0], [0,-1]],
       jars: [
         { cap: 4, fills: ['red', 'red', 'red'] },
         { cap: 4, fills: ['blue', 'blue'] }
@@ -53,6 +55,7 @@
       target: 'green',
       main: { cap: 3 },
       par: 3,
+      path: [[1,2], [0,1], [1,-1]],
       jars: [
         { cap: 4, fills: ['blue', 'blue', 'blue'] },
         { cap: 4, fills: ['yellow', 'yellow', 'yellow', 'slate'] },
@@ -69,6 +72,7 @@
       target: 'orange',
       main: { cap: 4 },
       par: 3,
+      path: [[1,2], [2,0], [0,-1]],
       jars: [
         { cap: 6, fills: ['red', 'red', 'red', 'red', 'red', 'red'] },
         { cap: 4, fills: ['yellow', 'yellow'] },
@@ -86,6 +90,7 @@
       target: 'purple',
       main: { cap: 4 },
       par: 4,
+      path: [[1,3], [1,2], [2,0], [0,-1]],
       jars: [
         { cap: 6, fills: ['blue', 'blue', 'blue', 'blue', 'blue', 'blue'] },
         { cap: 4, fills: ['red', 'red', 'yellow', 'yellow'] },
@@ -105,6 +110,7 @@
       parents: ['blue', 'yellow'],
       main: { cap: 3 },
       par: 5,
+      path: [[2,0], [2,0], [0,-1], [1,0], [0,-1]],
       jars: [
         { cap: 4, fills: ['blue', 'yellow'] },
         { cap: 4, fills: ['white', 'white', 'yellow'] },
@@ -123,6 +129,7 @@
       parents: ['blue', 'yellow'],
       main: { cap: 3 },
       par: 6,
+      path: [[3,2], [3,0], [1,3], [2,1], [3,1], [1,-1]],
       jars: [
         { cap: 4, fills: ['teal', 'teal'] },
         { cap: 4, fills: ['teal', 'yellow', 'blue'] },
@@ -141,6 +148,7 @@
       parents: ['blue', 'yellow'],
       main: { cap: 3 },
       par: 6,
+      path: [[0,3], [3,-1], [2,0], [1,3], [2,1], [1,-1]],
       jars: [
         { cap: 4, fills: ['yellow', 'yellow'] },
         { cap: 4, fills: ['yellow', 'white'] },
@@ -159,6 +167,7 @@
       parents: ['red', 'yellow'],
       main: { cap: 4 },
       par: 9,
+      path: [[2,0], [2,1], [3,2], [1,3], [1,0], [3,1], [0,3], [1,3], [3,-1]],
       jars: [
         { cap: 4, fills: ['yellow'] },
         { cap: 4, fills: ['red', 'yellow', 'red'] },
@@ -171,56 +180,59 @@
       mode: 'merge',
       name: 'Blended Orange',
       subtitle: 'Level 10 of 25',
-      teaches: '5 jars · 9 moves',
+      teaches: '5 jars · 10 moves',
       brief: "",
       target: 'orange',
       parents: ['red', 'yellow'],
       main: { cap: 4 },
-      par: 9,
+      par: 10,
+      path: [[2,0], [1,4], [2,1], [3,2], [3,1], [2,3], [0,2], [3,0], [0,1], [1,-1]],
       jars: [
-        { cap: 4, fills: ['red', 'red', 'yellow', 'red'] },
-        { cap: 4, fills: ['green', 'purple'] },
-        { cap: 4, fills: ['yellow', 'red', 'green'] },
-        { cap: 4, fills: ['yellow'] },
-        { cap: 4, fills: ['yellow', 'green', 'green'] }
+        { cap: 5, fills: ['red', 'slate'] },
+        { cap: 5, fills: ['yellow', 'magenta'] },
+        { cap: 5, fills: ['slate', 'red', 'yellow', 'yellow', 'slate'] },
+        { cap: 5, fills: ['slate', 'magenta', 'red', 'yellow', 'red'] },
+        { cap: 5, fills: ['slate', 'magenta'] }
       ]
     },
     {
       id: 'merge-11',
       mode: 'merge',
-      name: 'Swirled Orange',
+      name: 'Swirled Purple',
       subtitle: 'Level 11 of 25',
-      teaches: '5 jars · 10 moves',
+      teaches: '5 jars · 12 moves',
       brief: "",
-      target: 'orange',
-      parents: ['red', 'yellow'],
+      target: 'purple',
+      parents: ['red', 'blue'],
       main: { cap: 4 },
-      par: 10,
+      par: 12,
+      path: [[0,1], [0,3], [2,0], [0,-1], [2,0], [1,0], [1,3], [3,-1], [2,1], [4,3], [2,4], [4,-1]],
       jars: [
-        { cap: 4, fills: ['red', 'slate'] },
-        { cap: 4, fills: ['yellow', 'slate'] },
-        { cap: 4, fills: ['slate', 'slate', 'magenta'] },
-        { cap: 4, fills: ['red', 'yellow'] },
-        { cap: 4, fills: ['yellow', 'red', 'yellow', 'red'] }
+        { cap: 4, fills: ['blue', 'red', 'teal'] },
+        { cap: 4, fills: ['blue', 'blue', 'teal'] },
+        { cap: 4, fills: ['red', 'green', 'teal', 'red'] },
+        { cap: 4, fills: ['red'] },
+        { cap: 4, fills: ['blue', 'teal'] }
       ]
     },
     {
       id: 'merge-12',
       mode: 'merge',
-      name: 'Clouded Green',
+      name: 'Clouded Orange',
       subtitle: 'Level 12 of 25',
-      teaches: '5 jars · 10 moves',
+      teaches: '5 jars · 12 moves',
       brief: "",
-      target: 'green',
-      parents: ['blue', 'yellow'],
-      main: { cap: 5 },
-      par: 10,
+      target: 'orange',
+      parents: ['red', 'yellow'],
+      main: { cap: 4 },
+      par: 12,
+      path: [[3,4], [1,3], [3,1], [1,-1], [2,1], [3,2], [2,-1], [0,2], [3,0], [0,-1], [0,3], [3,-1]],
       jars: [
-        { cap: 4, fills: ['blue', 'blue', 'yellow'] },
-        { cap: 4, fills: ['yellow', 'yellow', 'blue'] },
-        { cap: 4, fills: ['yellow', 'white'] },
-        { cap: 4, fills: ['blue'] },
-        { cap: 4, fills: ['teal', 'yellow', 'white', 'blue'] }
+        { cap: 5, fills: ['red', 'yellow', 'green', 'green', 'green'] },
+        { cap: 5, fills: ['purple', 'red', 'yellow'] },
+        { cap: 5, fills: ['red', 'purple'] },
+        { cap: 5, fills: ['yellow', 'red', 'yellow', 'green'] },
+        { cap: 5, fills: ['purple', 'green'] }
       ]
     },
     {
@@ -228,18 +240,19 @@
       mode: 'merge',
       name: 'Deepened Orange',
       subtitle: 'Level 13 of 25',
-      teaches: '5 jars · 11 moves',
+      teaches: '5 jars · 13 moves',
       brief: "",
       target: 'orange',
       parents: ['red', 'yellow'],
-      main: { cap: 4 },
-      par: 11,
+      main: { cap: 5 },
+      par: 13,
+      path: [[4,0], [4,3], [4,0], [1,4], [4,-1], [3,1], [0,4], [2,0], [2,0], [0,-1], [0,3], [2,3], [3,-1]],
       jars: [
-        { cap: 4, fills: ['red', 'slate', 'slate'] },
-        { cap: 4, fills: ['yellow', 'magenta'] },
-        { cap: 4, fills: ['red', 'slate', 'red'] },
-        { cap: 4, fills: ['yellow', 'yellow', 'red'] },
-        { cap: 4, fills: ['yellow', 'magenta'] }
+        { cap: 5, fills: ['red', 'yellow', 'magenta'] },
+        { cap: 5, fills: ['yellow'] },
+        { cap: 5, fills: ['yellow', 'yellow', 'red', 'red', 'yellow'] },
+        { cap: 5, fills: ['red', 'white', 'white'] },
+        { cap: 5, fills: ['red', 'magenta', 'white', 'magenta'] }
       ]
     },
     {
@@ -247,37 +260,39 @@
       mode: 'merge',
       name: 'Layered Orange',
       subtitle: 'Level 14 of 25',
-      teaches: '5 jars · 11 moves',
+      teaches: '5 jars · 14 moves',
       brief: "",
       target: 'orange',
       parents: ['red', 'yellow'],
-      main: { cap: 5 },
-      par: 11,
+      main: { cap: 4 },
+      par: 14,
+      path: [[4,0], [4,2], [4,3], [3,-1], [2,4], [3,2], [2,-1], [1,2], [3,1], [1,-1], [0,3], [0,4], [0,1], [1,-1]],
       jars: [
-        { cap: 4, fills: ['yellow'] },
-        { cap: 4, fills: ['red', 'white'] },
-        { cap: 4, fills: ['red', 'yellow', 'red', 'red'] },
-        { cap: 4, fills: ['red', 'yellow', 'yellow', 'magenta'] },
-        { cap: 4, fills: ['yellow', 'magenta'] }
+        { cap: 5, fills: ['yellow', 'slate', 'magenta'] },
+        { cap: 5, fills: ['red', 'yellow', 'slate'] },
+        { cap: 5, fills: ['red', 'slate'] },
+        { cap: 5, fills: ['red', 'yellow', 'red'] },
+        { cap: 5, fills: ['yellow', 'slate', 'slate', 'slate', 'magenta'] }
       ]
     },
     {
       id: 'merge-15',
       mode: 'merge',
-      name: 'Muddled Purple',
+      name: 'Muddled Green',
       subtitle: 'Level 15 of 25',
-      teaches: '5 jars · 12 moves',
+      teaches: '5 jars · 14 moves',
       brief: "",
-      target: 'purple',
-      parents: ['red', 'blue'],
-      main: { cap: 4 },
-      par: 12,
+      target: 'green',
+      parents: ['blue', 'yellow'],
+      main: { cap: 5 },
+      par: 14,
+      path: [[0,1], [2,0], [1,2], [3,0], [0,-1], [1,0], [4,1], [4,2], [1,3], [4,1], [0,4], [0,1], [1,4], [4,-1]],
       jars: [
-        { cap: 4, fills: ['blue', 'red', 'teal'] },
-        { cap: 4, fills: ['blue', 'blue', 'teal'] },
-        { cap: 4, fills: ['red', 'green', 'teal', 'red'] },
-        { cap: 4, fills: ['red'] },
-        { cap: 4, fills: ['blue', 'teal'] }
+        { cap: 5, fills: ['blue', 'yellow', 'blue', 'white'] },
+        { cap: 5, fills: ['blue', 'teal', 'yellow', 'white'] },
+        { cap: 5, fills: ['blue'] },
+        { cap: 5, fills: ['yellow', 'yellow'] },
+        { cap: 5, fills: ['yellow', 'blue', 'white', 'teal', 'teal'] }
       ]
     },
     {
@@ -291,6 +306,7 @@
       parents: ['blue', 'yellow'],
       main: { cap: 5 },
       par: 14,
+      path: [[5,1], [5,0], [3,5], [3,4], [5,3], [5,4], [2,5], [2,0], [2,1], [4,2], [0,4], [0,2], [2,4], [4,-1]],
       jars: [
         { cap: 5, fills: ['blue', 'yellow'] },
         { cap: 5, fills: ['purple'] },
@@ -311,6 +327,7 @@
       parents: ['blue', 'yellow'],
       main: { cap: 6 },
       par: 16,
+      path: [[3,0], [0,-1], [1,0], [3,1], [1,-1], [1,0], [1,4], [3,1], [1,3], [3,-1], [4,1], [2,3], [2,4], [2,5], [5,4], [4,-1]],
       jars: [
         { cap: 5, fills: ['blue'] },
         { cap: 5, fills: ['yellow', 'magenta', 'white', 'yellow', 'white'] },
@@ -331,6 +348,7 @@
       parents: ['red', 'blue'],
       main: { cap: 5 },
       par: 17,
+      path: [[3,0], [0,-1], [5,3], [5,1], [1,0], [2,1], [5,4], [5,2], [1,5], [4,2], [2,-1], [4,3], [2,0], [4,2], [4,1], [2,1], [1,-1]],
       jars: [
         { cap: 5, fills: ['orange', 'blue'] },
         { cap: 5, fills: ['white', 'blue', 'magenta', 'orange'] },
@@ -343,55 +361,15 @@
     {
       id: 'merge-19',
       mode: 'merge',
-      name: 'Scattered Purple',
+      name: 'Scattered Green',
       subtitle: 'Level 19 of 25',
-      teaches: '6 jars · 17 moves',
-      brief: "",
-      target: 'purple',
-      parents: ['red', 'blue'],
-      main: { cap: 6 },
-      par: 17,
-      jars: [
-        { cap: 5, fills: ['white'] },
-        { cap: 5, fills: ['red', 'blue', 'red', 'blue', 'slate'] },
-        { cap: 5, fills: ['red', 'blue', 'red', 'white'] },
-        { cap: 5, fills: ['blue', 'red', 'green', 'blue', 'green'] },
-        { cap: 5, fills: ['red', 'green'] },
-        { cap: 5, fills: ['white', 'blue'] }
-      ]
-    },
-    {
-      id: 'merge-20',
-      mode: 'merge',
-      name: 'Buried Green',
-      subtitle: 'Level 20 of 25',
-      teaches: '7 jars · 17 moves',
-      brief: "",
-      target: 'green',
-      parents: ['blue', 'yellow'],
-      main: { cap: 7 },
-      par: 17,
-      jars: [
-        { cap: 5, fills: ['blue', 'blue', 'yellow'] },
-        { cap: 5, fills: ['yellow', 'yellow'] },
-        { cap: 5, fills: ['yellow', 'white', 'white', 'blue', 'slate'] },
-        { cap: 5, fills: ['slate', 'magenta'] },
-        { cap: 5, fills: ['yellow', 'blue', 'purple', 'magenta'] },
-        { cap: 5, fills: ['yellow', 'blue', 'purple', 'slate'] },
-        { cap: 5, fills: ['blue', 'blue', 'yellow'] }
-      ]
-    },
-    {
-      id: 'merge-21',
-      mode: 'merge',
-      name: 'Knotted Green',
-      subtitle: 'Level 21 of 25',
       teaches: '6 jars · 18 moves',
       brief: "",
       target: 'green',
       parents: ['blue', 'yellow'],
       main: { cap: 6 },
       par: 18,
+      path: [[2,1], [2,4], [1,2], [3,1], [1,-1], [3,5], [1,3], [5,1], [3,5], [3,0], [5,4], [4,-1], [0,5], [0,1], [0,4], [0,3], [3,4], [4,-1]],
       jars: [
         { cap: 5, fills: ['blue', 'yellow', 'magenta', 'purple'] },
         { cap: 5, fills: ['yellow', 'blue', 'white'] },
@@ -402,16 +380,17 @@
       ]
     },
     {
-      id: 'merge-22',
+      id: 'merge-20',
       mode: 'merge',
-      name: 'Split Purple',
-      subtitle: 'Level 22 of 25',
+      name: 'Buried Purple',
+      subtitle: 'Level 20 of 25',
       teaches: '6 jars · 18 moves',
       brief: "",
       target: 'purple',
       parents: ['red', 'blue'],
       main: { cap: 6 },
       par: 18,
+      path: [[3,2], [1,0], [0,-1], [0,5], [0,3], [4,0], [4,5], [4,2], [1,4], [3,1], [3,2], [4,1], [1,-1], [2,4], [1,2], [1,3], [2,3], [3,-1]],
       jars: [
         { cap: 5, fills: ['red', 'slate', 'blue'] },
         { cap: 5, fills: ['red', 'blue', 'red', 'blue', 'red'] },
@@ -422,24 +401,68 @@
       ]
     },
     {
-      id: 'merge-23',
+      id: 'merge-21',
       mode: 'merge',
-      name: 'Braided Green',
-      subtitle: 'Level 23 of 25',
-      teaches: '7 jars · 19 moves',
+      name: 'Knotted Purple',
+      subtitle: 'Level 21 of 25',
+      teaches: '6 jars · 21 moves',
+      brief: "",
+      target: 'purple',
+      parents: ['red', 'blue'],
+      main: { cap: 6 },
+      par: 21,
+      path: [[0,5], [0,3], [3,0], [0,-1], [5,0], [3,5], [1,5], [1,0], [1,3], [3,-1], [5,1], [4,1], [2,3], [5,2], [2,-1], [5,2], [2,-1], [4,5], [4,1], [2,4], [4,-1]],
+      jars: [
+        { cap: 6, fills: ['red', 'red', 'blue', 'green', 'green'] },
+        { cap: 6, fills: ['red', 'green', 'white'] },
+        { cap: 6, fills: ['red', 'blue', 'red', 'slate'] },
+        { cap: 6, fills: ['blue', 'white', 'blue'] },
+        { cap: 6, fills: ['blue', 'white', 'green', 'white'] },
+        { cap: 6, fills: ['red', 'blue', 'white', 'green'] }
+      ]
+    },
+    {
+      id: 'merge-22',
+      mode: 'merge',
+      name: 'Split Green',
+      subtitle: 'Level 22 of 25',
+      teaches: '7 jars · 22 moves',
       brief: "",
       target: 'green',
       parents: ['blue', 'yellow'],
       main: { cap: 7 },
-      par: 19,
+      par: 22,
+      path: [[6,3], [6,4], [4,-1], [5,6], [2,1], [0,1], [5,2], [0,5], [0,2], [0,2], [2,-1], [5,0], [3,2], [3,4], [5,3], [3,-1], [3,2], [4,0], [5,3], [4,5], [3,5], [5,-1]],
       jars: [
-        { cap: 5, fills: ['yellow', 'blue', 'blue'] },
-        { cap: 5, fills: [] },
-        { cap: 5, fills: ['yellow', 'blue', 'orange', 'slate'] },
-        { cap: 5, fills: ['orange', 'blue', 'orange', 'slate'] },
-        { cap: 5, fills: ['purple', 'yellow', 'slate'] },
-        { cap: 5, fills: ['blue', 'yellow', 'yellow', 'blue', 'purple'] },
-        { cap: 5, fills: ['yellow', 'blue', 'yellow', 'white'] }
+        { cap: 6, fills: ['yellow', 'yellow', 'yellow', 'blue', 'slate', 'orange'] },
+        { cap: 6, fills: ['white', 'orange'] },
+        { cap: 6, fills: ['blue', 'orange', 'orange'] },
+        { cap: 6, fills: ['yellow', 'purple', 'yellow', 'slate', 'purple'] },
+        { cap: 6, fills: ['blue', 'slate', 'yellow'] },
+        { cap: 6, fills: ['blue', 'yellow', 'blue', 'slate', 'blue', 'white'] },
+        { cap: 6, fills: ['blue', 'purple'] }
+      ]
+    },
+    {
+      id: 'merge-23',
+      mode: 'merge',
+      name: 'Braided Purple',
+      subtitle: 'Level 23 of 25',
+      teaches: '7 jars · 24 moves',
+      brief: "",
+      target: 'purple',
+      parents: ['red', 'blue'],
+      main: { cap: 6 },
+      par: 24,
+      path: [[6,0], [5,3], [2,3], [6,2], [1,2], [1,0], [1,3], [0,1], [0,2], [0,6], [0,5], [4,0], [4,2], [5,4], [4,6], [6,-1], [2,4], [1,6], [1,2], [5,1], [1,-1], [5,1], [2,5], [5,-1]],
+      jars: [
+        { cap: 6, fills: ['red', 'blue', 'white', 'magenta'] },
+        { cap: 6, fills: ['red', 'blue', 'magenta', 'orange', 'magenta', 'white'] },
+        { cap: 6, fills: ['blue', 'white', 'orange'] },
+        { cap: 6, fills: ['orange'] },
+        { cap: 6, fills: ['red', 'white', 'green'] },
+        { cap: 6, fills: ['red', 'red', 'green', 'blue', 'red', 'orange'] },
+        { cap: 6, fills: ['blue', 'blue', 'white', 'magenta'] }
       ]
     },
     {
@@ -447,41 +470,43 @@
       mode: 'merge',
       name: 'Fractured Purple',
       subtitle: 'Level 24 of 25',
-      teaches: '7 jars · 20 moves',
+      teaches: '7 jars · 25 moves',
       brief: "",
       target: 'purple',
       parents: ['red', 'blue'],
       main: { cap: 7 },
-      par: 20,
+      par: 25,
+      path: [[6,3], [6,1], [6,4], [4,-1], [4,1], [0,4], [6,0], [0,-1], [0,5], [0,6], [1,0], [2,1], [2,0], [1,2], [1,6], [2,1], [2,0], [2,6], [2,5], [4,2], [4,5], [4,6], [5,4], [4,6], [6,-1]],
       jars: [
-        { cap: 5, fills: ['teal', 'red', 'white', 'orange'] },
-        { cap: 5, fills: ['red', 'blue', 'slate'] },
-        { cap: 5, fills: ['red'] },
-        { cap: 5, fills: ['blue', 'red', 'blue'] },
-        { cap: 5, fills: ['red', 'blue', 'white', 'orange', 'teal'] },
-        { cap: 5, fills: ['red', 'blue', 'blue', 'orange', 'orange'] },
-        { cap: 5, fills: ['blue', 'red'] }
+        { cap: 6, fills: ['red', 'blue', 'red', 'teal'] },
+        { cap: 6, fills: ['red', 'white', 'orange'] },
+        { cap: 6, fills: ['blue', 'red', 'orange', 'white', 'orange', 'white'] },
+        { cap: 6, fills: [] },
+        { cap: 6, fills: ['blue', 'red', 'blue', 'teal', 'orange', 'blue'] },
+        { cap: 6, fills: ['slate', 'slate', 'blue'] },
+        { cap: 6, fills: ['red', 'blue', 'red', 'orange', 'slate'] }
       ]
     },
     {
       id: 'merge-25',
       mode: 'merge',
-      name: 'Distilled Orange',
+      name: 'Distilled Green',
       subtitle: 'Level 25 of 25',
-      teaches: '7 jars · 21 moves',
+      teaches: '7 jars · 25 moves',
       brief: "",
-      target: 'orange',
-      parents: ['red', 'yellow'],
-      main: { cap: 6 },
-      par: 21,
+      target: 'green',
+      parents: ['blue', 'yellow'],
+      main: { cap: 7 },
+      par: 25,
+      path: [[5,6], [5,2], [5,4], [3,1], [1,0], [3,1], [5,3], [3,-1], [5,3], [3,-1], [4,3], [5,4], [4,-1], [4,0], [2,4], [1,5], [1,2], [4,1], [2,4], [6,2], [0,2], [6,0], [4,6], [0,6], [6,-1]],
       jars: [
-        { cap: 5, fills: ['red', 'red', 'red', 'teal'] },
-        { cap: 5, fills: ['yellow', 'green'] },
-        { cap: 5, fills: ['red', 'yellow', 'green'] },
-        { cap: 5, fills: ['yellow'] },
-        { cap: 5, fills: ['yellow', 'green', 'teal'] },
-        { cap: 5, fills: ['red', 'magenta', 'yellow', 'magenta', 'teal'] },
-        { cap: 5, fills: ['yellow', 'red', 'white', 'magenta', 'white'] }
+        { cap: 6, fills: ['yellow', 'magenta'] },
+        { cap: 6, fills: ['blue', 'slate', 'magenta'] },
+        { cap: 6, fills: ['blue', 'teal'] },
+        { cap: 6, fills: ['blue', 'yellow', 'slate', 'magenta'] },
+        { cap: 6, fills: ['blue', 'teal', 'magenta', 'yellow', 'orange'] },
+        { cap: 6, fills: ['blue', 'yellow', 'blue', 'orange', 'teal', 'magenta'] },
+        { cap: 6, fills: ['blue', 'yellow', 'yellow', 'yellow', 'magenta'] }
       ]
     }
   ];

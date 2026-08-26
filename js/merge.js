@@ -7,9 +7,8 @@
  * Kept apart from solver.js on purpose. That search is an A* whose lower bound
  * is proved against the ordinary rules, where every pour preserves the number
  * of units on the shelf. Merging destroys units, so that bound does not hold
- * here, and quietly reusing it would give a wrong par. This is a plain
- * breadth-first search instead: slower, but optimal by construction, which
- * matters more than speed on boards this size. */
+ * here, and quietly reusing it would give a wrong par. This has a bound of its
+ * own instead — see bound() below. */
 (function (global) {
   'use strict';
 
@@ -50,6 +49,62 @@
 
   var DEFAULT_BUDGET = 120000;
 
+  /* A lower bound on the moves still needed — never an overestimate, which is
+     what keeps the answer exactly optimal. Three counts that no single move
+     can serve two of, so they add:
+
+       - every unit of target still owed to the big jar arrives by a pour, and
+         one pour carries at most a jarful;
+       - every unit of target that does not exist yet has to be made by a
+         merge, and one merge makes at most a jarful;
+       - every run of a colour that mixes with nothing, sitting on top of a
+         target or one of its parents, is in the way and has to move at least
+         once. A merge moves a parent, a delivery moves target, so neither can
+         shift one of these on the way past.
+
+     Each move also changes the total by at most one either way, which is what
+     lets a position be closed off once it has been reached.
+
+     Without this the search was breadth-first and had nothing to aim at, and
+     that — not the shelf and not the palette — was what capped the mode's
+     levels at par 21. */
+  function bound(pos, main, jars) {
+    var missing = main.capacity - main.cells.length;
+    if (missing <= 0) return 0;
+
+    var target = pos.target;
+    var parents = null;
+    for (var r = 0; r < RECIPES.length; r++) {
+      if (RECIPES[r].makes === target) { parents = RECIPES[r]; break; }
+    }
+    var pa = parents ? parents.a : null, pb = parents ? parents.b : null;
+
+    var onShelf = 0, blockers = 0, biggest = 1;
+    for (var i = 0; i < jars.length; i++) {
+      var cells = jars[i].cells;
+      if (jars[i].capacity > biggest) biggest = jars[i].capacity;
+      if (!cells.length) continue;
+
+      /* The deepest cell that is either target or one of its parents: anything
+         inert above that line has to be lifted out of the way. */
+      var deepest = -1;
+      for (var k = 0; k < cells.length; k++) {
+        if (cells[k] === target) { onShelf++; if (deepest < 0) deepest = k; }
+        else if ((cells[k] === pa || cells[k] === pb) && deepest < 0) deepest = k;
+      }
+      if (deepest < 0) continue;
+
+      for (var a = deepest + 1; a < cells.length; a++) {
+        if (a > deepest + 1 && cells[a] === cells[a - 1]) continue;     /* same run */
+        if (cells[a] !== target && cells[a] !== pa && cells[a] !== pb) blockers++;
+      }
+    }
+
+    var toMake = missing - onShelf;
+    if (toMake < 0) toMake = 0;
+    return Math.ceil(missing / biggest) + Math.ceil(toMake / biggest) + blockers;
+  }
+
   function key(main, jars) {
     var side = jars.map(function (j) { return j.capacity + ':' + j.cells.join(','); });
     side.sort();
@@ -72,7 +127,16 @@
   }
 
   /* Every legal pour, in the same shape solver.js returns so the hint and the
-     dead-end warning can read either without caring which mode is running. */
+     dead-end warning can read either without caring which mode is running.
+
+     Empty jars of the same size are interchangeable, so only the first is
+     offered as a destination: pouring into the first of three empty jars or
+     the third reaches the same position, and generating all three only to
+     throw two away costs a clone and a key each time. Deduplicating the rest
+     was tried and measured — building a signature for every jar cost as much
+     as it saved, and left the states expanded exactly the same — so only the
+     empty ones, which are the common case and cost nothing to spot, are
+     collapsed here. */
   function moves(pos, main, jars) {
     var out = [];
     for (var i = 0; i < jars.length; i++) {
@@ -93,11 +157,14 @@
         return [{ from: i, to: -1, amount: Math.min(run, main.capacity - main.cells.length) }];
       }
 
+      var emptyUsed = null;
       for (var j = 0; j < jars.length; j++) {
         if (i === j) continue;
         var to = jars[j];
 
         if (!to.cells.length) {
+          if (emptyUsed === to.capacity) continue;
+          emptyUsed = to.capacity;
           /* Tipping a jar that is all one colour into an empty one only
              mirrors the position. */
           if (run === from.cells.length) continue;
@@ -133,8 +200,11 @@
   }
 
   /* Fewest moves from here, or null if it cannot be finished.
-     Breadth-first, so the first time the finished position is reached it is by
-     a shortest route — no estimate to get wrong. */
+
+     Best-first, taking positions in order of moves-so-far plus bound(). Since
+     the bound never overshoots, the first time the finished position comes off
+     the queue it is by a shortest route — the answer is the true minimum, not
+     merely a good one. */
   function solve(pos, budget, msBudget) {
     budget = budget || DEFAULT_BUDGET;
     var expiry = msBudget ? Date.now() + msBudget : 0;
@@ -144,13 +214,30 @@
     if (solved(pos, start.main)) return { par: 0, path: [], explored: 0 };
 
     var nodes = [{ state: start, prev: -1, move: null, cost: 0 }];
-    var seen = Object.create(null);
-    seen[key(start.main, start.jars)] = true;
+    var cheapest = Object.create(null);
+    cheapest[key(start.main, start.jars)] = 0;
 
-    var head = 0, expanded = 0;
-    while (head < nodes.length) {
-      var index = head++;
+    /* Costs are whole numbers that only ever grow by one, so buckets serve as
+       the queue — cheaper than a heap. */
+    var queue = [];
+    function enqueue(rank, index) { (queue[rank] || (queue[rank] = [])).push(index); }
+    enqueue(bound(pos, start.main, start.jars), 0);
+
+    var rank = 0, expanded = 0;
+    while (rank < queue.length) {
+      var bucket = queue[rank];
+      if (!bucket || !bucket.length) { rank++; continue; }
+
+      var index = bucket.pop();
       var node = nodes[index];
+      var here = key(node.state.main, node.state.jars);
+      if (cheapest[here] < node.cost) continue;       /* a better route got here first */
+
+      if (solved(pos, node.state.main)) {
+        var path = [];
+        for (var back = index; back > 0; back = nodes[back].prev) path.unshift(nodes[back].move);
+        return { par: node.cost, path: path, explored: expanded };
+      }
 
       if (++expanded > budget) return { budgetExceeded: true };
       if (expiry && expanded >= nextTimeCheck) {
@@ -163,16 +250,12 @@
         var next = clone(node.state.main, node.state.jars);
         apply(next.main, next.jars, list[m]);
         var id = key(next.main, next.jars);
-        if (seen[id]) continue;
-        seen[id] = true;
+        var cost = node.cost + 1;
+        if (cheapest[id] !== undefined && cheapest[id] <= cost) continue;
+        cheapest[id] = cost;
 
-        var at = nodes.length;
-        nodes.push({ state: next, prev: index, move: list[m], cost: node.cost + 1 });
-        if (solved(pos, next.main)) {
-          var path = [];
-          for (var back = at; back > 0; back = nodes[back].prev) path.unshift(nodes[back].move);
-          return { par: node.cost + 1, path: path, explored: expanded };
-        }
+        nodes.push({ state: next, prev: index, move: list[m], cost: cost });
+        enqueue(cost + bound(pos, next.main, next.jars), nodes.length - 1);
       }
     }
     return { par: null, path: null, explored: expanded };   /* no way through */
@@ -183,6 +266,7 @@
     mix: mix,
     mergeAmount: mergeAmount,
     solve: solve,
+    bound: bound,
     DEFAULT_BUDGET: DEFAULT_BUDGET
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -72,10 +72,10 @@ cannot be spoiled.
 | 3 | A colour that mixes with nothing, in the way | 3 |
 | 4 | Gathering a colour before mixing it | 3 |
 | 5 | All three at once, with nothing to spare | 4 |
-| 6–10 | Four or five jars, the parents lightly scattered | 5–9 |
-| 11–15 | Five jars, deeper, more in the way | 10–12 |
-| 16–20 | Six or seven jars, the parents buried and split | 14–17 |
-| 21–25 | The most the search can still answer a hint on | 18–21 |
+| 6–10 | Four or five jars, the parents lightly scattered | 5–10 |
+| 11–16 | Five or six jars, deeper, more in the way | 12–14 |
+| 17–21 | Six jars, the parents buried and split | 16–21 |
+| 22–25 | Seven jars six deep — as far as the search reaches | 22–25 |
 
 The dealt levels are built so that **no wrong merge is possible**. Only the two
 parents of the target ever appear as mixable colours — the third primary is
@@ -89,13 +89,30 @@ The five taught levels are the exception, deliberately: level 4 puts a rival
 recipe on the shelf precisely because spending a colour on the wrong partner is
 the thing it teaches. They are the only levels in the mode that can be spoiled.
 
-What caps the curve at par 21 is not the shelf or the palette but the search.
-Merge Colours has no admissible estimate to guide it, so it is breadth-first,
-and the states climb steeply with the size of the big jar. The in-game hint has
-1.2 seconds to answer from the opening position — the worst case — and every
-level here settles well inside it, the hardest in about fourteen thousand
-states. Going further would mean giving the mode a real estimate first, not
-simply dealing bigger boards.
+What caps the curve is the search, and where the cap sits was measured rather
+than guessed. Three things set it:
+
+- **The hint from the opening position is by far the dearest**, and on every
+  board tried it is the dearest by a wide margin. It is also the one answer
+  that is the same for everybody every time, so each level now ships its own
+  optimal path and that hint costs nothing at all. A hint asked after the
+  player strays is searched — once — and then followed, so straying costs one
+  search rather than one per hint.
+- **Width is the wall, not shuffling.** The two were measured separately: at
+  seven jars a board settles in a quarter of a second, at eight the builder
+  stalls outright, and at nine it takes fifteen seconds even when barely
+  shuffled. Growing the shelf is what breaks it, so the curve grows the big jar
+  and the depth of the jars instead.
+- **The ceiling is checked on a throttled CPU**, not a desktop. Every level is
+  played in a real browser with the processor slowed six times and asked for a
+  hint both on the opening and after straying. At sixty thousand states the
+  hardest level took over four seconds and gave up; at thirty thousand the same
+  levels answer in about two and a half, against a four second budget.
+
+Going past par 25 needs a tighter lower bound for the mode, not bigger boards.
+The one it has reaches only about two thirds of par, because the moves that
+dominate these solutions are gathering pours — consolidating a scattered colour
+— and no sound way to count those in advance has been found yet.
 
 **Random Puzzle** — endlessly generated, in three settings:
 
@@ -130,13 +147,24 @@ not hold there, and quietly reusing it would give a wrong par. The merge search
 is a plain breadth-first one instead — slower, but optimal by construction,
 which matters more on boards that size.
 
-It does keep one shortcut from the ordinary game: when the target can go into
+It is a best-first search like the ordinary game's, guided by a bound of its
+own: every unit of target still owed to the big jar needs a pour, every unit
+that does not exist yet needs a merge to make it, and every run of a colour
+that mixes with nothing, sitting on top of a target or one of its parents, has
+to move at least once. No single move serves two of those, so they add.
+
+It also keeps one shortcut from the ordinary game: when the target can go into
 the big jar, nothing else is worth considering. The reasoning carries over
 because the target here is always a secondary colour and so is never an
 ingredient — nothing can consume it and no merge needs it — and the big jar
 never gives it back. That is an optimality claim, so it is checked rather than
 assumed: against a search with the shortcut removed, over 120 dealt boards,
 every par identical. It roughly halves the states on the largest levels.
+
+The bound is checked the same way — against the breadth-first search it
+replaced, which had no estimate to get wrong — over 200 dealt boards, every par
+identical, and with the bound itself never once claiming more moves were needed
+than the remaining solution actually took.
 
 `tools/make-merge-levels.js` builds the mode's levels and `tools/check-merge.js`
 checks them, the way `make-levels.js` does both for the campaign.
@@ -358,6 +386,15 @@ the search cannot settle, or one that can no longer be won, costs nothing —
 those answers are warnings, not help. Restarting a level hands the whole
 allowance back, since that is a fresh attempt; undo deliberately does not,
 which would make the ration free.
+
+Whatever a hint works out is kept and followed. A shortest route from here
+stays a shortest route as long as the player takes it, so every hint after the
+first is read off it and costs no search at all. Merge Colours levels start
+with that route already in the level file, because the opening is both the
+dearest position to work out and the same for everybody. When the search does
+have to run there — it can take a second or two on a phone — the game says
+"Working it out…" and yields first, so the message paints rather than the page
+simply freezing.
 
 ## Keeping progress
 

@@ -8,14 +8,15 @@
  * re-verified rather than rebuilt. The rest are dealt along a widening curve
  * and kept only if they pass every check below.
  *
- * What limits this curve is the search. Merge Colours has no admissible
- * estimate to guide it (see merge.js), so it is a plain breadth-first search,
- * and the states it has to visit climb steeply: a board needing six units of
- * target settles in a few thousand, one needing ten in half a million. The
- * in-game hint has 1.2 seconds to answer from the opening position, which is
- * the worst case, and that works out at roughly forty thousand states. Boards
- * here stay inside it. Going further would mean giving the mode a real
- * estimate first, not simply dealing bigger boards. */
+ * What limits this curve is the search: the states climb steeply with the size
+ * of the big jar, and the in-game hint has 1.2 seconds to answer.
+ *
+ * Measuring where that bites gave the way past it. The dearest hint on every
+ * board tried is the one from the opening position — by some distance, and in
+ * every trial — and that is the single position whose answer can be worked out
+ * here, once, and carried in the level. So each level ships its optimal path,
+ * the first hint costs nothing at all, and the ceiling is set by the dearest
+ * hint AFTER the first move instead. */
 
 'use strict';
 const fs = require('fs');
@@ -29,15 +30,31 @@ const { deal } = require('./merge-deal.js');
 
 const TOTAL = 25, TAUGHT = 5, FIRST_DEALT = TAUGHT + 1;
 
-/* The hint's own budget, which is what the ceiling above is really about. */
-const HINT_STATES = 40000;
+/* The ceiling, in states the search has to visit from the opening position.
+   Raised once the opening stopped being searched at all: with that answer
+   carried in the level, the dearest hint a player can actually provoke is one
+   asked after straying, and Merge Colours gives that four seconds behind a
+   "working it out" line rather than the ordinary game's 1.2. Every level built
+   here is then checked on a six-times-throttled CPU in a real browser, which
+   is what this number is really standing in for — and that check is what set
+   it. At sixty thousand the hardest level took just over four seconds on that
+   throttled CPU and gave up; the levels that came in around thirty thousand
+   answered in about two and a half, which leaves real margin. */
+const HINT_STATES = 30000;
 
 const lerp = (a, b, t) => Math.round(a + (b - a) * t);
 
 function shape(level) {
   const u = (level - FIRST_DEALT) / (TOTAL - FIRST_DEALT);
+  /* Seven jars is as wide as this can go, and a big jar of seven as deep.
+     Past that the search does not degrade, it falls off a cliff: eight jars
+     stalled the builder outright, and at nine a board takes fifteen seconds to
+     settle even when barely shuffled, against a quarter of a second at seven.
+     It is the width that does it and not the shuffling — the two were measured
+     separately — so the curve grows the jars' depth and the burial rather than
+     the shelf. */
   const jars = lerp(4, 7, u);
-  const cap = lerp(4, 5, u);
+  const cap = lerp(4, 6, u);
   const mainCap = lerp(3, 7, u);
   const cells = jars * cap;
   /* Room to work in, as a share of the shelf. Too little and an ordinary run
@@ -106,7 +123,7 @@ function inspect(lvl, strict) {
       if (C.distance(used[a], used[b]) < 150) return { bad: 'lookalikes ' + used[a] + '/' + used[b] };
     }
   }
-  return { par: solved.par, states: solved.explored };
+  return { par: solved.par, states: solved.explored, path: solved.path };
 }
 
 /* Can it be played badly and still finished? No merge can be wrong here, so
@@ -160,7 +177,7 @@ for (let n = 1; n <= TAUGHT; n++) {
   const r = inspect(lvl);
   if (r.bad) throw new Error(id + ' (' + lvl.name + '): ' + r.bad);
   if (r.par !== lvl.par) throw new Error(id + ': stored par ' + lvl.par + ', solver makes it ' + r.par);
-  built.push(lvl);
+  built.push(Object.assign({}, lvl, { path: r.path }));
   console.log('  ' + String(n).padStart(2) + '. ' + lvl.name.padEnd(18) +
     ' taught   jars ' + lvl.jars.length + '  par ' + String(lvl.par).padStart(2) + '   (verified)');
 }
@@ -174,14 +191,15 @@ const dealt = [];
 for (let level = FIRST_DEALT; level <= TOTAL; level++) {
   const cfg = shape(level);
   let chosen = null;
-  for (let seed = level * 1000; seed < level * 1000 + 400 && !chosen; seed++) {
+  const until = Date.now() + 240000;      /* never let one level stall the build */
+  for (let seed = level * 1000; seed < level * 1000 + 400 && !chosen && Date.now() < until; seed++) {
     const board = deal(cfg, seed);
     if (!board) continue;
     const r = inspect(board, true);
     if (r.bad) continue;
     if (r.par < floor + 1) continue;               /* never easier than the taught five */
     if (!survivable(board, 4)) continue;
-    chosen = { board, par: r.par, states: r.states };
+    chosen = { board, par: r.par, states: r.states, path: r.path };
   }
   if (!chosen) throw new Error('level ' + level + ': nothing dealt that passes');
   dealt.push(chosen);
@@ -204,6 +222,7 @@ dealt.forEach((pick, i) => {
     parents: pick.board.parents,
     main: { cap: pick.board.main.cap },
     par: pick.par,
+    path: pick.path,
     jars: pick.board.jars.map(j => ({ cap: j.cap, fills: j.fills }))
   });
   console.log('  ' + String(level).padStart(2) + '. ' + built[built.length - 1].name.padEnd(18) +
@@ -227,6 +246,7 @@ const body = built.map((l, i) => {
     (l.parents ? "      parents: ['" + l.parents.join("', '") + "'],\n" : '') +
     '      main: { cap: ' + l.main.cap + ' },\n' +
     '      par: ' + l.par + ',\n' +
+    '      path: [' + l.path.map(m => '[' + m.from + ',' + m.to + ']').join(', ') + '],\n' +
     '      jars: [\n' + jars + '\n      ]\n' +
     '    }';
 }).join(',\n');

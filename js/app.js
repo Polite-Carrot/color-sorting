@@ -19,6 +19,13 @@
      no warning rather than a freeze. */
   var WATCH_BUDGET = 40000, WATCH_MS = 150;
   var HINT_MS = 1200;
+  /* Merge Colours gets longer, because its search has no tight bound to guide
+     it and a hard board can genuinely take a second or two on a phone. Rather
+     than claim the position is too tangled — which would be a lie, the search
+     simply had not finished — it says what it is doing and yields first, so
+     the message paints before the thread is taken. The same trick the random
+     dealer uses. */
+  var MERGE_HINT_MS = 4000;
 
   var $ = function (id) { return document.getElementById(id); };
 
@@ -43,6 +50,17 @@
     jarViews: [],
     hintTimer: null,
     hintsLeft: 0,
+    /* A shortest route from some earlier position, and how far along it the
+       player still is — or -1 once they have left it. It starts as the level's
+       own stored solution, and is replaced by whatever a hint works out after
+       that. While the player is on it, a hint is read straight off it and
+       costs no search at all.
+
+       Merge levels carry their solution in the level file because the hint
+       from the opening position is far and away the dearest to work out, and
+       it is the same answer every time anybody starts the level. */
+    followed: null,
+    onPath: -1,
     from: 'levels',
     /* Which list the levels screen is showing. The screen itself is shared,
        because the two modes want exactly the same grid of tiles. */
@@ -252,6 +270,8 @@
   function startLevel(level, mode) {
     state.game = new window.Engine.Game(level);
     state.hintsLeft = hintAllowance(state.game.par);
+    state.followed = level.path && level.path.length ? level.path : null;
+    state.onPath = state.followed ? 0 : -1;
     state.mode = mode;
     state.from = mode === 'random' ? 'random' : 'levels';
     if (mode !== 'random') state.listMode = mode;
@@ -482,6 +502,8 @@
       return;
     }
 
+    trackPath(g, fromId, toId);
+
     var dest = g.get(toId);
     Sound.pour(dest.cells.length / dest.capacity);
 
@@ -507,6 +529,34 @@
     } else {
       watchForDeadEnd();
     }
+  }
+
+  /* The next move read straight off the level's stored solution, or null if
+     the player has left it. What is left of the path from here is itself a
+     shortest route, so the count of moves remaining is exact. */
+  function fromStoredPath(g) {
+    var path = state.followed;
+    if (state.onPath < 0 || !path || state.onPath >= path.length) return null;
+    var step = path[state.onPath];
+    var from = 'jar' + step[0], to = step[1] === -1 ? MAIN : 'jar' + step[1];
+    var can = g.check(from, to);
+    if (!can.amount) return null;               /* stale — fall back to the search */
+    return {
+      par: path.length - state.onPath,
+      path: [{ from: step[0], to: step[1], amount: can.amount, makes: can.merge }]
+    };
+  }
+
+  /* A move either follows the stored solution, which advances the marker, or
+     leaves it, which ends it until the level is restarted. */
+  function trackPath(g, fromId, toId) {
+    if (state.onPath < 0) return;
+    var path = state.followed;
+    if (!path || state.onPath >= path.length) { state.onPath = -1; return; }
+    var step = path[state.onPath];
+    var from = 'jar' + step[0];
+    var to = step[1] === -1 ? MAIN : 'jar' + step[1];
+    state.onPath = (from === fromId && to === toId) ? state.onPath + 1 : -1;
   }
 
   /* Say so early when a position can no longer be finished, rather than
@@ -666,7 +716,22 @@
       return;
     }
 
-    var result = solverFor(g).solve(g.position(), null, HINT_MS);
+    var ready = fromStoredPath(g);
+    if (ready) { showHint(g, ready); return; }
+
+    if (g.merging) {
+      setStatus('Working it out…', '');
+      var pending = g.moves;
+      setTimeout(function () {
+        if (state.game !== g || g.moves !== pending || g.won) return;
+        showHint(g, window.Merge.solve(g.position(), null, MERGE_HINT_MS));
+      }, 30);
+      return;
+    }
+    showHint(g, window.Solver.solve(g.position(), null, HINT_MS));
+  }
+
+  function showHint(g, result) {
     if (result.budgetExceeded) {
       setStatus('This one is too tangled for me to work out from here — try undoing a move.', 'warn');
       return;
@@ -679,6 +744,15 @@
 
     g.hintsUsed++;
     state.hintsLeft--;
+
+    /* Whatever the search just worked out is itself a shortest route from
+       here, so keep it: following it costs no more searching, and somebody who
+       has strayed and is now taking hints pays for one search, not one per
+       hint. */
+    if (result.path.length > 1 || state.onPath < 0) {
+      state.followed = result.path.map(function (m) { return [m.from, m.to]; });
+      state.onPath = 0;
+    }
     var mv = result.path[0];
     var fromView = state.jarViews[mv.from];
     var toView = mv.to === -1 ? state.mainView : state.jarViews[mv.to];
@@ -739,6 +813,14 @@
 
     $('undo').addEventListener('click', function () {
       if (state.game && state.game.undo()) {
+        /* Undo walks back along the stored solution as well: a position one
+           move back from the path is on the path. Somebody who had strayed
+           stays strayed, unless they have undone all the way to the start. */
+        if (state.onPath > 0) state.onPath--;
+        else if (state.game.moves === 0 && state.game.level.path) {
+          state.followed = state.game.level.path;
+          state.onPath = 0;
+        } else state.onPath = -1;
         state.selected = null;
         clearHintMarks();
         Sound.pick();
@@ -753,6 +835,8 @@
       /* A restart is a fresh attempt, so the hints come back with it. Undo is
          deliberately not the same thing — that would make the ration free. */
       state.hintsLeft = hintAllowance(state.game.par);
+      state.followed = state.game.level.path || null;
+      state.onPath = state.followed ? 0 : -1;
       state.selected = null;
       clearTimeout(state.hintTimer);
       clearHintMarks();
@@ -774,6 +858,8 @@
       closeOverlay();
       state.game.restart();
       state.hintsLeft = hintAllowance(state.game.par);
+      state.followed = state.game.level.path || null;
+      state.onPath = state.followed ? 0 : -1;
       state.selected = null;
       refresh();
       setStatus('', '');
