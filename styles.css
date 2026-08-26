@@ -500,7 +500,12 @@ input:focus-visible {
   margin: 12px 0 14px;
   color: var(--ink-soft);
   font-size: 14px;
-  min-height: 2.6em;
+  /* Two lines' worth, always, so picking a setting whose description happens
+     to fit on one line does not shorten the card and jump everything under it
+     up the screen. The old 2.6em was less than two lines actually take, so it
+     only ever held for the short ones. */
+  line-height: 1.5;
+  min-height: 3em;
 }
 
 .seed {

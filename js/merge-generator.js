@@ -25,19 +25,19 @@
   var DIFFICULTY = {
     easy: {
       label: 'Easy',
-      blurb: 'Two colours to mix, four jars, and plenty of room.',
+      blurb: 'Two colours to mix, four jars, and room to spare.',
       mainCap: 3, sideJars: 4, sideCap: 4, fillers: 1, fillerUnits: 4,
       burial: 0, churn: 0.1, par: [4, 9]
     },
     normal: {
       label: 'Normal',
-      blurb: 'Five jars, the parents spread about and something in the way.',
+      blurb: 'Five jars, the two colours spread about, and something in the way.',
       mainCap: 5, sideJars: 5, sideCap: 5, fillers: 2, fillerUnits: 6,
       burial: 0.3, churn: 0.3, par: [9, 16]
     },
     hard: {
       label: 'Hard',
-      blurb: 'Six jars, the parents buried and split into thin layers.',
+      blurb: 'Six jars, with what you need buried and split into thin layers.',
       mainCap: 6, sideJars: 6, sideCap: 5, fillers: 3, fillerUnits: 7,
       burial: 0.5, churn: 0.45, par: [15, 24]
     },
@@ -52,7 +52,7 @@
        deal; this one takes about a fifth of a second and comes out harder. */
     extraHard: {
       label: 'Extra Hard',
-      blurb: 'Seven deep jars, five colours in the way, and the parents in ribbons.',
+      blurb: 'Seven deep jars, five colours in the way, and nothing left in one piece.',
       mainCap: 7, sideJars: 7, sideCap: 6, fillers: 5, fillerUnits: 14,
       burial: 0.6, churn: 0.65, par: [20, 30]
     }
