@@ -6,6 +6,8 @@
  *  - Pouring moves the whole top run of one colour from one jar to another.
  *  - A pour is legal only onto an empty jar, or onto the same colour, and
  *    only as far as there is room.
+ *  - In Merge Colours levels one more landing is legal: pouring onto a colour
+ *    that mixes with it. See merge.js for the recipes.
  *  - The big jar accepts the target colour and nothing else, and never pours
  *    back out. It cannot be spoiled, so a wrong tap costs nothing. */
 (function (global) {
@@ -36,6 +38,9 @@
     this.level = level;
     this.target = level.target;
     this.par = level.par;
+    /* Merge Colours levels say so on the level itself, so a Game is enough to
+       know which rules it is playing by and nothing else has to be told. */
+    this.merging = level.mode === 'merge';
     this.restart();
   }
 
@@ -69,10 +74,30 @@
 
     var colour = top(from.cells);
     var space = to.capacity - to.cells.length;
-    if (space <= 0) return { amount: 0, reason: 'full' };
+
+    /* The big jar collects and never mixes, so it can still never be spoiled
+       by a wrong tap — the same promise the ordinary game makes. Outside merge
+       levels this is always null, so everything below behaves exactly as it
+       always did. */
+    var mixed = this.merging && toId !== MAIN && to.cells.length &&
+                top(to.cells) !== colour && global.Merge
+      ? global.Merge.mix(colour, top(to.cells)) : null;
+
+    /* A merge turns units already in the jar into the new colour rather than
+       stacking on top of them, so it needs no room — which is why the room
+       check has to come after it and not before. */
+    if (space <= 0 && !mixed) return { amount: 0, reason: 'full' };
 
     if (toId === MAIN && colour !== this.target) return { amount: 0, reason: 'wrong-colour' };
-    if (to.cells.length && top(to.cells) !== colour) return { amount: 0, reason: 'mismatch' };
+
+    if (to.cells.length && top(to.cells) !== colour) {
+      if (!mixed) return { amount: 0, reason: this.merging ? 'no-mix' : 'mismatch' };
+      return {
+        amount: global.Merge.mergeAmount(from.cells, to.cells),
+        colour: colour,
+        merge: mixed
+      };
+    }
 
     return { amount: Math.min(topRun(from.cells), space), colour: colour };
   };
@@ -87,11 +112,21 @@
     if (this.history.length > 300) this.history.shift();
 
     var from = this.get(fromId), to = this.get(toId);
-    for (var i = 0; i < can.amount; i++) to.cells.push(from.cells.pop());
+    if (can.merge) {
+      for (var m = 0; m < can.amount; m++) {
+        from.cells.pop();
+        to.cells[to.cells.length - 1 - m] = can.merge;
+      }
+    } else {
+      for (var i = 0; i < can.amount; i++) to.cells.push(from.cells.pop());
+    }
 
     this.moves++;
     this.won = this.isSolved();
-    return { ok: true, amount: can.amount, colour: can.colour, from: fromId, to: toId, won: this.won };
+    return {
+      ok: true, amount: can.amount, colour: can.colour, merge: can.merge,
+      from: fromId, to: toId, won: this.won
+    };
   };
 
   Game.prototype.isSolved = function () {

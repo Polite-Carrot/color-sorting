@@ -31,6 +31,15 @@
         <span class="choice__go" aria-hidden="true">›</span>
       </button>
 
+      <button id="go-merge" class="choice" type="button">
+        <span class="choice__mix" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="choice__body">
+          <span class="choice__name">Merge Colours</span>
+          <span class="choice__sub" id="home-merge-sub">Make the colour you need</span>
+        </span>
+        <span class="choice__go" aria-hidden="true">&rsaquo;</span>
+      </button>
+
       <button id="go-random" class="choice" type="button">
         <span class="choice__shelf" aria-hidden="true"><i></i><i></i><i></i></span>
         <span class="choice__body">
@@ -54,7 +63,7 @@
     <header class="subhead">
       <button id="levels-back" class="btn btn--ghost">&larr; Home</button>
       <div class="subhead__title">
-        <h2>Campaign</h2>
+        <h2 id="levels-heading">Campaign</h2>
         <span id="campaign-note"></span>
       </div>
       <span class="subhead__balance" aria-hidden="true"></span>
@@ -121,6 +130,8 @@
       <div class="board__main" id="main-slot"></div>
     </div>
 
+    <ul id="recipes" class="recipes" aria-label="What mixes with what" hidden></ul>
+
     <div class="shelf-wrap">
       <div id="shelf" class="shelf"></div>
     </div>
@@ -158,10 +169,11 @@
       <ol class="rules">
         <li><b>Fill the big jar</b> with the colour shown under &ldquo;Collect&rdquo;. There is exactly one jarful of it spread across the shelf &mdash; you need every last drop.</li>
         <li><b>Tap a jar, then tap where it goes.</b> The whole top block of colour moves at once. Tap the jar again to put it down.</li>
-        <li><b>A colour can only go onto the same colour</b>, or into an empty jar. Nothing ever mixes.</li>
+        <li><b>A colour can only go onto the same colour</b>, or into an empty jar.</li>
         <li><b>The big jar accepts nothing but the target colour</b> and never pours back out, so you cannot spoil it.</li>
         <li><b>Par</b> is the fewest moves possible, worked out by solving the puzzle. Match it for three stars.</li>
       </ol>
+      <p class="modal__line"><b>Merge Colours</b> plays by the same rules but adds one: pour a colour onto one it mixes with, and the two become a third. The colour the big jar wants is usually not on the shelf at all &mdash; you have to make it. Mixing pairs one for one, so two reds landing on five blues make two purple and leave three blue underneath. The recipes sit above the shelf, and the big jar still never mixes.</p>
       <p class="modal__line">Stuck? <b>Hint</b> works out the next move from wherever you are. It shakes the jar to pick up, then where it goes, and rings them both until you move. It will also tell you if a position has become impossible.</p>
       <div class="modal__actions"><button id="howto-close" class="btn btn--primary">Got it</button></div>
     </div>
@@ -175,6 +187,8 @@
 <script src="js/colour.js"></script>
 <script src="js/levels.js"></script>
 <script src="js/engine.js"></script>
+<script src="js/merge.js"></script>
+<script src="js/merge-levels.js"></script>
 <script src="js/solver.js"></script>
 <script src="js/generator.js"></script>
 <script src="js/ui.js"></script>

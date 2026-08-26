@@ -287,7 +287,54 @@ input:focus-visible {
 }
 .choice__shelf i:nth-child(1) { height: 40px; --c: #2fc15e; }
 .choice__shelf i:nth-child(2) { height: 58px; --c: #9a53ef; }
-.choice__shelf i:nth-child(3) { height: 48px; --c: #ff912b; }
+.choice__shelf i:nth-child(3) { height: 48px; --c: #ff8700; }
+
+/* Two blobs overlapping into a third, which is the whole mode in one mark. */
+.choice__mix {
+  position: relative;
+  flex: 0 0 46px;
+  width: 46px;
+  height: 62px;
+}
+.choice__mix i {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+}
+.choice__mix i:nth-child(1) { left: 0;   top: 6px;  background: #f5423c; }
+.choice__mix i:nth-child(2) { right: 0;  top: 6px;  background: #3b7bf7; }
+.choice__mix i:nth-child(3) { left: 9px; top: 26px; background: #9a53ef; }
+
+/* ───────── what mixes with what ───────── */
+
+.recipes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 6px;
+  padding: 7px 14px;
+  list-style: none;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--paper-warm);
+}
+.recipe { display: flex; align-items: center; gap: 4px; }
+.recipe__dot {
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+}
+.recipe__op {
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
 
 /* ───────── a screen below home ───────── */
 

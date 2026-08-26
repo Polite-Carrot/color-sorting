@@ -43,6 +43,35 @@ twenty-two.
 Each level unlocks the next. See **Keeping progress** below for how stars and
 best scores are stored.
 
+**Merge Colours** — five levels, and a rule the ordinary game does not have.
+Pour a colour onto one it mixes with and the two become a third, so the colour
+the big jar wants is usually not on the shelf at all — it has to be made.
+
+| | Makes |
+|--|-------|
+| red + yellow | orange |
+| red + blue | purple |
+| blue + yellow | green |
+
+Only the three primaries mix, and each pair makes the secondary between them on
+the wheel. Everything else is inert: still stackable on its own colour, still
+parkable in an empty jar, but it will not combine. Three recipes is the whole
+of the rule, which is what keeps the mode readable — and they are drawn above
+the shelf so nobody has to remember them.
+
+Mixing pairs one unit for one: two reds landing on five blues make two purple
+and leave three blue underneath. A merge turns units already in the jar into
+the new colour rather than stacking on top of them, so it never needs room —
+a full jar will still take one. The big jar itself never mixes, so it still
+cannot be spoiled.
+
+| Levels | | Par |
+|--------|--|-----|
+| 1–2 | Taught: mixing at all, then that it pairs one for one | 2 |
+| 3 | A colour that mixes with nothing, in the way | 3 |
+| 4 | Gathering a colour before mixing it | 3 |
+| 5 | All three at once, with nothing to spare | 4 |
+
 **Random Puzzle** — endlessly generated, in three settings:
 
 | Mode | Big jar | Jars | Colours in the way | Par |
@@ -68,6 +97,14 @@ Keyboard: `1`–`9` jars · `0` big jar · `U` undo · `H` hint · `R` restart �
 `Esc` put down.
 
 ## The solver
+
+Merge Colours has its own search, in `js/merge.js`, and deliberately does not
+share the one below. That bound is proved against rules where every pour keeps
+the number of units on the shelf the same; merging destroys units, so it does
+not hold there, and quietly reusing it would give a wrong par. The merge search
+is a plain breadth-first one instead — slower, but optimal by construction,
+which matters more on boards that size. `tools/check-merge.js` checks every
+merge level the way `make-levels.js` checks the campaign.
 
 `js/solver.js` is a best-first (A*) search over pour states, and it does three
 jobs: it proves a generated puzzle can be finished, it sets par to the genuine
@@ -234,9 +271,12 @@ fonts.css         generated — inlined webfont subsets
 build.js          bundles everything into one file
 fetch-fonts.js    regenerates fonts.css from Google Fonts
 make-levels.js    builds and verifies the 100-level campaign
+tools/check-merge.js  checks the Merge Colours levels the same way
 js/store.js       progress storage, and whether it can be trusted
 js/colour.js      the palette, and how far apart two colours look
 js/levels.js      generated — the 100 campaign levels
+js/merge.js       Merge Colours: the recipes, and its own search  (no DOM)
+js/merge-levels.js  the five Merge Colours levels, written by hand
 js/engine.js      stacked jars, pouring, undo, win check  (no DOM)
 js/solver.js      best-first search: par, hints, solvability  (no DOM)
 js/generator.js   seeded random puzzles, validated by the solver
@@ -266,6 +306,21 @@ refuses to run rather than pass vacuously.
 | 1 | Guide + easy | The old exhaustive breadth-first search, optimal by construction |
 | 2 | Normal | The same search run with a deliberately weaker bound — still never an overestimate, so it must agree, but it takes a very different route (~350x more states) |
 | 3 | Normal, hard, extra hard | The bound itself: walking real solutions and confirming it never claims more moves are needed than the remaining path actually takes (it is exactly right 94% of the time) |
+
+## Hints
+
+A hint works the next move out from wherever the player actually is, not from
+some remembered solution, so it stays right after any detour. They are
+rationed: **one hint for every ten moves of par, rounded up**, and the button
+counts them down — `Hint (5)`. Rounding up rather than down is what makes the
+small levels work; a floor would leave everything under par ten with no hint at
+all, including the five that teach.
+
+A hint is only charged for when a move is actually shown. Asking on a position
+the search cannot settle, or one that can no longer be won, costs nothing —
+those answers are warnings, not help. Restarting a level hands the whole
+allowance back, since that is a fresh attempt; undo deliberately does not,
+which would make the ration free.
 
 ## Keeping progress
 

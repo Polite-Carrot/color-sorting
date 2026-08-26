@@ -11,7 +11,7 @@
      differ. */
   var PALETTE = {
     red:     { hex: '#f5423c', mark: 'R', name: 'red' },
-    orange:  { hex: '#ff912b', mark: 'O', name: 'orange' },
+    orange:  { hex: '#ff8700', mark: 'O', name: 'orange' },
     yellow:  { hex: '#ffd028', mark: 'Y', name: 'yellow' },
     green:   { hex: '#2fc15e', mark: 'G', name: 'green' },
     teal:    { hex: '#0ec3c6', mark: 'T', name: 'teal' },

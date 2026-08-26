@@ -42,8 +42,24 @@
     mainView: null,
     jarViews: [],
     hintTimer: null,
-    from: 'levels'
+    hintsLeft: 0,
+    from: 'levels',
+    /* Which list the levels screen is showing. The screen itself is shared,
+       because the two modes want exactly the same grid of tiles. */
+    listMode: 'campaign'
   };
+
+  /* Both modes are played on the same board and answered by the same code;
+     only the rules differ, so the level says which search understands it. */
+  /* Hints are rationed: one for every ten moves of par, rounded up, so a
+     two-move level gets one and the hundred-and-fourteen-move one gets twelve.
+     Rounding up rather than down matters — a floor would leave every level
+     under par ten with no hint at all, including the ones that teach. */
+  function hintAllowance(par) { return Math.max(1, Math.ceil((par || 0) / 10)); }
+
+  function listFor(mode) { return mode === 'merge' ? window.MergeLevels : window.Levels; }
+  function solverFor(game) { return game && game.merging ? window.Merge : window.Solver; }
+  function recordFor(mode) { return mode === 'merge' ? progress.merge : progress.levels; }
 
   /* ───────── progress ───────── */
 
@@ -56,10 +72,11 @@
         var p = JSON.parse(raw);
         p.levels = p.levels || {};
         p.random = p.random || {};
+        p.merge = p.merge || {};
         return p;
       }
     } catch (e) { /* corrupt — start fresh rather than refuse to run */ }
-    return { levels: {}, random: {} };
+    return { levels: {}, random: {}, merge: {} };
   }
 
   function loadDifficulty() {
@@ -121,6 +138,14 @@
         ? 'All ' + list.length + ' done · ' + stars + ' of ' + (list.length * 3) + ' stars'
         : 'Next up: level ' + (nextUp + 1) + ' · ' + done + ' of ' + list.length + ' done';
 
+    var merge = window.MergeLevels.list;
+    var mergeDone = merge.filter(function (l) { return progress.merge[l.id]; }).length;
+    $('home-merge-sub').textContent = mergeDone === 0
+      ? merge.length + ' levels · mix to make the colour'
+      : mergeDone === merge.length
+        ? 'All ' + merge.length + ' done'
+        : 'Next up: level ' + (mergeDone + 1) + ' · ' + mergeDone + ' of ' + merge.length + ' done';
+
     var cfg = window.Generator.DIFFICULTY[state.difficulty];
     var rec = progress.random[state.difficulty];
     $('home-random-sub').textContent = cfg.label +
@@ -141,14 +166,17 @@
     var grid = $('level-grid');
     grid.innerHTML = '';
 
-    var list = window.Levels.list;
+    var mode = state.listMode;
+    var list = listFor(mode).list;
+    var record = recordFor(mode);
+    $('levels-heading').textContent = mode === 'merge' ? 'Merge Colours' : 'Campaign';
     var nextUp = -1, done = 0, stars = 0;
 
     list.forEach(function (lvl, i) {
-      var record = progress.levels[lvl.id];
-      var unlocked = i === 0 || !!progress.levels[list[i - 1].id];
-      if (record) { done++; stars += record.stars; }
-      if (unlocked && !record && nextUp < 0) nextUp = i;
+      var got = record[lvl.id];
+      var unlocked = i === 0 || !!record[list[i - 1].id];
+      if (got) { done++; stars += got.stars; }
+      if (unlocked && !got && nextUp < 0) nextUp = i;
 
       var li = UI.el('li', null, grid);
       var btn = UI.el('button', 'tile', li);
@@ -156,15 +184,15 @@
       btn.disabled = !unlocked;
 
       UI.el('span', 'tile__no', btn).textContent = unlocked ? String(i + 1) : '🔒';
-      UI.el('span', 'tile__stars', btn).innerHTML = starString(record ? record.stars : 0);
+      UI.el('span', 'tile__stars', btn).innerHTML = starString(got ? got.stars : 0);
 
       btn.setAttribute('aria-label', unlocked
         ? 'Level ' + (i + 1) + ', ' + lvl.name + ', ' +
-          (record ? record.stars + ' of 3 stars, best ' + record.moves + ' moves' : 'not played yet')
+          (got ? got.stars + ' of 3 stars, best ' + got.moves + ' moves' : 'not played yet')
         : 'Level ' + (i + 1) + ', locked — finish level ' + i + ' first');
       btn.title = unlocked ? lvl.name + ' — ' + lvl.teaches : 'Locked';
 
-      btn.addEventListener('click', function () { startLevel(lvl, 'campaign'); });
+      btn.addEventListener('click', function () { startLevel(lvl, mode); });
     });
 
     if (nextUp >= 0) {
@@ -223,8 +251,11 @@
 
   function startLevel(level, mode) {
     state.game = new window.Engine.Game(level);
+    state.hintsLeft = hintAllowance(state.game.par);
     state.mode = mode;
-    state.from = mode === 'campaign' ? 'levels' : 'random';
+    state.from = mode === 'random' ? 'random' : 'levels';
+    if (mode !== 'random') state.listMode = mode;
+    renderRecipes(state.game.merging);
     state.selected = null;
     buildBoard();
     showScreen('game');
@@ -257,7 +288,10 @@
     clearTimeout(state.hintTimer);
 
     $('level-name').textContent = lvl.name;
-    $('level-sub').textContent = lvl.subtitle || '';
+    var book = listFor(state.mode);
+    var at = state.mode === 'random' ? -1 : book.indexOf(lvl.id);
+    $('level-sub').textContent = lvl.subtitle ||
+      (at >= 0 ? 'Level ' + (at + 1) + ' of ' + book.list.length : '');
     $('brief').textContent = lvl.brief || '';
     $('stat-par').textContent = g.par;
     $('target-swatch').style.background = C.hex(g.target);
@@ -301,12 +335,36 @@
      
      If even the smallest jars overflow, the optional lines go: first the
      keyboard legend, then the level briefing. */
+  /* What mixes with what, drawn rather than written — three recipes is the
+     whole rule, and a player should never have to guess at it or remember it
+     between levels. */
+  function renderRecipes(show) {
+    var list = $('recipes');
+    list.hidden = !show;
+    if (!show) return;
+    if (list.childNodes.length) return;
+    window.Merge.RECIPES.forEach(function (r) {
+      var li = UI.el('li', 'recipe', list);
+      [r.a, r.b, r.makes].forEach(function (colour, i) {
+        if (i) UI.el('span', 'recipe__op', li).textContent = i === 1 ? '+' : '=';
+        var dot = UI.el('span', 'recipe__dot', li);
+        dot.style.background = C.hex(colour);
+        dot.title = C.name(colour);
+      });
+      li.setAttribute('aria-label', C.name(r.a) + ' plus ' + C.name(r.b) + ' makes ' + C.name(r.makes));
+    });
+  }
+
   function fitBoard() {
     var screen = $('screen-game');
     if (!screen.classList.contains('is-active')) return;
 
-    var optional = [$('keys'), $('brief')];
-    optional.forEach(function (el) { if (el) el.hidden = false; });
+    var optional = [$('keys'), $('brief'), $('recipes')];
+    optional.forEach(function (el) {
+      /* The recipe legend only belongs to merge levels; never un-hide it
+         anywhere else. */
+      if (el && !(el.id === 'recipes' && !state.game.merging)) el.hidden = false;
+    });
 
     var floor = smallestReadableJar();
     var ceiling = Math.max(floor, JAR_MAX);
@@ -412,6 +470,7 @@
         result.reason === 'empty' ? 'Nothing left to pour.' :
         result.reason === 'wrong-colour' ? 'The big jar only takes ' + C.name(g.target) + '.' :
         result.reason === 'mismatch' ? 'A colour can only go onto the same colour, or an empty jar.' :
+        result.reason === 'no-mix' ? 'Those two do not mix. Try a pair from the list above the shelf.' :
         'You cannot pour that way.', 'warn');
       return;
     }
@@ -451,7 +510,7 @@
       setStatus('No moves left. Undo, or restart.', 'warn');
       return;
     }
-    var check = window.Solver.solve(g.position(), WATCH_BUDGET, WATCH_MS);
+    var check = solverFor(g).solve(g.position(), WATCH_BUDGET, WATCH_MS);
     if (!check.budgetExceeded && check.par == null) {
       setStatus('This position cannot be finished any more — undo a move.', 'warn');
     }
@@ -498,6 +557,13 @@
     $('meter-value').textContent = got + '/' + need;
 
     $('undo').disabled = !g.canUndo() || g.won;
+
+    var hint = $('hint');
+    hint.textContent = 'Hint (' + state.hintsLeft + ')';
+    hint.disabled = state.hintsLeft <= 0 || g.won;
+    hint.setAttribute('aria-label', state.hintsLeft
+      ? state.hintsLeft + ' hint' + (state.hintsLeft === 1 ? '' : 's') + ' left'
+      : 'No hints left');
   }
 
   function setStatus(text, kind) {
@@ -514,10 +580,11 @@
     var stars = g.stars();
     var lvl = g.level;
 
-    if (state.mode === 'campaign') {
-      var old = progress.levels[lvl.id];
+    if (state.mode !== 'random') {
+      var book = recordFor(state.mode);
+      var old = book[lvl.id];
       if (!old || stars > old.stars || (stars === old.stars && g.moves < old.moves)) {
-        progress.levels[lvl.id] = { stars: stars, moves: g.moves };
+        book[lvl.id] = { stars: stars, moves: g.moves };
       }
     } else {
       var rec = progress.random[state.difficulty] || { won: 0, par3: 0 };
@@ -545,13 +612,14 @@
       (g.hintsUsed ? ' Hint used.' : '');
 
     var next = $('win-next');
-    if (state.mode === 'campaign') {
-      var i = window.Levels.indexOf(lvl.id);
-      var hasNext = i >= 0 && i + 1 < window.Levels.list.length;
+    if (state.mode !== 'random') {
+      var book = listFor(state.mode);
+      var i = book.indexOf(lvl.id);
+      var hasNext = i >= 0 && i + 1 < book.list.length;
       next.textContent = hasNext ? 'Next level' : 'Try a random puzzle';
       next.onclick = function () {
         closeOverlay();
-        if (hasNext) startLevel(window.Levels.list[i + 1], 'campaign');
+        if (hasNext) startLevel(book.list[i + 1], state.mode);
         else { showScreen('random'); $('play-random').focus(); }
       };
     } else {
@@ -586,7 +654,12 @@
     var g = state.game;
     if (!g || g.won) return;
 
-    var result = window.Solver.solve(g.position(), null, HINT_MS);
+    if (state.hintsLeft <= 0) {
+      setStatus('That is the last of your hints for this level. Undo, or restart to get them back.', 'warn');
+      return;
+    }
+
+    var result = solverFor(g).solve(g.position(), null, HINT_MS);
     if (result.budgetExceeded) {
       setStatus('This one is too tangled for me to work out from here — try undoing a move.', 'warn');
       return;
@@ -598,6 +671,7 @@
     if (!result.path.length) return;
 
     g.hintsUsed++;
+    state.hintsLeft--;
     var mv = result.path[0];
     var fromView = state.jarViews[mv.from];
     var toView = mv.to === -1 ? state.mainView : state.jarViews[mv.to];
@@ -619,6 +693,9 @@
     if (mv.to === -1) landing = 'into the big jar';
     else if (!g.jars[mv.to].cells.length) landing = 'into the empty jar';
     else landing = 'onto the ' + C.name(g.jars[mv.to].cells[g.jars[mv.to].cells.length - 1]) + ' jar';
+    /* Say what it will turn into. Without that, a merge hint reads like an
+       illegal move to anyone still learning the recipes. */
+    if (mv.makes) landing += ' to make ' + C.name(mv.makes);
 
     setStatus('Pour ' + mv.amount + ' ' + moving + ' ' + landing + '. ' +
               result.par + ' move' + (result.par === 1 ? '' : 's') + ' left from here.', 'good');
@@ -636,7 +713,14 @@
       if (e.key === 'Enter') startRandom();
     });
 
-    $('go-campaign').addEventListener('click', function () { showScreen('levels'); });
+    $('go-campaign').addEventListener('click', function () {
+      state.listMode = 'campaign';
+      showScreen('levels');
+    });
+    $('go-merge').addEventListener('click', function () {
+      state.listMode = 'merge';
+      showScreen('levels');
+    });
     $('go-random').addEventListener('click', function () { showScreen('random'); });
     $('levels-back').addEventListener('click', function () { showScreen('home'); });
     $('random-back').addEventListener('click', function () { showScreen('home'); });
@@ -659,6 +743,9 @@
     $('restart').addEventListener('click', function () {
       if (!state.game) return;
       state.game.restart();
+      /* A restart is a fresh attempt, so the hints come back with it. Undo is
+         deliberately not the same thing — that would make the ration free. */
+      state.hintsLeft = hintAllowance(state.game.par);
       state.selected = null;
       clearTimeout(state.hintTimer);
       clearHintMarks();
@@ -679,6 +766,7 @@
     $('win-retry').addEventListener('click', function () {
       closeOverlay();
       state.game.restart();
+      state.hintsLeft = hintAllowance(state.game.par);
       state.selected = null;
       refresh();
       setStatus('', '');
@@ -706,7 +794,7 @@
         return;
       }
       disarm();
-      progress = { levels: {}, random: {} };
+      progress = { levels: {}, random: {}, merge: {} };
       save();
       renderHome();
     });
