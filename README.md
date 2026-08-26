@@ -127,19 +127,30 @@ Classic offers four settings:
 | Hard | 10 units | 9 | 6 | 18–28 moves |
 | Extra Hard | 14 units | 11 deep | 7 | 28–44 moves |
 
-Merge Colours offers three, and stops at Hard on purpose:
+Merge Colours offers the same four:
 
 | Mode | Big jar | Jars | In the way | Par |
 |------|---------|------|------------|-----|
 | Easy | 3 units | 4 | 1 | 4–9 moves |
 | Normal | 5 units | 5 | 2 | 9–16 moves |
-| Hard | 6 units | 6 | 3 | 15–24 moves |
+| Hard | 6 units | 6 | 3 | 15–19 moves |
+| Extra Hard | 7 units | 7 deep | 5 | 20–28 moves |
 
-Those are well short of the mode's hardest built levels, and deliberately. A
-random puzzle is dealt while somebody waits, and this game's search has no
-tight bound to lean on — the states climb steeply with the size of the big jar,
-so a board that is fine to ship after an overnight build is not fine to deal on
-a tap. Measured over sixty deals each, these settle in 1ms, 11ms and 72ms.
+A random puzzle is dealt while somebody waits, and this game's search has no
+tight bound to lean on, so what a setting can ask for is limited by what can be
+dealt on a tap. Measured over sixty deals each, these settle in 1ms, 18ms, 94ms
+and 146ms; on a processor slowed six times, Extra Hard deals in about 0.7s and
+answers a hint in a quarter of one.
+
+Extra Hard is where that limit shows, and it went somewhere unexpected. Seven
+jars is as wide as the search reaches, so the rest of the step up had to come
+from depth, a bigger jar to fill, and clutter — and **clutter turned out to
+make these boards cheaper to deal, not dearer**. The bound in `merge.js` counts
+every inert run sitting on a parent, so a shelf strewn with obstacles is one
+the search can see the bottom of. Emptier seven-jar shapes with the same big
+jar were measured at three to fifty seconds a deal; heaping five obstacle
+colours on and churning them hard brought it to a fifth of a second, and came
+out harder as well — par 20–28 against 18–19.
 
 Random merge boards are built the same way the mode's levels are, so **no wrong
 merge is possible**: only the target's two parents are mixable, everything else

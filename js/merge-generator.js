@@ -40,6 +40,21 @@
       blurb: 'Six jars, the parents buried and split into thin layers.',
       mainCap: 6, sideJars: 6, sideCap: 5, fillers: 3, fillerUnits: 7,
       burial: 0.5, churn: 0.45, par: [15, 24]
+    },
+    /* Seven jars is as wide as this game's search reaches, so the rest of the
+       step up comes from depth, a bigger jar to fill, and clutter.
+
+       Clutter is the surprise: heaping five obstacle colours on and churning
+       them hard makes these boards CHEAPER to deal, not dearer. The bound in
+       merge.js counts every inert run sitting on a parent, so a shelf strewn
+       with them is one the search can see the bottom of. Emptier seven-jar
+       shapes with the same big jar were measured at three to fifty seconds a
+       deal; this one takes about a fifth of a second and comes out harder. */
+    extraHard: {
+      label: 'Extra Hard',
+      blurb: 'Seven deep jars, five colours in the way, and the parents in ribbons.',
+      mainCap: 7, sideJars: 7, sideCap: 6, fillers: 5, fillerUnits: 14,
+      burial: 0.6, churn: 0.65, par: [20, 30]
     }
   };
 

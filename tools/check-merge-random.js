@@ -8,8 +8,11 @@ require(P + 'merge-generator.js');
 const C = globalThis.Colour, M = globalThis.Merge, { Game } = globalThis.Engine;
 const G = globalThis.MergeGenerator;
 
+/* Taken from the generator rather than listed here, so a setting added there
+   cannot quietly go unchecked — which is exactly what happened when Extra Hard
+   was added and this file still named three. */
 let failures = 0;
-for (const key of ['easy', 'normal', 'hard']) {
+for (const key of Object.keys(G.DIFFICULTY)) {
   const cfg = G.DIFFICULTY[key];
   const pars = [], times = [], states = [];
   let fallbacks = 0, bad = [];

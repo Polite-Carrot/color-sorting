@@ -86,15 +86,16 @@
      under par ten with no hint at all, including the ones that teach. */
   function hintAllowance(par) { return Math.max(1, Math.ceil((par || 0) / 10)); }
 
-  /* Random puzzles come in both games. The setting names are shared, but the
-     two have their own shapes behind them, and Merge Colours stops at Hard —
-     its search has no tight bound, and an Extra Hard board would take too long
-     to deal while somebody waits. */
+  /* Random puzzles come in both games. The setting names are shared, but each
+     game has its own shapes behind them. */
+  var RANDOM_KEYS = ['easy', 'normal', 'hard', 'extraHard'];
+
   function randomGen() {
     return state.randomMerge ? window.MergeGenerator : window.Generator;
   }
   function randomKeys() {
-    return state.randomMerge ? ['easy', 'normal', 'hard'] : ['easy', 'normal', 'hard', 'extraHard'];
+    var table = randomGen().DIFFICULTY;
+    return RANDOM_KEYS.filter(function (k) { return !!table[k]; });
   }
   /* Records are kept per game as well as per setting. Classic keeps its bare
      setting name so scores earned before this existed still count. */
