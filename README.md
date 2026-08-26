@@ -259,6 +259,34 @@ more deals land in the intended range, so far fewer are dealt and thrown
 away — which is why the largest boards are quick to produce rather than the
 slowest.
 
+## Running on a phone
+
+The game is wrapped as a native app with Capacitor, which puts the same web
+build inside an iOS and an Android shell.
+
+```
+npm install
+npm run sync                # refresh www/ and copy it into both projects
+npx cap open ios            # or: npx cap open android
+```
+
+Capacitor copies a single folder (`webDir`) into the native projects, and the
+game lives at the repo root next to `package.json` and `node_modules`. Rather
+than move the game, `sync-web.js` copies just the files the page actually loads
+into a clean `www/`. It takes that list from the `<script>` and `<link>` tags in
+`index.html` rather than keeping a second copy, so a new module cannot silently
+miss the build — the same trick `build.js` uses.
+
+The page allows for a native shell in three ways: `viewport-fit=cover` plus
+`env(safe-area-inset-*)` padding keeps it clear of the notch and the Android
+gesture bar; `overflow: hidden` and `overscroll-behavior: none` stop the whole
+page rubber-banding when a jar is tapped; and `app.js` sets a `is-native` class
+when `window.Capacitor` is present, which drops the keyboard-shortcut line
+since there is no keyboard to shortcut.
+
+`ios/` and `android/` are generated projects and are checked in, as Capacitor
+intends — they carry the icons, splash screens and signing configuration.
+
 ## Building
 
 ```
@@ -347,6 +375,10 @@ js/solver.js      best-first search: par, hints, solvability  (no DOM)
 js/generator.js   seeded random puzzles, validated by the solver
 js/ui.js          jar rendering and sound
 js/app.js         screens, progress, input
+sync-web.js       copies the files index.html loads into www/ for Capacitor
+capacitor.config.json  native shell configuration
+package.json      Capacitor dependencies and the sync scripts
+ios/ android/     generated native projects (Capacitor)
 ```
 
 ## Checking
@@ -439,12 +471,28 @@ once a second and a half has passed with nothing played, and the next sound
 resumes it; and it is never opened at all while sound is switched off, which is
 what previously made the hum impossible to turn off.
 
+## Settings
+
+Sound and Colour Blind Assist live in one dialog, reachable from the home
+screen and from **Menu** on the game toolbar, so either can be flipped without
+leaving a level. They are stored under `colourjars.prefs.v1` — their own key,
+well away from the record of stars, for the same reason the chosen difficulty
+has always had one: a preference is not something earned, and writing it must
+never put anything near progress.
+
 ## Fitting the window
 
 While a puzzle is on screen the whole game is sized to the window and nothing
 scrolls, so the shelf, the buttons and the hint line are always in view. The
 jars are what give way: `fitBoard()` searches for the largest jar height that
 still fits.
+
+The size it may settle on grows with the window — about a third of its height,
+floored at the old fixed maximum and capped at 320px — so a tablet or a desktop
+shows big jars instead of phone-sized ones adrift in a sea of sky. The level
+grid does the same, laying out as many columns as the width allows: four or
+five on a phone, eleven on an iPad. The only place that scrolls is that grid,
+which is deliberately taller than the window once there are a hundred tiles.
 
 It searches against real layout rather than calculating a size, because how
 many jars land on a row — and so how tall the shelf is — depends on the very
@@ -484,8 +532,27 @@ host paints behind it.
 
 ## Accessibility
 
-Colour is the mechanic, so it is never the only signal. Every band carries the
-initial of its colour — the palette is picked so all ten differ — and each jar
-reads out its contents top-down for screen readers, which is the order that
-matters when pouring. Everything is keyboard-operable, focus is always visible,
-and animation honours `prefers-reduced-motion`.
+Every jar reads out its contents top-down for screen readers, which is the
+order that matters when pouring. Everything is keyboard-operable, focus is
+always visible, and animation honours `prefers-reduced-motion`.
+
+Every band also carries the initial of its colour. That letter used to be drawn
+always, on the principle that colour is the mechanic and so should never be the
+only signal. It is now hidden by default and switched on by **Colour Blind
+Assist** in Settings.
+
+Two things follow from that, and both are worth knowing:
+
+- The palette used to guarantee that no two colours could be confused: every
+  pair sits at least 150 apart on the distance measure in `colour.js`, and
+  `make-levels.js` and `tools/check-merge.js` both refuse a board that breaks
+  it. **That guarantee is currently broken.** `slate` was recoloured to a
+  bright cyan (`#6b7c9c` → `#22c8ff`), which sits 103 from `teal` — and 80 of
+  the 100 campaign levels, plus merge levels 24 and 25, put the two on the same
+  shelf. Re-running either builder would now reject those boards.
+- With the letters off by default, there is nothing else distinguishing that
+  pair unless the player finds the setting.
+
+Neither the boards nor their pars changed — all 125 levels still solve at
+exactly the stored figure — so this is a palette matter, not a puzzle one. A
+cyan at least 150 from teal, or letters back on by default, would settle it.
