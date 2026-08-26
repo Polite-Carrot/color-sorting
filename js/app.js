@@ -55,6 +55,7 @@
     game: null,
     mode: 'campaign',
     difficulty: 'easy',
+    randomMerge: false,
     selected: null,
     mainView: null,
     jarViews: [],
@@ -84,6 +85,22 @@
      Rounding up rather than down matters — a floor would leave every level
      under par ten with no hint at all, including the ones that teach. */
   function hintAllowance(par) { return Math.max(1, Math.ceil((par || 0) / 10)); }
+
+  /* Random puzzles come in both games. The setting names are shared, but the
+     two have their own shapes behind them, and Merge Colours stops at Hard —
+     its search has no tight bound, and an Extra Hard board would take too long
+     to deal while somebody waits. */
+  function randomGen() {
+    return state.randomMerge ? window.MergeGenerator : window.Generator;
+  }
+  function randomKeys() {
+    return state.randomMerge ? ['easy', 'normal', 'hard'] : ['easy', 'normal', 'hard', 'extraHard'];
+  }
+  /* Records are kept per game as well as per setting. Classic keeps its bare
+     setting name so scores earned before this existed still count. */
+  function randomRecordKey(key) {
+    return state.randomMerge ? 'merge:' + key : key;
+  }
 
   function listFor(mode) { return mode === 'merge' ? window.MergeLevels : window.Levels; }
   function solverFor(game) { return game && game.merging ? window.Merge : window.Solver; }
@@ -116,7 +133,7 @@
      rather than a key each so a future toggle does not have to touch storage.
      Colour blind assist prints the letter on every band — off by default so
      the game reads as its colours, on when someone asks for it. */
-  var prefs = { sound: true, cbAssist: false };
+  var prefs = { sound: true, cbAssist: false, randomMerge: false };
 
   function loadPrefs() {
     try {
@@ -125,6 +142,7 @@
         var p = JSON.parse(raw);
         if (typeof p.sound === 'boolean') prefs.sound = p.sound;
         if (typeof p.cbAssist === 'boolean') prefs.cbAssist = p.cbAssist;
+        if (typeof p.randomMerge === 'boolean') prefs.randomMerge = p.randomMerge;
       }
     } catch (e) { /* corrupt — stick with defaults */ }
   }
@@ -137,6 +155,7 @@
     Sound.on = prefs.sound;
     if (!prefs.sound) Sound.hush();
     document.body.classList.toggle('cb-assist', prefs.cbAssist);
+    state.randomMerge = prefs.randomMerge;
   }
 
   /* Progress is written the moment something is earned, and at no other time.
@@ -201,9 +220,11 @@
         ? 'All ' + merge.length + ' done'
         : 'Next up: level ' + (mergeDone + 1) + ' · ' + mergeDone + ' of ' + merge.length + ' done';
 
-    var cfg = window.Generator.DIFFICULTY[state.difficulty];
-    var rec = progress.random[state.difficulty];
-    $('home-random-sub').textContent = cfg.label +
+    var table = randomGen().DIFFICULTY;
+    var cfg = table[state.difficulty] || table.normal;
+    var rec = progress.random[randomRecordKey(state.difficulty)];
+    $('home-random-sub').textContent =
+      (state.randomMerge ? 'Merge Colours · ' : '') + cfg.label +
       (rec ? ' · ' + rec.won + ' solved' : ' · none solved yet');
 
     var warn = $('save-warning');
@@ -269,21 +290,56 @@
   }
 
   function renderRandom() {
-    var diffs = $('difficulty');
-    if (!diffs.childNodes.length) {
-      ['easy', 'normal', 'hard', 'extraHard'].forEach(function (key) {
-        var b = UI.el('button', 'diff', diffs);
+    var modes = $('random-mode');
+    if (!modes.childNodes.length) {
+      [['classic', 'Classic'], ['merge', 'Merge Colours']].forEach(function (pair) {
+        var b = UI.el('button', 'diff', modes);
         b.type = 'button';
-        b.textContent = window.Generator.DIFFICULTY[key].label;
+        b.textContent = pair[1];
         b.setAttribute('role', 'radio');
-        b.dataset.key = key;
-        b.addEventListener('click', function () {
-          setDifficulty(key);
-          window.Store.write(PREF_KEY, key);
-        });
+        b.dataset.mode = pair[0];
+        b.addEventListener('click', function () { setRandomMode(pair[0] === 'merge'); });
       });
     }
+    renderDifficulties();
+  }
+
+  /* Rebuilt whenever the game changes, because the two do not offer the same
+     settings and the labels come from whichever generator is in play. */
+  function renderDifficulties() {
+    var diffs = $('difficulty');
+    var keys = randomKeys();
+    var table = randomGen().DIFFICULTY;
+    diffs.innerHTML = '';
+    keys.forEach(function (key) {
+      var b = UI.el('button', 'diff', diffs);
+      b.type = 'button';
+      b.textContent = table[key].label;
+      b.setAttribute('role', 'radio');
+      b.dataset.key = key;
+      b.addEventListener('click', function () {
+        setDifficulty(key);
+        window.Store.write(PREF_KEY, key);
+      });
+    });
+
+    Array.prototype.forEach.call($('random-mode').children, function (b) {
+      var on = (b.dataset.mode === 'merge') === state.randomMerge;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+
+    /* A setting the other game does not offer falls back rather than leaving
+       nothing selected. */
+    if (keys.indexOf(state.difficulty) < 0) state.difficulty = keys[keys.length - 1];
     setDifficulty(state.difficulty);
+  }
+
+  function setRandomMode(merge) {
+    state.randomMerge = !!merge;
+    prefs.randomMerge = state.randomMerge;
+    savePrefs();
+    renderDifficulties();
   }
 
   function setDifficulty(key) {
@@ -293,9 +349,9 @@
       b.classList.toggle('is-on', on);
       b.setAttribute('aria-checked', on ? 'true' : 'false');
     });
-    $('difficulty-blurb').textContent = window.Generator.DIFFICULTY[key].blurb;
+    $('difficulty-blurb').textContent = randomGen().DIFFICULTY[key].blurb;
 
-    var rec = progress.random[key];
+    var rec = progress.random[randomRecordKey(key)];
     $('random-record').textContent = rec
       ? rec.won + (rec.won === 1 ? ' puzzle solved' : ' puzzles solved') +
         (rec.bestPar ? ' · matched par ' + rec.par3 + '×' : '')
@@ -330,7 +386,7 @@
        Yield first so the button state paints. */
     setTimeout(function () {
       try {
-        startLevel(window.Generator.generate(state.difficulty, seed), 'random');
+        startLevel(randomGen().generate(state.difficulty, seed), 'random');
       } finally {
         btn.disabled = false;
         btn.textContent = 'Deal me a puzzle';
@@ -705,11 +761,12 @@
         book[lvl.id] = { stars: stars, moves: g.moves };
       }
     } else {
-      var rec = progress.random[state.difficulty] || { won: 0, par3: 0 };
+      var slot = randomRecordKey(state.difficulty);
+      var rec = progress.random[slot] || { won: 0, par3: 0 };
       rec.won++;
       if (g.moves <= g.par) rec.par3++;
       rec.bestPar = rec.par3 > 0;
-      progress.random[state.difficulty] = rec;
+      progress.random[slot] = rec;
     }
     save();
     renderHome();

@@ -114,7 +114,11 @@ The one it has reaches only about two thirds of par, because the moves that
 dominate these solutions are gathering pours — consolidating a scattered colour
 — and no sound way to count those in advance has been found yet.
 
-**Random Puzzle** — endlessly generated, in three settings:
+**Random Puzzle** — endlessly generated, in either game. A selector at the top
+of the screen chooses between **Classic** and **Merge Colours**; everything
+below it is the same screen, and each game keeps its own record.
+
+Classic offers four settings:
 
 | Mode | Big jar | Jars | Colours in the way | Par |
 |------|---------|------|--------------------|-----|
@@ -122,6 +126,27 @@ dominate these solutions are gathering pours — consolidating a scattered colou
 | Normal | 7 units | 7 | 4 | 11–17 moves |
 | Hard | 10 units | 9 | 6 | 18–28 moves |
 | Extra Hard | 14 units | 11 deep | 7 | 28–44 moves |
+
+Merge Colours offers three, and stops at Hard on purpose:
+
+| Mode | Big jar | Jars | In the way | Par |
+|------|---------|------|------------|-----|
+| Easy | 3 units | 4 | 1 | 4–9 moves |
+| Normal | 5 units | 5 | 2 | 9–16 moves |
+| Hard | 6 units | 6 | 3 | 15–24 moves |
+
+Those are well short of the mode's hardest built levels, and deliberately. A
+random puzzle is dealt while somebody waits, and this game's search has no
+tight bound to lean on — the states climb steeply with the size of the big jar,
+so a board that is fine to ship after an overnight build is not fine to deal on
+a tap. Measured over sixty deals each, these settle in 1ms, 11ms and 72ms.
+
+Random merge boards are built the same way the mode's levels are, so **no wrong
+merge is possible**: only the target's two parents are mixable, everything else
+on the shelf is inert, and the opening solution is worked out at deal time and
+carried with the board so the first hint is instant. `tools/check-merge-random.js`
+checks all of that, along with par landing inside its band and no two colours on
+a shelf being too close to tell apart.
 
 Puzzles are built from a seed, so typing the same seed replays the same puzzle.
 Leave the seed blank for a fresh one.
@@ -365,10 +390,12 @@ make-levels.js    builds and verifies the 100-level campaign
 tools/make-merge-levels.js  builds the Merge Colours levels
 tools/merge-deal.js   deals Merge Colours boards
 tools/check-merge.js  checks the Merge Colours levels the same way
+tools/check-merge-random.js  checks random Merge Colours puzzles
 js/store.js       progress storage, and whether it can be trusted
 js/colour.js      the palette, and how far apart two colours look
 js/levels.js      generated — the 100 campaign levels
 js/merge.js       Merge Colours: the recipes, and its own search  (no DOM)
+js/merge-generator.js  seeded random Merge Colours puzzles  (no DOM)
 js/merge-levels.js  generated — the 25 Merge Colours levels
 js/engine.js      stacked jars, pouring, undo, win check  (no DOM)
 js/solver.js      best-first search: par, hints, solvability  (no DOM)

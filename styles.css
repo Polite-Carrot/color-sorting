@@ -1035,6 +1035,14 @@ body.cb-assist .band span { visibility: visible; }
    entirely. Set by app.js when window.Capacitor is present. */
 body.is-native .keys { display: none; }
 
+/* The game selector sits above the settings row and reads as its own choice,
+   so the two rows are not mistaken for one long list of difficulties. */
+.difficulty--modes {
+  margin-bottom: 10px;
+  padding-bottom: 12px;
+  border-bottom: 2px dashed rgba(43, 33, 66, .18);
+}
+
 /* ───────── settings modal ───────── */
 
 .settings-list {
