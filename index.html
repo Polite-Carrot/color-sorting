@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Colour Jars</title>
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="styles.css">
@@ -54,6 +54,7 @@
 
     <footer class="menu-foot">
       <button id="how-to" class="btn btn--ghost">How to play</button>
+      <button id="settings" class="btn btn--ghost">Settings</button>
       <button id="reset-progress" class="btn btn--ghost btn--quiet">Reset progress</button>
     </footer>
   </section>
@@ -140,7 +141,7 @@
       <button id="undo" class="btn">Undo</button>
       <button id="hint" class="btn">Hint</button>
       <button id="restart" class="btn">Restart</button>
-      <button id="sound" class="btn btn--quiet" aria-pressed="true">Sound on</button>
+      <button id="game-menu" class="btn btn--quiet">Menu</button>
     </div>
 
     <p id="status" class="status" role="status" aria-live="polite">&nbsp;</p>
@@ -176,6 +177,26 @@
       <p class="modal__line"><b>Merge Colours</b> plays by the same rules but adds one: pour a colour onto one it mixes with, and the two become a third. The colour the big jar wants is usually not on the shelf at all &mdash; you have to make it. Mixing pairs one for one, so two reds landing on five blues make two purple and leave three blue underneath. The recipes sit above the shelf, and the big jar still never mixes.</p>
       <p class="modal__line">Stuck? <b>Hint</b> works out the next move from wherever you are. It shakes the jar to pick up, then where it goes, and rings them both until you move. It will also tell you if a position has become impossible.</p>
       <div class="modal__actions"><button id="howto-close" class="btn btn--primary">Got it</button></div>
+    </div>
+  </div>
+
+  <!-- ─────────────── settings ─────────────── -->
+  <div id="settings-modal" class="overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <h2 id="settings-title">Settings</h2>
+      <div class="settings-list">
+        <div class="settings-row">
+          <span>Sound</span>
+          <button id="settings-sound" class="btn" type="button" aria-pressed="true">On</button>
+        </div>
+        <div class="settings-row">
+          <span>Colour Blind Assist</span>
+          <button id="settings-cb" class="btn" type="button" aria-pressed="false">Off</button>
+        </div>
+      </div>
+      <div class="modal__actions">
+        <button id="settings-close" class="btn btn--primary">Done</button>
+      </div>
     </div>
   </div>
 

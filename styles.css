@@ -45,7 +45,7 @@
    those render a border-width taller than intended. */
 *, *::before, *::after { box-sizing: border-box; }
 
-html, body { margin: 0; min-height: 100%; }
+html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
 
 body {
   /* An explicit colour underneath the gradient: the gradient is a background
@@ -64,11 +64,35 @@ body {
 .app {
   max-width: 1040px;
   margin: 0 auto;
-  padding: 24px 18px 64px;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Keep clear of iOS status bar / notch and Android nav gesture area. */
+  padding:
+    calc(20px + env(safe-area-inset-top))
+    calc(18px + env(safe-area-inset-right))
+    calc(20px + env(safe-area-inset-bottom))
+    calc(18px + env(safe-area-inset-left));
 }
 
-.screen { display: none; }
-.screen.is-active { display: block; animation: rise .34s cubic-bezier(.2, .9, .3, 1.2) both; }
+.screen { display: none; flex: 1; min-height: 0; }
+.screen.is-active {
+  display: flex;
+  flex-direction: column;
+  animation: rise .34s cubic-bezier(.2, .9, .3, 1.2) both;
+}
+/* The one place scrolling is welcome — the shelf of up to a hundred tiles is
+   deliberately taller than the window. Everything else fits the viewport. */
+#screen-levels.is-active { overflow: hidden; }
+#screen-levels.is-active .level-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2px 2px 12px;
+}
 
 /* While a puzzle is on screen the whole game is sized to the window: nothing
    scrolls, so the shelf, the buttons and the hint line are all in view at
@@ -78,8 +102,8 @@ body.playing { overflow: hidden; }
 body.playing .app {
   height: 100vh;
   height: 100dvh;
-  padding-top: 12px;
-  padding-bottom: 12px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -362,7 +386,7 @@ input:focus-visible {
 /* keeps the heading centred against the back button */
 .subhead__balance { flex: 0 0 96px; }
 
-#screen-levels .level-grid { max-width: 620px; margin: 0 auto; gap: 11px; }
+#screen-levels .level-grid { max-width: none; margin: 0; gap: 10px; }
 .card--single { max-width: 420px; margin: 0 auto; }
 
 .menu-grid {
@@ -393,8 +417,12 @@ input:focus-visible {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
+  /* Adapt to whatever room the window gives — a phone gets a tight five,
+     an iPad twelve or more. align-content stops the rows drifting apart to
+     fill the vertical space when there are only a few of them. */
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  gap: 10px;
+  align-content: start;
 }
 
 .tile {
@@ -740,13 +768,16 @@ input:focus-visible {
   border-top: 2px solid rgba(43, 33, 66, .22);
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, .28);
 }
-/* The letter is how bands are told apart without relying on hue alone. */
+/* The letter is how bands are told apart without relying on hue alone.
+   Off by default, and switched on by Colour Blind Assist in Settings. */
 .band span {
   font-family: "Baloo 2", sans-serif;
   font-size: clamp(9px, calc(var(--jar-h, 122px) * .1), 12px);
   font-weight: 800;
   user-select: none;
+  visibility: hidden;
 }
+body.cb-assist .band span { visibility: visible; }
 
 /* Raised above its neighbours as well as lifted, so it is never behind the
    next jar along or the plank of the row below. */
@@ -822,12 +853,15 @@ input:focus-visible {
   border-bottom: var(--stroke) solid var(--ink);
   box-shadow: 0 6px 0 var(--wood-under);
 }
-/* cap the open ends of the run */
-.shelf .slot:first-child::after {
+/* cap the open ends of the run — for a shelf that wraps, JS also tags every
+   row's first and last slot so each row's plank is capped in the middle too. */
+.shelf .slot:first-child::after,
+.shelf .slot--row-start::after {
   border-left: var(--stroke) solid var(--ink);
   border-radius: 8px 0 0 8px;
 }
-.shelf .slot:last-child::after {
+.shelf .slot:last-child::after,
+.shelf .slot--row-end::after {
   border-right: var(--stroke) solid var(--ink);
   border-radius: 0 8px 8px 0;
 }
@@ -939,7 +973,13 @@ input:focus-visible {
 /* ───────── narrow screens ───────── */
 
 @media (max-width: 760px) {
-  .app { padding: 16px 12px 48px; }
+  .app {
+    padding:
+      calc(14px + env(safe-area-inset-top))
+      calc(12px + env(safe-area-inset-right))
+      calc(14px + env(safe-area-inset-bottom))
+      calc(12px + env(safe-area-inset-left));
+  }
   .board { gap: 18px; }
   .goal { width: 100%; max-width: 330px; }
   .shelf { --shelf-gap: 9px; row-gap: 36px; }
@@ -970,3 +1010,72 @@ input:focus-visible {
     transition-duration: .01ms !important;
   }
 }
+
+/* Wider screens \u2014 iPad landscape, desktop \u2014 have room for the menu to
+   read like a title screen rather than a compact phone list. */
+@media (min-width: 761px) {
+  #screen-home .masthead { margin: 8px 0 22px; }
+  .masthead h1 { font-size: clamp(56px, 8vw, 96px); }
+  .masthead__tag { font-size: 19px; max-width: 36ch; }
+  .choices { max-width: 720px; gap: 18px; }
+  .choice { padding: 22px 26px; gap: 20px; }
+  .choice__name { font-size: 30px; }
+  .choice__sub { font-size: 17px; }
+  .choice__jar,
+  .choice__shelf,
+  .choice__mix { flex: 0 0 60px; width: 60px; height: 82px; }
+  .choice__mix i { width: 34px; height: 34px; }
+  .choice__mix i:nth-child(1) { top: 10px; }
+  .choice__mix i:nth-child(2) { top: 10px; }
+  .choice__mix i:nth-child(3) { left: 13px; top: 34px; }
+  .choice__go { font-size: 38px; }
+}
+
+/* Keyboard shortcuts don't apply inside a native shell, so drop that line
+   entirely. Set by app.js when window.Capacitor is present. */
+body.is-native .keys { display: none; }
+
+/* ───────── settings modal ───────── */
+
+.settings-list {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0 0;
+  text-align: left;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--paper-warm);
+}
+.settings-row > span {
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--ink);
+}
+.settings-row .btn {
+  padding: 8px 16px;
+  min-width: 72px;
+  font-size: 15px;
+}
+.settings-row .btn[aria-pressed="true"] {
+  background: var(--gold);
+}
+
+/* Home menu wants to stay in view without scrolling, so let it shrink on
+   short windows rather than push the footer off screen. */
+#screen-home.is-active { justify-content: flex-start; overflow: hidden; }
+#screen-home .masthead { margin: 4px 0 18px; }
+#screen-home .choices { flex: 0 1 auto; }
+#screen-home .menu-foot {
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 14px;
+}
+#screen-random.is-active { justify-content: flex-start; }

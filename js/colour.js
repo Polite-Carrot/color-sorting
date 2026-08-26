@@ -19,7 +19,7 @@
     purple:  { hex: '#9a53ef', mark: 'P', name: 'purple' },
     magenta: { hex: '#ff5aae', mark: 'M', name: 'magenta' },
     white:   { hex: '#fbfdff', mark: 'W', name: 'white' },
-    slate:   { hex: '#6b7c9c', mark: 'S', name: 'slate' }
+    slate:   { hex: '#22c8ff', mark: 'C', name: 'cyan' }
   };
 
   var KEYS = Object.keys(PALETTE);

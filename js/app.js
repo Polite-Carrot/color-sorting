@@ -10,6 +10,7 @@
   /* Kept apart from progress on purpose. It is a preference, not something
      earned, and writing it must never put anything near the record of stars. */
   var PREF_KEY = 'colourjars.difficulty';
+  var PREFS_KEY = 'colourjars.prefs.v1';
 
   /* Limits for the two searches that run while someone is playing. Proving a
      position CANNOT be won is the slow case — there is no goal to home in on,
@@ -32,8 +33,17 @@
   /* Jar height, in pixels, that fitBoard() searches between. The floor keeps
      each band tall enough to hold a readable letter, so it has to follow how
      many bands a jar can hold — a deeper jar needs to be taller to stay
-     legible. Rather than go under it, the shelf scrolls inside itself. */
+     legible. The ceiling grows with the viewport so a big screen — iPad
+     landscape, a desktop — shows big jars rather than sitting them small in a
+     sea of sky. */
   var BAND_MIN = 13, JAR_FLOOR = 78, JAR_MAX = 122;
+
+  function jarCeiling() {
+    var h = window.innerHeight || 800;
+    /* Roughly a third of the window height, capped for phones and for the
+       biggest screens — above a certain size the jars look silly, not grand. */
+    return Math.max(JAR_MAX, Math.min(320, Math.floor(h * 0.34)));
+  }
 
   function smallestReadableJar() {
     if (!state.game) return JAR_FLOOR;
@@ -100,6 +110,33 @@
   function loadDifficulty() {
     var saved = window.Store.read(PREF_KEY);
     if (saved && window.Generator.DIFFICULTY[saved]) state.difficulty = saved;
+  }
+
+  /* Sound and colour-blind assist are preferences too, kept in a single blob
+     rather than a key each so a future toggle does not have to touch storage.
+     Colour blind assist prints the letter on every band — off by default so
+     the game reads as its colours, on when someone asks for it. */
+  var prefs = { sound: true, cbAssist: false };
+
+  function loadPrefs() {
+    try {
+      var raw = window.Store.read(PREFS_KEY);
+      if (raw) {
+        var p = JSON.parse(raw);
+        if (typeof p.sound === 'boolean') prefs.sound = p.sound;
+        if (typeof p.cbAssist === 'boolean') prefs.cbAssist = p.cbAssist;
+      }
+    } catch (e) { /* corrupt — stick with defaults */ }
+  }
+
+  function savePrefs() {
+    window.Store.write(PREFS_KEY, JSON.stringify(prefs));
+  }
+
+  function applyPrefs() {
+    Sound.on = prefs.sound;
+    if (!prefs.sound) Sound.hush();
+    document.body.classList.toggle('cb-assist', prefs.cbAssist);
   }
 
   /* Progress is written the moment something is earned, and at no other time.
@@ -385,13 +422,13 @@
     if (recipes) recipes.hidden = !state.game.merging;
 
     var floor = smallestReadableJar();
-    var ceiling = Math.max(floor, JAR_MAX);
+    var ceiling = Math.max(floor, jarCeiling());
 
     /* First choice: everything on screen AND the whole shelf in view at once,
        dropping the optional lines only if that is what it takes. */
     for (var drop = 0; drop <= optional.length; drop++) {
       var best = largestThatFits(floor, ceiling, true);
-      if (best > 0) { setJarHeight(best); return; }
+      if (best > 0) { setJarHeight(best); tagShelfRows(); return; }
       if (drop < optional.length && optional[drop]) optional[drop].hidden = true;
     }
 
@@ -399,7 +436,7 @@
        once is worth more than big jars, so this is only reached when no
        readable size shows them all. */
     var loose = largestThatFits(floor, ceiling, false);
-    if (loose > 0) { setJarHeight(loose); return; }
+    if (loose > 0) { setJarHeight(loose); tagShelfRows(); return; }
 
     /* Only now give up the recipe list. In merge mode that list is the rules
        of the mode, so it goes last of everything — after the keyboard legend,
@@ -409,6 +446,7 @@
       loose = largestThatFits(floor, ceiling, false);
     }
     setJarHeight(loose > 0 ? loose : floor);
+    tagShelfRows();
   }
 
   function largestThatFits(lo, hi, wholeShelfVisible) {
@@ -434,6 +472,29 @@
 
   function setJarHeight(px) {
     document.documentElement.style.setProperty('--jar-h', px + 'px');
+  }
+
+  /* The shelf wraps to a second row on the biggest levels, and each row's
+     plank needs its own end caps. Without this the middle rows read as a
+     single continuous plank that suddenly stops and starts again. */
+  function tagShelfRows() {
+    var shelf = document.getElementById('shelf');
+    if (!shelf) return;
+    var slots = shelf.children;
+    for (var i = 0; i < slots.length; i++) {
+      slots[i].classList.remove('slot--row-start', 'slot--row-end');
+    }
+    var lastTop = null, prev = null;
+    for (var j = 0; j < slots.length; j++) {
+      var top = slots[j].offsetTop;
+      if (top !== lastTop) {
+        slots[j].classList.add('slot--row-start');
+        if (prev) prev.classList.add('slot--row-end');
+        lastTop = top;
+      }
+      prev = slots[j];
+    }
+    if (prev) prev.classList.add('slot--row-end');
   }
 
   /* ───────── interaction ───────── */
@@ -786,8 +847,14 @@
   /* ───────── wiring ───────── */
 
   function init() {
+    loadPrefs();
     loadDifficulty();
+    applyPrefs();
+    /* Capacitor puts the game inside a native shell, where the keyboard
+       shortcut hint at the bottom of the game screen is noise. */
+    if (window.Capacitor) document.body.classList.add('is-native');
     renderHome();
+    renderSettingsToggles();
 
     $('play-random').addEventListener('click', startRandom);
     $('seed-input').addEventListener('keydown', function (e) {
@@ -846,12 +913,12 @@
 
     $('hint').addEventListener('click', doHint);
 
-    $('sound').addEventListener('click', function () {
-      Sound.on = !Sound.on;
-      this.textContent = Sound.on ? 'Sound on' : 'Sound off';
-      this.setAttribute('aria-pressed', Sound.on ? 'true' : 'false');
-      if (Sound.on) { Sound.ensure(); Sound.pick(); }
-      else Sound.hush();          /* off means the device goes quiet too */
+    /* In-game Menu — opens the same settings dialog as the home screen, so
+       sound and colour-blind assist can be flipped without leaving the level. */
+    $('game-menu').addEventListener('click', function () {
+      renderSettingsToggles();
+      $('settings-modal').hidden = false;
+      $('settings-close').focus();
     });
 
     $('win-retry').addEventListener('click', function () {
@@ -868,6 +935,30 @@
 
     $('how-to').addEventListener('click', function () { $('howto').hidden = false; $('howto-close').focus(); });
     $('howto-close').addEventListener('click', function () { $('howto').hidden = true; $('how-to').focus(); });
+
+    $('settings').addEventListener('click', function () {
+      renderSettingsToggles();
+      $('settings-modal').hidden = false;
+      $('settings-close').focus();
+    });
+    $('settings-close').addEventListener('click', function () {
+      $('settings-modal').hidden = true;
+      $('settings').focus();
+    });
+    $('settings-sound').addEventListener('click', function () {
+      prefs.sound = !prefs.sound;
+      Sound.on = prefs.sound;
+      if (prefs.sound) { Sound.ensure(); Sound.pick(); }
+      else Sound.hush();
+      savePrefs();
+      renderSettingsToggles();
+    });
+    $('settings-cb').addEventListener('click', function () {
+      prefs.cbAssist = !prefs.cbAssist;
+      document.body.classList.toggle('cb-assist', prefs.cbAssist);
+      savePrefs();
+      renderSettingsToggles();
+    });
 
     var resetArmed = false, resetTimer = null;
     $('reset-progress').addEventListener('click', function () {
@@ -899,8 +990,21 @@
     var refit = null;
     window.addEventListener('resize', function () {
       clearTimeout(refit);
-      refit = setTimeout(fitBoard, 120);
+      refit = setTimeout(function () { fitBoard(); tagShelfRows(); }, 120);
     });
+  }
+
+  function renderSettingsToggles() {
+    var s = document.getElementById('settings-sound');
+    var c = document.getElementById('settings-cb');
+    if (s) {
+      s.textContent = prefs.sound ? 'On' : 'Off';
+      s.setAttribute('aria-pressed', prefs.sound ? 'true' : 'false');
+    }
+    if (c) {
+      c.textContent = prefs.cbAssist ? 'On' : 'Off';
+      c.setAttribute('aria-pressed', prefs.cbAssist ? 'true' : 'false');
+    }
   }
 
   function onKey(e) {
@@ -908,6 +1012,10 @@
 
     if (!$('howto').hidden) {
       if (e.key === 'Escape') { $('howto').hidden = true; $('how-to').focus(); }
+      return;
+    }
+    if (!$('settings-modal').hidden) {
+      if (e.key === 'Escape') { $('settings-modal').hidden = true; $('settings').focus(); }
       return;
     }
     if (!$('overlay').hidden) {

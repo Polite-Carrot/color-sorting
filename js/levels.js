@@ -128,7 +128,7 @@
     },
     {
       id: 'level-08',
-      name: 'Layered Slate',
+      name: 'Layered Cyan',
       subtitle: 'Level 8 of 100',
       teaches: '7 jars · 10 moves',
       brief: '',
@@ -574,7 +574,7 @@
     },
     {
       id: 'level-29',
-      name: 'Scattered Slate',
+      name: 'Scattered Cyan',
       subtitle: 'Level 29 of 100',
       teaches: '13 jars · 48 moves',
       brief: '',

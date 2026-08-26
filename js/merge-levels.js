@@ -51,7 +51,7 @@
       name: 'Out of the Way',
       subtitle: 'Level 3 of 25',
       teaches: 'Clearing a colour that will not mix',
-      brief: "Blue and yellow make green, but the slate on top mixes with nothing at all. Park it in the empty jar first.",
+      brief: "Blue and yellow make green, but the cyan on top mixes with nothing at all. Park it in the empty jar first.",
       target: 'green',
       main: { cap: 3 },
       par: 3,
