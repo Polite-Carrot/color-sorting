@@ -233,6 +233,7 @@ input:focus-visible {
 .choices {
   display: grid;
   gap: 16px;
+  width: 100%;
   max-width: 520px;
   margin: 0 auto;
 }
@@ -372,6 +373,7 @@ input:focus-visible {
   display: flex;
   align-items: center;
   gap: 14px;
+  width: 100%;
   max-width: 620px;
   margin: 0 auto 22px;
 }
@@ -387,7 +389,13 @@ input:focus-visible {
 .subhead__balance { flex: 0 0 96px; }
 
 #screen-levels .level-grid { max-width: none; margin: 0; gap: 10px; }
-.card--single { max-width: 420px; margin: 0 auto; }
+/* width: 100% matters on every one of these. Each is a flex item in a column
+   screen with auto side margins, and auto side margins make a flex item
+   shrink to fit its content — so without an explicit width the box silently
+   takes the width of its longest line of text, and changes size when that
+   text changes. It showed up as the random puzzle card narrowing by 6px when
+   a setting with a short description was picked. */
+.card--single { width: 100%; max-width: 420px; margin: 0 auto; }
 
 .menu-grid {
   display: grid;
