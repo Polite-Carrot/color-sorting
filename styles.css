@@ -1138,6 +1138,19 @@ body.cb-assist .band span { visibility: visible; }
   margin-top: 22px;
   flex-wrap: wrap;
 }
+/* Two choices of equal weight, one above the other: side by side they read as
+   a question and its dismissal, which buying and restoring are not. */
+.modal__actions--stack { flex-direction: column; align-items: stretch; }
+
+/* Says what just happened, under the buttons that did it. Empty until then, so
+   it takes no room and cannot be read as a warning that was already there. */
+.modal__note {
+  margin: 14px 0 0;
+  min-height: 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.modal__note:empty { margin: 0; }
 
 .stars { font-size: 34px; letter-spacing: 6px; color: var(--gold); margin: 6px 0; }
 .stars .off { color: rgba(43, 33, 66, .16); }
@@ -1318,10 +1331,34 @@ body.is-native .keys { display: none; }
    short windows rather than push the footer off screen. */
 #screen-home.is-active { justify-content: flex-start; overflow: hidden; }
 #screen-home .masthead { margin: 4px 0 18px; }
-#screen-home .choices { flex: 0 1 auto; }
+/* `flex: 0 1 auto` alone does not shrink a flex item below its content, so on
+   a short window the cards kept their full height and pushed the footer off
+   the bottom of a screen that cannot scroll — How to play, Settings and
+   Remove Ads were unreachable on an iPhone SE. min-height: 0 lets it shrink,
+   and the cards scroll among themselves instead. */
+#screen-home .choices {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 #screen-home .menu-foot {
   flex-wrap: wrap;
   margin-top: auto;
   padding-top: 14px;
 }
+/* The title-screen masthead assumes a tall window. With four cards on the
+   menu a 1040x860 desktop no longer has room for both, and the fourth card
+   ended up cut in half behind the footer. Rather than shrink the title
+   everywhere — it is the thing that makes the wide layout read like a title
+   screen — trade it back only on windows too short to hold both. */
+@media (min-width: 761px) and (max-height: 920px) {
+  #screen-home .masthead { margin: 2px 0 12px; }
+  #screen-home .masthead h1 { font-size: clamp(44px, 5.4vw, 64px); }
+  #screen-home .masthead__mark { padding-top: 0; margin-bottom: 8px; }
+  #screen-home .masthead__tag { font-size: 17px; margin-top: 6px; }
+  #screen-home .choices { gap: 14px; }
+  #screen-home .choice { padding: 16px 26px; }
+}
+
 #screen-random.is-active { justify-content: flex-start; }

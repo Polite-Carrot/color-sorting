@@ -686,6 +686,27 @@ well away from the record of stars, for the same reason the chosen difficulty
 has always had one: a preference is not something earned, and writing it must
 never put anything near progress.
 
+### Remove Ads
+
+A third button on the home footer opens a dialog offering **Pay for No Ads**
+and **Restore purchase**, with **Done** to close.
+
+**Nothing is connected behind it yet** — there is no in-app purchase product
+and no billing plugin in either native project — and both actions say so
+plainly rather than appearing to work. That is deliberate: a button labelled
+"Pay for No Ads" that quietly does nothing reads as a payment that failed
+silently, and on a shipped build it would read as money taken and lost. Saying
+"not connected in this build yet" is the only honest thing it can do until a
+store is wired up.
+
+The plumbing around it is real, so wiring one up is a small change. `prefs`
+carries an `adFree` flag under the same key as the other preferences, the
+dialog already renders the owned state (title becomes **No Ads**, both actions
+disappear), and `app.js` picks up `window.Purchases` if something defines it.
+Give that object `buy()` and `restore()` returning a promise of
+`{ ok, message }` and the rest already works; the stub it falls back to is the
+only thing to replace.
+
 ### Erasing progress
 
 Wiping a hundred levels of stars asks twice and then asks for six seconds of
@@ -743,6 +764,27 @@ that leaves and scrolls its own content past that. How to play is the long
 one, and on a short window it used to be clipped with its **Got it** button
 below the fold — a dialog nothing could dismiss by tapping. It now scrolls to
 reach the button.
+
+That fix had a second-order cost worth recording, because the two changes were
+made months apart and only interact. Every dialog puts the keyboard on its
+close button when it opens, which is right; but focusing a control inside a
+panel that now scrolls makes the browser scroll that control into view, and
+the close button is the last thing in the panel. So How to play began opening
+at its final line, past its own title — on a 320px window, 643 pixels down.
+`openModal()` is the fix: it starts the panel at the top and focuses without
+scrolling, and every dialog goes through it, so a dialog that grows long later
+cannot quietly reintroduce this.
+
+The home menu has the matching problem and the same shape of fix. It is
+declared as content that shrinks rather than scrolls — the footer holds How to
+play, Settings and Remove Ads, and pushing those off a screen that cannot
+scroll makes them unreachable, not merely hidden. `flex: 0 1 auto` alone does
+not do that, though: a flex item will not shrink below its content, so once
+the menu had four cards the footer sat below the fold on an iPhone SE with no
+way to reach it. `min-height: 0` plus `overflow-y: auto` on the card list
+restores the stated intent — the cards give way, the footer stays put. On wide
+screens the masthead is the thing in the way instead, so a height-conditional
+rule trades the title-screen scale back on windows too short to hold both.
 
 ## Look
 
