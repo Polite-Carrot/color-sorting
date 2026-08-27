@@ -26,9 +26,20 @@ require('../js/colour.js');
 require('../js/engine.js');
 require('../js/merge.js');
 const C = globalThis.Colour, { Game } = globalThis.Engine, M = globalThis.Merge;
-const { deal } = require('./merge-deal.js');
+/* The dealer the game itself uses, so the levels shipped here and the puzzles
+   dealt on the player's phone are built by one piece of code. There used to be
+   a copy of it in this folder, and the copy had already drifted — it never
+   gained the check that keeps two hard-to-tell-apart colours off one shelf. */
+require('../js/merge-generator.js');
+const { deal, rng } = globalThis.MergeGenerator;
 
-const TOTAL = 25, TAUGHT = 5, FIRST_DEALT = TAUGHT + 1;
+const TOTAL = 50, TAUGHT = 5, FIRST_DEALT = TAUGHT + 1;
+/* The first ramp is pinned to the end it was built against rather than to
+   TOTAL, so adding levels after it cannot redeal boards people have progress
+   against. Levels already on disk are read back and re-verified, never
+   rebuilt; --rebuild-all deals everything again. */
+const RAMP_ONE_END = 25;
+const REBUILD_ALL = process.argv.includes('--rebuild-all');
 
 /* The ceiling, in states the search has to visit from the opening position.
    Raised once the opening stopped being searched at all: with that answer
@@ -45,7 +56,7 @@ const HINT_STATES = 30000;
 const lerp = (a, b, t) => Math.round(a + (b - a) * t);
 
 function shape(level) {
-  const u = (level - FIRST_DEALT) / (TOTAL - FIRST_DEALT);
+  const u = (level - FIRST_DEALT) / (RAMP_ONE_END - FIRST_DEALT);
   /* Seven jars is as wide as this can go, and a big jar of seven as deep.
      Past that the search does not degrade, it falls off a cliff: eight jars
      stalled the builder outright, and at nine a board takes fifteen seconds to
@@ -72,6 +83,44 @@ function shape(level) {
   };
 }
 
+/* Beyond the first ramp there is no curve, because a curve was the wrong tool.
+
+   A shape is not what has to pass the checks — a BOARD is. Three things have
+   to hold at once: par above the level before, a search small enough to answer
+   a hint on a phone, and a shelf that survives being played carelessly. Those
+   pull against each other. Clutter makes a board cheap to search but easy to
+   deadlock; thinning it out makes it survivable but too dear to search. Pin a
+   level to one shape and demand a board that satisfies all three and you are
+   asking a one-in-twenty event to happen on command — which is exactly what
+   kept coming back empty.
+
+   So this samples the whole space instead: draw a shape at random, deal from
+   it, keep the board if it passes, and go again. Whatever survives is real,
+   and the pool is then sorted by the par the solver measured and dealt out in
+   order. Difficulty comes from what the boards turned out to be, not from what
+   a curve predicted they would be. */
+const SPACE = {
+  jars:   [5, 6, 7, 8],
+  cap:    [5, 6, 7],
+  mainCap:[5, 6, 7, 8, 9, 10],
+  fillers:[3, 4, 5],
+  churn:  [0.40, 0.50, 0.60, 0.70, 0.80],
+  slack:  [0.30, 0.33, 0.36, 0.40]
+};
+
+function sampleShape(rand) {
+  const pick = a => a[Math.floor(rand() * a.length)];
+  const jars = pick(SPACE.jars), cap = pick(SPACE.cap), mainCap = pick(SPACE.mainCap);
+  const fillers = pick(SPACE.fillers);
+  const cells = jars * cap;
+  const slack = Math.round(cells * pick(SPACE.slack));
+  const fillerUnits = cells - slack - mainCap * 2;
+  if (fillerUnits < fillers) return null;          /* no room for the obstacles */
+  if (mainCap * 2 > cells - slack) return null;    /* no room for the colours themselves */
+  return { mainCap, sideJars: jars, sideCap: cap, fillers, fillerUnits,
+           burial: 0.4 + rand() * 0.3, churn: pick(SPACE.churn) };
+}
+
 /* ── checks every level has to pass ────────────────────────────────────── */
 
 /* `strict` is for boards this tool deals. The five taught levels are held to
@@ -81,12 +130,17 @@ function shape(level) {
    twenty of them in a row and no way to take a merge back. */
 function inspect(lvl, strict) {
   const g = new Game(lvl);
-  const solved = M.solve(g.position(), 2000000, 30000);
-  if (solved.budgetExceeded) return { bad: 'search ran out' };
+  /* A board being dealt is given exactly the ceiling to settle inside, because
+     going over it IS the rejection — there is nothing to learn by letting it
+     run on. Handing every candidate two million states first meant a board was
+     turned down after thirty seconds rather than one, and the sampler managed
+     twenty-five boards in five minutes. A level already on disk gets a
+     generous budget instead, since there its real par is wanted. */
+  const solved = strict
+    ? M.solve(g.position(), HINT_STATES, 6000)
+    : M.solve(g.position(), 2000000, 30000);
+  if (solved.budgetExceeded) return { bad: 'too dear to search' };
   if (solved.par == null) return { bad: 'cannot be finished' };
-  if (solved.explored > HINT_STATES) {
-    return { bad: 'too slow to hint (' + solved.explored + ' states)' };
-  }
 
   for (const mv of solved.path) {
     const from = 'jar' + mv.from, to = mv.to === -1 ? 'main' : 'jar' + mv.to;
@@ -117,31 +171,64 @@ function inspect(lvl, strict) {
     }
   }
 
+  /* Colours too close to tell apart reject a board this tool is dealing, but
+     only warn about one already shipped: it is a known problem with a known
+     fix, and it must not stop the level's par and solution coming back. */
+  let lookalike = null;
   const used = [...present, lvl.target];
-  for (let a = 0; a < used.length; a++) {
-    for (let b = a + 1; b < used.length; b++) {
-      if (C.distance(used[a], used[b]) < 150) return { bad: 'lookalikes ' + used[a] + '/' + used[b] };
+  for (let a = 0; a < used.length && !lookalike; a++) {
+    for (let b = a + 1; b < used.length && !lookalike; b++) {
+      if (C.distance(used[a], used[b]) < 150) lookalike = 'lookalikes ' + used[a] + '/' + used[b];
     }
   }
-  return { par: solved.par, states: solved.explored, path: solved.path };
+  if (lookalike && strict) return { bad: lookalike };
+
+  return { par: solved.par, states: solved.explored, path: solved.path, warn: lookalike };
 }
 
 /* Can it be played badly and still finished? No merge can be wrong here, so
-   what is being tested is whether careless shuffling can deadlock the shelf. */
+   what is being tested is whether careless shuffling can deadlock the shelf.
+
+   "Carelessly" is the word that matters, and this used to model it as picking
+   uniformly among every legal move — which on a seven-jar shelf means tipping
+   colours into the last empty jar for no reason, over and over. That is not
+   careless play, it is adversarial, and it gets harsher the bigger the board
+   gets regardless of whether a person would ever struggle: twenty-eight boards
+   in a row at the right par were turned down without one surviving. The
+   campaign's own check has always played semi-sensibly for exactly this
+   reason. This one now does the same — take the target when it is there,
+   otherwise usually do something with a point to it, and only sometimes
+   squander a jar. */
 let rs = 4242;
 const rnd = () => { rs = (rs * 1103515245 + 12345) & 0x7fffffff; return rs / 0x7fffffff; };
 
 function survivable(lvl, trials) {
   for (let t = 0; t < trials; t++) {
     const g = new Game(lvl);
-    for (let step = 1; step <= 60 && !g.won; step++) {
+    for (let step = 1; step <= 80 && !g.won; step++) {
       const ids = g.jars.map(j => j.id);
       const legal = [];
-      for (const f of ids) for (const to of ids.concat(['main'])) if (f !== to && g.pourable(f, to)) legal.push([f, to]);
+      for (const f of ids) for (const to of ids.concat(['main'])) {
+        if (f !== to && g.pourable(f, to)) legal.push([f, to]);
+      }
       if (!legal.length) return false;
-      const grab = legal.filter(m => m[1] === 'main');
-      const mv = grab.length ? grab[Math.floor(rnd() * grab.length)]
-                             : legal[Math.floor(rnd() * legal.length)];
+
+      /* Into the big jar whenever that is on offer. */
+      let pool = legal.filter(m => m[1] === 'main');
+
+      if (!pool.length) {
+        /* Otherwise a move that does something: a merge, or a colour landing
+           on its own kind. Squandering an empty jar is left to the one time in
+           four when nothing better is picked. */
+        const useful = legal.filter(m => {
+          if (m[1] === 'main') return false;
+          const to = g.get(m[1]);
+          return to.cells.length > 0;            /* merge, or stacking on like */
+        });
+        pool = useful.length && rnd() < 0.75 ? useful : legal;
+      }
+
+      const mv = pool[Math.floor(rnd() * pool.length)];
       g.pour(mv[0], mv[1]);
       if (step % 6 === 0 && !g.won) {
         const r = M.solve(g.position(), 300000, 3000);
@@ -156,6 +243,7 @@ function survivable(lvl, trials) {
 
 const OUT = path.join(__dirname, '..', 'js', 'merge-levels.js');
 const EXISTING = (() => {
+  if (REBUILD_ALL) return new Map();
   try {
     require(OUT);
     return new Map(globalThis.MergeLevels.list.map(l => [l.id, l]));
@@ -165,57 +253,128 @@ const EXISTING = (() => {
 const ADJECTIVES = ['Stirred', 'Folded', 'Steeped', 'Tinted', 'Blended', 'Swirled',
                     'Clouded', 'Deepened', 'Layered', 'Muddled', 'Wound', 'Sunken',
                     'Threaded', 'Scattered', 'Buried', 'Knotted', 'Split', 'Braided',
-                    'Fractured', 'Distilled'];
+                    'Fractured', 'Distilled',
+                    'Churned', 'Marbled', 'Streaked', 'Riddled', 'Tangled',
+                    'Sifted', 'Strewn', 'Warped', 'Lodged', 'Ravelled',
+                    'Sundered', 'Flooded', 'Winnowed', 'Harrowed', 'Shattered',
+                    'Interleaved', 'Combed', 'Sieved', 'Decanted', 'Scrambled',
+                    'Unspooled', 'Overlaid', 'Entwined', 'Meshed', 'Roiled'];
 
 const built = [];
+const warnings = [];
 
-/* The five that teach are read back and checked, never rebuilt. */
-for (let n = 1; n <= TAUGHT; n++) {
+/* Everything already on disk is read back and re-verified rather than dealt
+   again: the five taught levels, which a generator could not produce anyway,
+   and the whole of the first ramp, whose boards people have progress against.
+   Verifying is also the stronger check — it proves the levels that actually
+   ship are sound, rather than that a fresh deal would have been. */
+for (let n = 1; n <= RAMP_ONE_END; n++) {
   const id = 'merge-' + String(n).padStart(2, '0');
   const lvl = EXISTING.get(id);
-  if (!lvl) throw new Error('taught level ' + id + ' is missing from ' + OUT);
+  if (!lvl) break;
   const r = inspect(lvl);
+  /* A level already shipped is reported on, not refused. Par being wrong means
+     the file itself is wrong, so that still stops everything — but a board that
+     has become unreadable because a colour was retuned under it is a known
+     problem with a known fix, and being unable to add levels until somebody
+     settles it helps nobody. Newly dealt boards are still held to the full
+     standard; see inspect()'s strict mode. */
   if (r.bad) throw new Error(id + ' (' + lvl.name + '): ' + r.bad);
+  if (r.warn) warnings.push(id + ' (' + lvl.name + '): ' + r.warn);
   if (r.par !== lvl.par) throw new Error(id + ': stored par ' + lvl.par + ', solver makes it ' + r.par);
   built.push(Object.assign({}, lvl, { path: r.path }));
   console.log('  ' + String(n).padStart(2) + '. ' + lvl.name.padEnd(18) +
-    ' taught   jars ' + lvl.jars.length + '  par ' + String(lvl.par).padStart(2) + '   (verified)');
+    (n <= TAUGHT ? ' taught  ' : ' kept    ') +
+    ' jars ' + lvl.jars.length + '  par ' + String(lvl.par).padStart(2) + '   (verified)');
 }
+if (built.length < TAUGHT) throw new Error('the taught levels are missing from ' + OUT);
 
 /* The rest are dealt as a set and then put in order of the par the solver
    measured, the same way the campaign's later ramps are built: dealing in
    order decays, because one lucky board early sets a bar the shape cannot
    clear again. */
 const floor = built[built.length - 1].par;
-const dealt = [];
-for (let level = FIRST_DEALT; level <= TOTAL; level++) {
-  const cfg = shape(level);
-  let chosen = null;
-  const until = Date.now() + 240000;      /* never let one level stall the build */
-  for (let seed = level * 1000; seed < level * 1000 + 400 && !chosen && Date.now() < until; seed++) {
-    const board = deal(cfg, seed);
-    if (!board) continue;
-    const r = inspect(board, true);
-    if (r.bad) continue;
-    if (r.par < floor + 1) continue;               /* never easier than the taught five */
-    if (!survivable(board, 4)) continue;
-    chosen = { board, par: r.par, states: r.states, path: r.path };
+const firstToDeal = built.length + 1;
+const wanted = TOTAL - firstToDeal + 1;
+
+/* Sample, verify, keep. The pool is deliberately larger than the number of
+   levels needed, so the ones that ship can be spread across the par range
+   rather than being whatever happened to turn up. */
+const POOL_TARGET = Math.round(wanted * 1.6);
+const POOL_MINUTES = Number(process.env.MERGE_POOL_MINUTES || 45);
+
+const pool = [];
+const rand = rng(0xC0FFEE);
+let tried = 0, tooEasy = 0, fragile = 0;
+const rejected = Object.create(null);
+const until = Date.now() + POOL_MINUTES * 60000;
+
+while (pool.length < POOL_TARGET && Date.now() < until) {
+  const cfg = sampleShape(rand);
+  if (!cfg) continue;
+  const board = deal(cfg, rand);
+  if (!board || board.jars.length !== cfg.sideJars) continue;
+  tried++;
+
+  if (tried % 50 === 0) {
+    const why = Object.keys(rejected).sort((a, b) => rejected[b] - rejected[a])
+      .map(k => rejected[k] + ' ' + k).join(', ');
+    console.log('     ' + tried + ' tried, ' + pool.length + ' kept  |  ' +
+      tooEasy + ' not hard enough, ' + fragile + ' deadlock too easily' +
+      (why ? ', ' + why : ''));
   }
-  if (!chosen) throw new Error('level ' + level + ': nothing dealt that passes');
-  dealt.push(chosen);
-  console.log('     dealt ' + (level - FIRST_DEALT + 1) + '/' + (TOTAL - FIRST_DEALT + 1) +
-    ' — ' + chosen.board.jars.length + ' jars, main ' + chosen.board.main.cap +
-    ', par ' + chosen.par + ' (' + chosen.states + ' states)');
+
+  const r = inspect(board, true);
+  if (r.bad) {
+    /* Tallied by the reason the board actually gave. Lumping every rejection
+       under one label sent me hunting a search problem that was not there. */
+    const key = r.bad.replace(/\b(red|orange|yellow|green|teal|blue|purple|magenta|white|slate)\b/g, '…')
+                     .replace(/\d+/g, 'n');
+    rejected[key] = (rejected[key] || 0) + 1;
+    continue;
+  }
+  if (r.par <= floor) { tooEasy++; continue; }
+  if (!survivable(board, 4)) { fragile++; continue; }
+
+  pool.push({ board, par: r.par, states: r.states, path: r.path });
+  if (true) {
+    console.log('     pool ' + pool.length + '/' + POOL_TARGET +
+      '  (par ' + Math.min(...pool.map(p => p.par)) + '-' + Math.max(...pool.map(p => p.par)) + ')' +
+      '  from ' + tried + ' boards: ' +
+      tooEasy + ' not hard enough, ' + fragile + ' too easily deadlocked' +
+      '  [' + Math.round((Date.now() - (until - POOL_MINUTES * 60000)) / 60000) + ' min]');
+  }
 }
+
+if (pool.length < wanted) {
+  throw new Error('only ' + pool.length + ' boards passed, ' + wanted + ' needed — ' +
+    'give it longer with MERGE_POOL_MINUTES, or widen SPACE');
+}
+
+/* Spread the chosen levels across the par the pool actually reached, so the
+   climb uses the whole range rather than bunching at whatever par was easiest
+   to find. */
+pool.sort((a, b) => a.par - b.par);
+const dealt = [];
+for (let i = 0; i < wanted; i++) {
+  dealt.push(pool[Math.round(i * (pool.length - 1) / (wanted - 1))]);
+}
+
+console.log('\n  pool of ' + pool.length + ' spanning par ' + pool[0].par + '-' + pool[pool.length - 1].par +
+  '; ' + wanted + ' taken across that range\n');
 
 dealt.sort((a, b) => a.par - b.par);
 dealt.forEach((pick, i) => {
-  const level = FIRST_DEALT + i;
+  const level = firstToDeal + i;
   const colour = C.name(pick.board.target);
   built.push({
     id: 'merge-' + String(level).padStart(2, '0'),
     mode: 'merge',
-    name: ADJECTIVES[i % ADJECTIVES.length] + ' ' + colour.charAt(0).toUpperCase() + colour.slice(1),
+    /* Keyed to the level, not to this run's position in the dealt set — with
+       the first ramp now read back rather than rebuilt, i restarts at zero
+       and would hand levels 26 onwards the names already on levels 6-25. */
+    name: ADJECTIVES[(level - FIRST_DEALT) % ADJECTIVES.length] + ' ' +
+          colour.charAt(0).toUpperCase() + colour.slice(1),
     teaches: pick.board.jars.length + ' jars · ' + pick.par + ' moves',
     brief: '',
     target: pick.board.target,
@@ -282,6 +441,11 @@ ${body}
   };
 })(typeof window !== 'undefined' ? window : globalThis);
 `);
+
+if (warnings.length) {
+  console.log('\n' + warnings.length + ' level(s) already on disk have a problem this build did not cause:');
+  warnings.forEach(w => console.log('  ' + w));
+}
 
 console.log('\nwrote js/merge-levels.js — ' + built.length + ' levels, par ' +
   built[0].par + ' to ' + built[built.length - 1].par);

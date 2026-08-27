@@ -157,7 +157,11 @@
       choice[Math.floor(rand() * choice.length)].fills.push(deck[i]);
     }
 
-    return { target: pick.target, parents: [pick.a, pick.b], main: { cap: cfg.mainCap }, jars: jars };
+    /* The board says which rules it is played by, and every caller needs that:
+       an Engine built without it plays the ordinary game and refuses every
+       merge, which reads as the solver producing illegal moves. */
+    return { mode: 'merge', target: pick.target, parents: [pick.a, pick.b],
+             main: { cap: cfg.mainCap }, jars: jars };
   }
 
   function generate(difficulty, seed) {

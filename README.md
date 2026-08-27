@@ -43,7 +43,7 @@ twenty-two.
 Each level unlocks the next. See **Keeping progress** below for how stars and
 best scores are stored.
 
-**Merge Colours** — twenty-five levels, and a rule the ordinary game does not
+**Merge Colours** — fifty levels, and a rule the ordinary game does not
 have.
 Pour a colour onto one it mixes with and the two become a third, so the colour
 the big jar wants is usually not on the shelf at all — it has to be made.
@@ -75,7 +75,11 @@ cannot be spoiled.
 | 6–10 | Four or five jars, the parents lightly scattered | 5–10 |
 | 11–16 | Five or six jars, deeper, more in the way | 12–14 |
 | 17–21 | Six jars, the parents buried and split | 16–21 |
-| 22–25 | Seven jars six deep — as far as the search reaches | 22–25 |
+| 22–25 | Seven jars six deep | 22–25 |
+| 26–31 | Five to eight jars, five obstacle colours | 26 |
+| 32–38 | Deeper, and the two colours in ribbons | 27 |
+| 39–44 | Seven jars, a big jar taking eight or more | 28–30 |
+| 45–50 | The hardest boards the search can still hint on | 31–34 |
 
 The dealt levels are built so that **no wrong merge is possible**. Only the two
 parents of the target ever appear as mixable colours — the third primary is
@@ -89,7 +93,30 @@ The five taught levels are the exception, deliberately: level 4 puts a rival
 recipe on the shelf precisely because spending a colour on the wrong partner is
 the thing it teaches. They are the only levels in the mode that can be spoiled.
 
-What caps the curve is the search, and where the cap sits was measured rather
+Levels 26 to 50 are not built from a curve at all, and that is the point.
+
+A shape is not what has to pass the checks — a *board* is, and three things
+have to hold at once: par above the level before, a search small enough to
+answer a hint on a phone, and a shelf that survives being played carelessly.
+Those pull against each other. Clutter makes a board cheap to search, because
+the bound counts every inert run sitting on a parent — but it also makes the
+shelf easy to deadlock. Thinning it out does the reverse. Pinning each level to
+one hand-drawn shape and demanding a board that satisfies all three means
+asking a one-in-twenty event to happen on command, which is exactly what it did
+not do: shape after shape came back with nothing.
+
+So the builder samples the whole space instead — jars, depth, big jar,
+obstacle colours, churn and slack all drawn at random — deals from whatever it
+draws, keeps the board if it passes, and goes again until it has a pool. The
+pool is then sorted by the par the solver measured and spread across the
+levels. Difficulty is what the boards turned out to be, not what a curve
+predicted they would be.
+
+It also settled a question the curves had got wrong. Eight jars had been
+written off as a wall; the sampler found eight-jar boards that pass, because
+the wall was a property of the shapes being tried and not of the width.
+
+What caps it is still the search, and where the cap sits was measured rather
 than guessed. Three things set it:
 
 - **The hint from the opening position is by far the dearest**, and on every
@@ -109,10 +136,10 @@ than guessed. Three things set it:
   hardest level took over four seconds and gave up; at thirty thousand the same
   levels answer in about two and a half, against a four second budget.
 
-Going past par 25 needs a tighter lower bound for the mode, not bigger boards.
-The one it has reaches only about two thirds of par, because the moves that
-dominate these solutions are gathering pours — consolidating a scattered colour
-— and no sound way to count those in advance has been found yet.
+Going much past par 34 needs a tighter lower bound for the mode, not bigger
+boards. The one it has reaches only about two thirds of par, because the moves
+that dominate these solutions are gathering pours — consolidating a scattered
+colour — and no sound way to count those in advance has been found yet.
 
 **Random Puzzle** — endlessly generated, in either game. A selector at the top
 of the screen chooses between **Classic** and **Merge Colours**; everything
@@ -399,7 +426,6 @@ build.js          bundles everything into one file
 fetch-fonts.js    regenerates fonts.css from Google Fonts
 make-levels.js    builds and verifies the 100-level campaign
 tools/make-merge-levels.js  builds the Merge Colours levels
-tools/merge-deal.js   deals Merge Colours boards
 tools/check-merge.js  checks the Merge Colours levels the same way
 tools/check-merge-random.js  checks random Merge Colours puzzles
 js/store.js       progress storage, and whether it can be trusted
@@ -456,6 +482,13 @@ the search cannot settle, or one that can no longer be won, costs nothing —
 those answers are warnings, not help. Restarting a level hands the whole
 allowance back, since that is a fresh attempt; undo deliberately does not,
 which would make the ration free.
+
+Merge Colours allows its search eight seconds rather than the ordinary game's
+1.2, behind a "Working it out…" line and a yield so the message paints first.
+That figure was measured, not chosen: on a six-times-throttled processor the
+dearest levels finish in three to four seconds, and at eight times throttled a
+four-second budget gave up on four of them. Being told a position cannot be
+worked out when the search simply had not finished is worse than waiting.
 
 Whatever a hint works out is kept and followed. A shortest route from here
 stays a shortest route as long as the player takes it, so every hint after the

@@ -20,13 +20,21 @@
      no warning rather than a freeze. */
   var WATCH_BUDGET = 40000, WATCH_MS = 150;
   var HINT_MS = 1200;
-  /* Merge Colours gets longer, because its search has no tight bound to guide
-     it and a hard board can genuinely take a second or two on a phone. Rather
-     than claim the position is too tangled — which would be a lie, the search
+  /* Merge Colours gets far longer, because its search has no tight bound to
+     guide it and a hard board genuinely takes seconds on a phone. Rather than
+     claim the position is too tangled — which would be a lie, the search
      simply had not finished — it says what it is doing and yields first, so
      the message paints before the thread is taken. The same trick the random
-     dealer uses. */
-  var MERGE_HINT_MS = 4000;
+     dealer uses.
+
+     Eight seconds rather than four because measurement said so. On a
+     six-times-throttled processor the dearest levels finish in three to four,
+     and one came in at 3910ms — inside four by ninety milliseconds. At eight
+     times throttled, four levels gave up entirely. The choice there is between
+     waiting a moment longer and being told, wrongly, that a position cannot be
+     worked out, and waiting is plainly better. Levels 22-25 already sit in that
+     band and cannot be redealt, so the budget is where the fix has to go. */
+  var MERGE_HINT_MS = 8000;
 
   var $ = function (id) { return document.getElementById(id); };
 
