@@ -33,12 +33,13 @@ const C = globalThis.Colour, { Game } = globalThis.Engine, M = globalThis.Merge;
 require('../js/merge-generator.js');
 const { deal, rng } = globalThis.MergeGenerator;
 
-const TOTAL = 50, TAUGHT = 5, FIRST_DEALT = TAUGHT + 1;
-/* The first ramp is pinned to the end it was built against rather than to
-   TOTAL, so adding levels after it cannot redeal boards people have progress
-   against. Levels already on disk are read back and re-verified, never
-   rebuilt; --rebuild-all deals everything again. */
+const TOTAL = 100, TAUGHT = 5, FIRST_DEALT = TAUGHT + 1;
+/* Each ramp is pinned to the end it was built against rather than to TOTAL, so
+   adding levels after it cannot redeal boards people have progress against.
+   Levels already on disk are read back and re-verified, never rebuilt;
+   --rebuild-all deals everything again. */
 const RAMP_ONE_END = 25;
+const RAMP_TWO_END = 50;
 const REBUILD_ALL = process.argv.includes('--rebuild-all');
 
 /* The ceiling, in states the search has to visit from the opening position.
@@ -99,7 +100,7 @@ function shape(level) {
    and the pool is then sorted by the par the solver measured and dealt out in
    order. Difficulty comes from what the boards turned out to be, not from what
    a curve predicted they would be. */
-const SPACE = {
+const SPACE_TWO = {
   jars:   [5, 6, 7, 8],
   cap:    [5, 6, 7],
   mainCap:[5, 6, 7, 8, 9, 10],
@@ -108,17 +109,49 @@ const SPACE = {
   slack:  [0.30, 0.33, 0.36, 0.40]
 };
 
-function sampleShape(rand) {
+/* Levels 51-100 have to start above par 34, where the second ramp finished,
+   and the space that got there does not reach: its best boards ARE levels
+   45-50. Sampling wider settled where the room actually is, and it is not
+   where the second ramp looked for it.
+
+   Width stays the wall. Nothing at eight jars or more settled inside the
+   search budget at all — 200 boards in a row, every one of them too dear —
+   which is the same cliff the first ramp found. Depth is a different matter:
+   every board that beat par 34 had jars eight deep or more, and at ten deep
+   with a big jar of twenty the par reaches the fifties while the search still
+   settles in twenty-odd thousand states. So this ramp holds the shelf at seven
+   jars and grows downwards instead.
+
+   `fillers` is a single value because five is the only count that works, and
+   it is worth saying why, because it looks arbitrary. Below five the search
+   cannot settle these boards: three and four obstacle colours were tried 282
+   times between them and produced nothing but "too dear", since the bound
+   counts inert runs sitting on a parent and thinning them out blinds it. Above
+   five is not refused but impossible — the obstacle pool is the palette minus
+   the three primaries and the target, which is six colours, and one of those
+   six is always barred by the lookalike rule. Six obstacles becomes dealable
+   the moment cyan sits a legal distance from teal; see the palette note in the
+   README. */
+const SPACE_THREE = {
+  jars:   [7],
+  cap:    [8, 9, 10],
+  mainCap:[10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+  fillers:[5],
+  churn:  [0.40, 0.55, 0.70, 0.85],
+  slack:  [0.28, 0.32, 0.36, 0.40]
+};
+
+function sampleShape(rand, space) {
   const pick = a => a[Math.floor(rand() * a.length)];
-  const jars = pick(SPACE.jars), cap = pick(SPACE.cap), mainCap = pick(SPACE.mainCap);
-  const fillers = pick(SPACE.fillers);
+  const jars = pick(space.jars), cap = pick(space.cap), mainCap = pick(space.mainCap);
+  const fillers = pick(space.fillers);
   const cells = jars * cap;
-  const slack = Math.round(cells * pick(SPACE.slack));
+  const slack = Math.round(cells * pick(space.slack));
   const fillerUnits = cells - slack - mainCap * 2;
   if (fillerUnits < fillers) return null;          /* no room for the obstacles */
   if (mainCap * 2 > cells - slack) return null;    /* no room for the colours themselves */
   return { mainCap, sideJars: jars, sideCap: cap, fillers, fillerUnits,
-           burial: 0.4 + rand() * 0.3, churn: pick(SPACE.churn) };
+           burial: 0.4 + rand() * 0.3, churn: pick(space.churn) };
 }
 
 /* ── checks every level has to pass ────────────────────────────────────── */
@@ -242,8 +275,12 @@ function survivable(lvl, trials) {
 /* ── build ─────────────────────────────────────────────────────────────── */
 
 const OUT = path.join(__dirname, '..', 'js', 'merge-levels.js');
+/* Always read the file, even under --rebuild-all: the five taught levels are
+   written by hand and no generator can produce them, so "rebuild everything"
+   has to mean "deal every level that was dealt", not "start from nothing".
+   Emptying this map outright used to leave the taught levels unfindable and
+   the build died claiming they were missing from a file that had them. */
 const EXISTING = (() => {
-  if (REBUILD_ALL) return new Map();
   try {
     require(OUT);
     return new Map(globalThis.MergeLevels.list.map(l => [l.id, l]));
@@ -258,7 +295,29 @@ const ADJECTIVES = ['Stirred', 'Folded', 'Steeped', 'Tinted', 'Blended', 'Swirle
                     'Sifted', 'Strewn', 'Warped', 'Lodged', 'Ravelled',
                     'Sundered', 'Flooded', 'Winnowed', 'Harrowed', 'Shattered',
                     'Interleaved', 'Combed', 'Sieved', 'Decanted', 'Scrambled',
-                    'Unspooled', 'Overlaid', 'Entwined', 'Meshed', 'Roiled'];
+                    'Unspooled', 'Overlaid', 'Entwined', 'Meshed', 'Roiled',
+                    /* Levels 51-100 need their own, because the list is
+                       indexed by level and 45 names cannot cover 95 dealt
+                       levels without handing level 51 the name on level 6. */
+                    'Submerged', 'Quenched', 'Sedimented', 'Undertowed',
+                    'Silted', 'Drowned', 'Fathomed', 'Plumbed', 'Sounded',
+                    'Trawled', 'Dredged', 'Cascaded', 'Eddied', 'Whirled',
+                    'Sluiced', 'Percolated', 'Infused', 'Macerated', 'Steeled',
+                    'Tempered', 'Annealed', 'Quarried', 'Seamed', 'Veined',
+                    'Stranded', 'Coiled', 'Spiralled', 'Helixed', 'Latticed',
+                    'Compounded', 'Confounded', 'Bewildered', 'Labyrinthine',
+                    'Serpentine', 'Byzantine', 'Convoluted', 'Impacted',
+                    'Congested', 'Gridlocked', 'Wedged', 'Jammed', 'Clotted',
+                    'Snarled', 'Bristling', 'Thorned', 'Barbed', 'Cragged',
+                    'Riven', 'Cloven', 'Sheared', 'Splintered', 'Fissured',
+                    'Crazed', 'Webbed', 'Filigreed', 'Damascened'];
+
+/* 95 levels are dealt and the list is indexed by level, so a short list would
+   silently start repeating rather than fail. Say so here instead. */
+if (ADJECTIVES.length < TOTAL - TAUGHT) {
+  throw new Error('ADJECTIVES has ' + ADJECTIVES.length + ' names, ' +
+    (TOTAL - TAUGHT) + ' dealt levels need naming');
+}
 
 const built = [];
 const warnings = [];
@@ -268,7 +327,8 @@ const warnings = [];
    and the whole of the first ramp, whose boards people have progress against.
    Verifying is also the stronger check — it proves the levels that actually
    ship are sound, rather than that a fresh deal would have been. */
-for (let n = 1; n <= RAMP_ONE_END; n++) {
+for (let n = 1; n <= TOTAL; n++) {
+  if (REBUILD_ALL && n > TAUGHT) break;
   const id = 'merge-' + String(n).padStart(2, '0');
   const lvl = EXISTING.get(id);
   if (!lvl) break;
@@ -299,9 +359,22 @@ const wanted = TOTAL - firstToDeal + 1;
 
 /* Sample, verify, keep. The pool is deliberately larger than the number of
    levels needed, so the ones that ship can be spread across the par range
-   rather than being whatever happened to turn up. */
+   rather than being whatever happened to turn up.
+
+   When every level already exists this whole stage is skipped: the run has
+   then verified the file and re-emitted it, which is exactly what a rebuild
+   with nothing new to add should do. Dealing them again instead would hand
+   people different boards under the level numbers they have progress against,
+   which is the one thing this tool must never do. */
+const dealt = [];
+if (wanted > 0) {
 const POOL_TARGET = Math.round(wanted * 1.6);
 const POOL_MINUTES = Number(process.env.MERGE_POOL_MINUTES || 45);
+
+/* Which space to sample depends on the block being dealt, so a rebuild of the
+   second ramp cannot accidentally deal it from the third ramp's shapes and
+   hand level 26 a par-fifty board. */
+const SPACE = firstToDeal > RAMP_TWO_END ? SPACE_THREE : SPACE_TWO;
 
 const pool = [];
 const rand = rng(0xC0FFEE);
@@ -310,7 +383,7 @@ const rejected = Object.create(null);
 const until = Date.now() + POOL_MINUTES * 60000;
 
 while (pool.length < POOL_TARGET && Date.now() < until) {
-  const cfg = sampleShape(rand);
+  const cfg = sampleShape(rand, SPACE);
   if (!cfg) continue;
   const board = deal(cfg, rand);
   if (!board || board.jars.length !== cfg.sideJars) continue;
@@ -355,9 +428,10 @@ if (pool.length < wanted) {
    climb uses the whole range rather than bunching at whatever par was easiest
    to find. */
 pool.sort((a, b) => a.par - b.par);
-const dealt = [];
 for (let i = 0; i < wanted; i++) {
-  dealt.push(pool[Math.round(i * (pool.length - 1) / (wanted - 1))]);
+  /* wanted === 1 would divide by zero; take the hardest board in that case. */
+  dealt.push(wanted === 1 ? pool[pool.length - 1]
+                          : pool[Math.round(i * (pool.length - 1) / (wanted - 1))]);
 }
 
 console.log('\n  pool of ' + pool.length + ' spanning par ' + pool[0].par + '-' + pool[pool.length - 1].par +
@@ -388,6 +462,9 @@ dealt.forEach((pick, i) => {
     ' dealt    jars ' + pick.board.jars.length + '  par ' + String(pick.par).padStart(2) +
     '  (' + pick.states + ' states)');
 });
+} else {
+  console.log('\n  all ' + TOTAL + ' levels already exist and verified; nothing to deal\n');
+}
 
 /* ── emit ──────────────────────────────────────────────────────────────── */
 

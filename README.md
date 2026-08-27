@@ -69,7 +69,7 @@ twenty-two.
 Each level unlocks the next. See **Keeping progress** below for how stars and
 best scores are stored.
 
-**Merge Colors** — fifty levels, and a rule the ordinary game does not
+**Merge Colors** — one hundred levels, and a rule the ordinary game does not
 have.
 Pour a color onto one it mixes with and the two become a third, so the color
 the big jar wants is usually not on the shelf at all — it has to be made.
@@ -105,7 +105,12 @@ cannot be spoiled.
 | 26–31 | Five to eight jars, five obstacle colors | 26 |
 | 32–38 | Deeper, and the two colors in ribbons | 27 |
 | 39–44 | Seven jars, a big jar taking eight or more | 28–30 |
-| 45–50 | The hardest boards the search can still hint on | 31–34 |
+| 45–50 | The end of what a shelf seven deep will give | 31–34 |
+| 51–59 | Still seven jars, but eight and nine deep | 35–36 |
+| 60–72 | Ten deep appears; a big jar taking up to nineteen | 37–38 |
+| 73–86 | The same shelf, wound tighter | 39–41 |
+| 87–95 | Nine and ten deep throughout | 42–46 |
+| 96–100 | Ten deep, every one — the hardest the search can prove | 47–51 |
 
 The dealt levels are built so that **no wrong merge is possible**. Only the two
 parents of the target ever appear as mixable colors — the third primary is
@@ -119,7 +124,7 @@ The five taught levels are the exception, deliberately: level 4 puts a rival
 recipe on the shelf precisely because spending a color on the wrong partner is
 the thing it teaches. They are the only levels in the mode that can be spoiled.
 
-Levels 26 to 50 are not built from a curve at all, and that is the point.
+Levels 26 to 100 are not built from a curve at all, and that is the point.
 
 A shape is not what has to pass the checks — a *board* is, and three things
 have to hold at once: par above the level before, a search small enough to
@@ -162,10 +167,42 @@ than guessed. Three things set it:
   hardest level took over four seconds and gave up; at thirty thousand the same
   levels answer in about two and a half, against a four second budget.
 
-Going much past par 34 needs a tighter lower bound for the mode, not bigger
-boards. The one it has reaches only about two thirds of par, because the moves
-that dominate these solutions are gathering pours — consolidating a scattered
-color — and no sound way to count those in advance has been found yet.
+Levels 51 to 100 were dealt the same way, and they overturned the conclusion
+this section used to end on. It said going past par 34 would need a tighter
+lower bound for the mode rather than bigger boards. That was wrong, and wrong
+in an instructive way: it generalised from a space that had been searched
+mostly along its width. Sampling the *depth* instead found boards up to par 51
+that the same bound settles in under thirty thousand states — level 100 needs
+12,086, less than half of what level 96 costs at par 47.
+
+Three things came out of measuring it, and the first two say where the room
+was hiding:
+
+- **Width is the wall, and only width.** Sampling seven to ten jars gave 219
+  boards, and every one of the 19 that settled inside the budget was seven jars
+  wide; the other 200 were all too dear. That is the same cliff the first ramp
+  hit, and it has not moved.
+- **Depth is free by comparison.** Every board that beat par 34 had jars eight
+  deep or more, and the last five levels are ten deep throughout. Going deeper
+  raises par without giving the search more branches to weigh, because the jars
+  it can pour *into* are what multiply the states, not how much they hold.
+- **Five obstacle colors, exactly.** Not a tuned figure but a forced one, and
+  hemmed in from both sides. Below five the search cannot settle these boards
+  at all — three and four were tried 282 times between them and produced
+  nothing but "too dear", because the bound counts inert runs sitting on a
+  parent and thinning them out blinds it. Above five is arithmetic: the
+  obstacle pool is the palette minus the three primaries and the target, which
+  leaves six, and the lookalike rule always bars one of those six. Six
+  obstacles becomes possible the day cyan sits a legal distance from teal — see
+  **Accessibility**. The palette bug is costing level design, not just
+  legibility.
+
+What has not changed is the bound itself, which still reaches only about two
+thirds of par, because the moves that dominate these solutions are gathering
+pours — consolidating a scattered color — and no sound way to count those in
+advance has been found yet. Par 51 is where the *sampled space* ran out, not
+where the search did, so the next ramp should start by widening the space
+again rather than by rewriting the bound.
 
 **Random Puzzle** — endlessly generated, in either game. A selector at the top
 of the screen chooses between **Sort Colors** and **Merge Colors**; everything
@@ -295,6 +332,14 @@ than the remaining solution actually took.
 
 `tools/make-merge-levels.js` builds the mode's levels and `tools/check-merge.js`
 checks them, the way `make-levels.js` does both for the Sort Colors campaign.
+The builder deals only the levels that do not yet exist: everything already in
+`js/merge-levels.js` is read back and re-verified, so adding a ramp cannot
+redeal boards people have progress against, and each dealt ramp keeps its own
+sampling space so a rebuild of one cannot deal it from another's shapes.
+`MERGE_POOL_MINUTES` caps how long it will sample for (45 by default; the
+fifty levels of the third ramp pooled in six). `--rebuild-all` deals every
+dealt level again, keeping only the five taught ones, which no generator could
+produce.
 
 `js/solver.js` is a best-first (A*) search over pour states, and it does three
 jobs: it proves a generated puzzle can be finished, it sets par to the genuine
@@ -519,7 +564,7 @@ js/colour.js      the palette, and how far apart two colors look
 js/levels.js      generated — the 100 Sort Colors levels
 js/merge.js       Merge Colors: the recipes, and its own search  (no DOM)
 js/merge-generator.js  seeded random Merge Colors puzzles  (no DOM)
-js/merge-levels.js  generated — the 50 Merge Colors levels
+js/merge-levels.js  generated — the 100 Merge Colors levels
 js/daily.js       the daily schedule, seeds, calendar grid and streak  (no DOM)
 js/engine.js      stacked jars, pouring, undo, win check  (no DOM)
 js/solver.js      best-first search: par, hints, solvability  (no DOM)
@@ -537,7 +582,9 @@ ios/ android/     generated native projects (Capacitor)
 
 The engine and solver are pure logic with no DOM dependency, so they run under
 Node. Every Sort Colors level is verified to solve at par for three stars with a
-par no lower than the level before, and 880 generated puzzles across the four
+par no lower than the level before, `tools/check-merge.js` does the same for all
+100 Merge Colors levels and additionally plays each one carelessly to check it
+cannot be deadlocked, and 880 generated puzzles across the four
 difficulties are each verified to
 hold exactly one jarful of the target, to use no two lookalike colors, to fall
 inside their difficulty's par band, and to have the solver's own path play back
@@ -756,6 +803,17 @@ Two things follow from that, and both are worth knowing:
 - With the letters off by default, there is nothing else distinguishing that
   pair unless the player finds the setting.
 
-Neither the boards nor their pars changed — all 125 levels still solve at
+Neither the boards nor their pars changed — all 200 levels still solve at
 exactly the stored figure — so this is a palette matter, not a puzzle one. A
 cyan at least 150 from teal, or letters back on by default, would settle it.
+
+It is no longer only a legibility matter, though. The merge builder draws its
+obstacle colors from the palette minus the three primaries and the target,
+which leaves six, and the clash always bars one of those six — so a merge board
+can carry five obstacle colors and never six. Five happens to be exactly the
+count those boards need, so nothing is blocked today; but it means the builder
+is working at the edge of what the palette allows rather than inside it, and
+the level after this one has nowhere to go. Fixing cyan would hand it back.
+
+`node tools/check-merge.js` reports the two affected levels every run, and the
+builder warns rather than refusing, so this cannot quietly become invisible.
