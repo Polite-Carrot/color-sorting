@@ -11,10 +11,35 @@ working out where to park everything that is in the way.
 **To play:** open `index.html` in a browser. No install, no build step, no server.
 Or run `node build.js --standalone` for the whole game as one shareable file.
 
+## What it is called
+
+The game ships as **Color Sort & Merge**, and its two main modes are **Sort
+Colors** and **Merge Colors**. Player-facing text uses US spelling throughout —
+*color*, not *colour*. The code does not: `js/colour.js`, the `wrong-colour`
+move-refusal code and a good deal of internal prose still say *colour*, because
+renaming a module and the identifiers that reach into it is a change with real
+risk and no player-visible benefit. The rule is the boundary, not the file:
+**anything a player reads says color; anything only a developer reads may say
+either.**
+
+The bundle identifier stayed `com.politecarrot.colorjars` on both platforms
+even though the display name changed. That is deliberate — the identifier is
+how a store recognises an app as an update to one already installed, so
+changing it would strand every existing install rather than update it.
+
+The name is set in six places, and they all have to agree for a store build:
+`<title>` and the masthead in `index.html`, `appName` in `capacitor.config.js`,
+`CFBundleDisplayName` in `ios/App/App/Info.plist`, and `app_name` plus
+`title_activity_main` in `android/app/src/main/res/values/strings.xml`. The two native files are
+generated projects that are checked in, so they hold whatever they were last
+set to; the rename had to edit both by hand alongside `appName`. They are the
+two most likely to be left behind, and a stale one shows up as the wrong name
+under the icon rather than as a build failure.
+
 ## What's in it
 
 The home screen offers four ways in — Sort Colors, Merge Colors, Daily Puzzle
-and Random Puzzle — and each opens its own screen. The Sort Colors mode's icon is a jar
+and Random Puzzle — and each opens its own screen. Sort Colors' icon is a jar
 that fills with how far through you are; the daily's is a calendar page whose
 squares light up as the week is played.
 
@@ -269,7 +294,7 @@ identical, and with the bound itself never once claiming more moves were needed
 than the remaining solution actually took.
 
 `tools/make-merge-levels.js` builds the mode's levels and `tools/check-merge.js`
-checks them, the way `make-levels.js` does both for the Sort Colors mode.
+checks them, the way `make-levels.js` does both for the Sort Colors campaign.
 
 `js/solver.js` is a best-first (A*) search over pour states, and it does three
 jobs: it proves a generated puzzle can be finished, it sets par to the genuine
@@ -386,6 +411,28 @@ page rubber-banding when a jar is tapped; and `app.js` sets a `is-native` class
 when `window.Capacitor` is present, which drops the keyboard-shortcut line
 since there is no keyboard to shortcut.
 
+Pinch-zoom is switched off (`maximum-scale=1, user-scalable=no`, with
+`touch-action: pan-x pan-y`), so a two-finger gesture or a double-tap on a jar
+cannot leave the board zoomed halfway off the screen. That is a real
+accessibility cost — magnifying the page is exactly how some people read it —
+and it is only defensible because the board already scales itself to the
+window (see **Fitting the window**) and the text has no fixed pixel ceiling.
+Anyone changing it should weigh those two facts, not just the gesture.
+
+The config is `capacitor.config.js` rather than `.json`, and the reason is the
+side effect at the top of it: requiring the file runs `sync-web.js`. Capacitor
+loads its config before every `cap` command, so `npx cap sync` on its own is
+now honest — `www/` is rebuilt from the current sources first. Before, `sync`
+copied whatever snapshot `www/` happened to hold, so a module newly added to
+`index.html` could be missing from a native build while the browser played it
+perfectly. If `sync-web.js` fails the config throws rather than returning a
+half-built app.
+
+`sync-web.js` takes the file list from `index.html`'s tags, but the startup
+lockup's two SVGs are named in it explicitly — they are referenced from markup
+rather than from a `<script>` or `<link>`, so nothing would otherwise pick
+them up.
+
 `ios/` and `android/` are generated projects and are checked in, as Capacitor
 intends — they carry the icons, splash screens and signing configuration.
 
@@ -394,21 +441,21 @@ intends — they carry the icons, splash screens and signing configuration.
 ```
 node build.js               # artifact fragment, no <!doctype> wrapper
 node build.js --standalone  # complete document, opens from disk
-node make-levels.js         # rebuild the Sort Colors mode into js/levels.js
+node make-levels.js         # rebuild the Sort Colors campaign into js/levels.js
 ```
 
-`make-levels.js` writes the Sort Colors mode. The five taught levels are written by
+`make-levels.js` writes the Sort Colors campaign. The five taught levels are written by
 hand — each exists to teach one rule, which is not something a generator can be
 asked for. The rest are dealt by the ordinary puzzle generator along a widening
 curve and kept only if the solver can finish them, their par is no lower than
 the level before, and playing them badly still leaves them winnable. Boards are
-baked into the file rather than dealt on load, so the Sort Colors mode is the same for
+baked into the file rather than dealt on load, so the campaign is the same for
 everyone and par is known to be the true minimum.
 
 Difficulty is left to the board shapes; par is used only as a ratchet. Chasing
 a separate par curve fights the shapes and stalls the moment the two disagree,
 and picking the gentlest board that merely beats the level before leaves the
-middle of the Sort Colors mode flat while the boards visibly grow. Each level takes a
+middle of the campaign flat while the boards visibly grow. Each level takes a
 board from the harder end of what its shape produces.
 
 The curve is in two parts, and the second is built differently, because the
@@ -447,7 +494,7 @@ strongest lever on par there is and only the search cost had been holding it
 down.
 
 Each ramp is pinned to the end point it was built against rather than to the
-Sort Colors mode total. Every one of those numbers appears in a curve that would
+campaign total. Every one of those numbers appears in a curve that would
 quietly redeal every earlier level if it moved, and people have progress
 against those boards. Levels that already exist are read back from
 `js/levels.js` and re-verified rather than dealt again, which is both far
@@ -463,7 +510,7 @@ styles.css        all styling
 fonts.css         generated — inlined webfont subsets
 build.js          bundles everything into one file
 fetch-fonts.js    regenerates fonts.css from Google Fonts
-make-levels.js    builds and verifies the 100-level Sort Colors mode
+make-levels.js    builds and verifies the 100-level Sort Colors campaign
 tools/make-merge-levels.js  builds the Merge Colors levels
 tools/check-merge.js  checks the Merge Colors levels the same way
 tools/check-merge-random.js  checks random Merge Colors puzzles
@@ -472,14 +519,16 @@ js/colour.js      the palette, and how far apart two colors look
 js/levels.js      generated — the 100 Sort Colors levels
 js/merge.js       Merge Colors: the recipes, and its own search  (no DOM)
 js/merge-generator.js  seeded random Merge Colors puzzles  (no DOM)
-js/merge-levels.js  generated — the 25 Merge Colors levels
+js/merge-levels.js  generated — the 50 Merge Colors levels
+js/daily.js       the daily schedule, seeds, calendar grid and streak  (no DOM)
 js/engine.js      stacked jars, pouring, undo, win check  (no DOM)
 js/solver.js      best-first search: par, hints, solvability  (no DOM)
 js/generator.js   seeded random puzzles, validated by the solver
 js/ui.js          jar rendering and sound
 js/app.js         screens, progress, input
+assets/           app icon and Polite Carrot lockup, as SVG sources
 sync-web.js       copies the files index.html loads into www/ for Capacitor
-capacitor.config.json  native shell configuration
+capacitor.config.js  native shell configuration — also runs sync-web.js
 package.json      Capacitor dependencies and the sync scripts
 ios/ android/     generated native projects (Capacitor)
 ```
@@ -640,6 +689,14 @@ tilts, and the shelf can scroll on a short window — without it the top row was
 clipped mid-lift while lower rows were fine. A picked-up jar also rises above
 its neighbours, so it is never behind the next jar along.
 
+Dialogs size themselves the same way in spirit but not in mechanism: the
+overlay pads itself by `env(safe-area-inset-*)` so a modal cannot sit under
+the notch or the home indicator, and the panel inside is capped at the height
+that leaves and scrolls its own content past that. How to play is the long
+one, and on a short window it used to be clipped with its **Got it** button
+below the fold — a dialog nothing could dismiss by tapping. It now scrolls to
+reach the button.
+
 ## Look
 
 One committed visual world — a bright shelf under a summer sky, drawn with
@@ -655,6 +712,27 @@ place, not a document, so it does not follow the reader's theme — every color
 is painted explicitly, including the ground, so the page holds whatever the
 host paints behind it.
 
+### The startup lockup
+
+The page opens on a black screen carrying the Polite Carrot mark and name,
+shared with Tide-Runner so the two read as coming from the same place. It
+fades out on `load` after about 1.35 seconds, or 100ms for anyone who has
+asked for reduced motion, and removes itself from the document afterwards
+rather than lingering as an invisible layer over the board.
+
+Two things guard against it becoming a black screen nobody can get past: a
+4-second hard timeout dismisses it whether `load` fired or not, and the
+element is `pointer-events: none` throughout, so even a stuck splash cannot
+swallow a tap. It is plain markup and a small inline script rather than
+anything the game modules own, so it paints before any of them have parsed.
+
+**The lockup does not survive `build.js`.** The two SVGs are referenced by
+relative path and the bundler inlines scripts, styles and fonts but not
+images, so a single-file build opens on a bare black screen for its first
+second unless it happens to be sitting next to `assets/`. That is the one
+place the "no external references whatsoever" promise above is currently
+untrue.
+
 ## Accessibility
 
 Every jar reads out its contents top-down for screen readers, which is the
@@ -669,7 +747,7 @@ Assist** in Settings.
 Two things follow from that, and both are worth knowing:
 
 - The palette used to guarantee that no two colors could be confused: every
-  pair sits at least 150 apart on the distance measure in `color.js`, and
+  pair sits at least 150 apart on the distance measure in `js/colour.js`, and
   `make-levels.js` and `tools/check-merge.js` both refuse a board that breaks
   it. **That guarantee is currently broken.** `slate` was recoloured to a
   bright cyan (`#6b7c9c` → `#22c8ff`), which sits 103 from `teal` — and 80 of

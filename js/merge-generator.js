@@ -11,7 +11,7 @@
  * shelf is inert: it has no partner present, so it can only stack on its own
  * colour or sit in an empty jar. What is left to get wrong is space and order.
  *
- * The settings stop well short of the Sort Colors mode's hardest merge levels, and
+ * The settings stop well short of the Merge Colors campaign's hardest levels, and
  * deliberately. A random puzzle is dealt while somebody waits, and this mode's
  * search has no tight bound to lean on: the states climb steeply with the size
  * of the big jar, so a board that would be fine to ship after an overnight
