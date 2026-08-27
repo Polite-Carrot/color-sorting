@@ -781,10 +781,21 @@ play, Settings and Remove Ads, and pushing those off a screen that cannot
 scroll makes them unreachable, not merely hidden. `flex: 0 1 auto` alone does
 not do that, though: a flex item will not shrink below its content, so once
 the menu had four cards the footer sat below the fold on an iPhone SE with no
-way to reach it. `min-height: 0` plus `overflow-y: auto` on the card list
-restores the stated intent — the cards give way, the footer stays put. On wide
-screens the masthead is the thing in the way instead, so a height-conditional
-rule trades the title-screen scale back on windows too short to hold both.
+way to reach it.
+
+The scrolling goes on the *screen*, not on the card list, and that distinction
+is the whole of it. Scrolling the list works and was the first attempt, but a
+scroll container clips to its padding box, and these cards are drawn with a
+6px hard shadow that lives outside theirs — so the bottom card lost its shadow
+and every card lost the outer half of its focus ring. Padding the list back
+out is not free either: it is a centred grid with a max-width, so padding
+comes out of the cards' own width. Scrolling the screen instead leaves the
+cards in the middle of the scrolled content, nowhere near a clipping edge, at
+no cost to their size.
+
+On wide screens the masthead is the thing in the way rather than the window
+height, so a height-conditional rule trades the title-screen scale back on
+windows too short to hold both it and four cards.
 
 ## Look
 

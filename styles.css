@@ -1329,19 +1329,25 @@ body.is-native .keys { display: none; }
 
 /* Home menu wants to stay in view without scrolling, so let it shrink on
    short windows rather than push the footer off screen. */
-#screen-home.is-active { justify-content: flex-start; overflow: hidden; }
+#screen-home.is-active {
+  justify-content: flex-start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 #screen-home .masthead { margin: 4px 0 18px; }
 /* `flex: 0 1 auto` alone does not shrink a flex item below its content, so on
    a short window the cards kept their full height and pushed the footer off
    the bottom of a screen that cannot scroll — How to play, Settings and
-   Remove Ads were unreachable on an iPhone SE. min-height: 0 lets it shrink,
-   and the cards scroll among themselves instead. */
-#screen-home .choices {
-  flex: 0 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
+   Remove Ads were unreachable on an iPhone SE.
+
+   The scrolling goes on the screen rather than on the card list, and that is
+   the whole point of the rule below. Scrolling the list itself works, but a
+   scroll container clips to its padding box, and these cards are drawn with a
+   6px hard shadow sitting outside theirs — so the bottom card lost its shadow
+   and every card lost the outer half of its focus ring. Putting the scroll on
+   the screen leaves the cards in the middle of the scrolled content, nowhere
+   near a clipping edge. */
+#screen-home .choices { flex: 0 0 auto; }
 #screen-home .menu-foot {
   flex-wrap: wrap;
   margin-top: auto;
