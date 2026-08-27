@@ -83,7 +83,10 @@
     from: 'levels',
     /* Which list the levels screen is showing. The screen itself is shared,
        because the two modes want exactly the same grid of tiles. */
-    listMode: 'campaign'
+    listMode: 'campaign',
+    /* The month the calendar is looking at, and the day being played. */
+    calMonth: null,
+    dailyKey: null
   };
 
   /* Both modes are played on the same board and answered by the same code;
@@ -127,10 +130,11 @@
         p.levels = p.levels || {};
         p.random = p.random || {};
         p.merge = p.merge || {};
+        p.daily = p.daily || {};
         return p;
       }
     } catch (e) { /* corrupt — start fresh rather than refuse to run */ }
-    return { levels: {}, random: {}, merge: {} };
+    return { levels: {}, random: {}, merge: {}, daily: {} };
   }
 
   function loadDifficulty() {
@@ -190,7 +194,7 @@
 
   /* ───────── screens ───────── */
 
-  var SCREENS = ['home', 'levels', 'random', 'game'];
+  var SCREENS = ['home', 'levels', 'daily', 'random', 'game'];
 
   function showScreen(which) {
     SCREENS.forEach(function (name) {
@@ -200,6 +204,7 @@
     window.scrollTo(0, 0);
     if (which === 'home') renderHome();
     if (which === 'levels') renderLevels();
+    if (which === 'daily') renderDaily();
     if (which === 'random') renderRandom();
     if (which === 'game') fitBoard();
   }
@@ -228,6 +233,15 @@
       : mergeDone === merge.length
         ? 'All ' + merge.length + ' done'
         : 'Next up: level ' + (mergeDone + 1) + ' · ' + mergeDone + ' of ' + merge.length + ' done';
+
+    var D = window.Daily;
+    var streak = D.streak(progress.daily);
+    var todayDone = !!progress.daily[D.key(D.today())];
+    $('home-daily-sub').textContent = todayDone
+      ? (streak > 1 ? 'Done today · ' + streak + ' day streak' : 'Done today')
+      : streak
+        ? streak + ' day streak · today is waiting'
+        : D.planFor(D.today()).label + ' today';
 
     var table = randomGen().DIFFICULTY;
     var cfg = table[state.difficulty] || table.normal;
@@ -296,6 +310,75 @@
 
     $('campaign-note').textContent = done + ' of ' + list.length + ' done · ' +
       stars + ' of ' + (list.length * 3) + ' stars';
+  }
+
+  /* ───────── the daily calendar ───────── */
+
+  function dailyDone(date) { return progress.daily[window.Daily.key(date)]; }
+
+  function renderDaily() {
+    var D = window.Daily;
+    if (!state.calMonth) {
+      var t = D.today();
+      state.calMonth = new Date(t.getFullYear(), t.getMonth(), 1);
+    }
+
+    $('cal-month').textContent = D.monthTitle(state.calMonth);
+
+    /* Months before the first daily, or after this one, are not worth
+       offering — there is nothing in them either way. */
+    var first = D.first(), now = D.today();
+    $('cal-prev').disabled = state.calMonth <= new Date(first.getFullYear(), first.getMonth(), 1);
+    $('cal-next').disabled = state.calMonth >= new Date(now.getFullYear(), now.getMonth(), 1);
+
+    var grid = $('cal-grid');
+    grid.innerHTML = '';
+    D.monthGrid(state.calMonth).forEach(function (date) {
+      var li = UI.el('li', null, grid);
+      if (!date) { li.className = 'cal--blank'; return; }
+
+      var plan = D.planFor(date);
+      var done = dailyDone(date);
+      var open = D.playable(date);
+
+      var btn = UI.el('button', 'cal__day', li);
+      btn.type = 'button';
+      btn.disabled = !open;
+      if (done) btn.classList.add('is-done');
+      if (D.key(date) === D.key(now)) btn.classList.add('is-today');
+
+      UI.el('span', 'cal__no', btn).textContent = date.getDate();
+      UI.el('i', 'cal__dot cal__dot--' + (plan.game === 'merge' ? 'merge' : 'classic'), btn);
+
+      btn.setAttribute('aria-label', D.title(date) + ', ' + plan.label + ', ' +
+        (done ? done.stars + ' of 3 stars' : open ? 'not played yet' : 'not open yet'));
+      var table = (plan.game === 'merge' ? window.MergeGenerator : window.Generator).DIFFICULTY;
+      btn.title = D.title(date) + ' — ' + plan.label + ' · ' + table[plan.difficulty].label;
+      if (open) btn.addEventListener('click', function () { startDaily(date); });
+    });
+
+    var streak = D.streak(progress.daily);
+    var solved = Object.keys(progress.daily).length;
+    $('daily-note').textContent = streak
+      ? streak + ' day streak · ' + solved + ' solved'
+      : solved ? solved + ' solved' : 'Play today to start a streak';
+  }
+
+  function startDaily(date) {
+    var D = window.Daily;
+    var plan = D.planFor(date);
+    var gen = plan.game === 'merge' ? window.MergeGenerator : window.Generator;
+    state.dailyKey = D.key(date);
+    var level = gen.generate(plan.difficulty, D.seedFor(date));
+    level.id = 'daily-' + state.dailyKey;
+    level.name = D.title(date);
+    level.subtitle = plan.label + ' · ' + gen.DIFFICULTY[plan.difficulty].label;
+    startLevel(level, 'daily');
+  }
+
+  function stepMonth(by) {
+    state.calMonth = new Date(state.calMonth.getFullYear(), state.calMonth.getMonth() + by, 1);
+    renderDaily();
   }
 
   function renderRandom() {
@@ -375,8 +458,8 @@
     state.followed = level.path && level.path.length ? level.path : null;
     state.onPath = state.followed ? 0 : -1;
     state.mode = mode;
-    state.from = mode === 'random' ? 'random' : 'levels';
-    if (mode !== 'random') state.listMode = mode;
+    state.from = mode === 'random' ? 'random' : mode === 'daily' ? 'daily' : 'levels';
+    if (mode === 'campaign' || mode === 'merge') state.listMode = mode;
     renderRecipes(state.game.merging);
     state.selected = null;
     buildBoard();
@@ -763,7 +846,12 @@
     var stars = g.stars();
     var lvl = g.level;
 
-    if (state.mode !== 'random') {
+    if (state.mode === 'daily') {
+      var was = progress.daily[state.dailyKey];
+      if (!was || stars > was.stars || (stars === was.stars && g.moves < was.moves)) {
+        progress.daily[state.dailyKey] = { stars: stars, moves: g.moves };
+      }
+    } else if (state.mode !== 'random') {
       var book = recordFor(state.mode);
       var old = book[lvl.id];
       if (!old || stars > old.stars || (stars === old.stars && g.moves < old.moves)) {
@@ -796,7 +884,10 @@
       (g.hintsUsed ? ' Hint used.' : '');
 
     var next = $('win-next');
-    if (state.mode !== 'random') {
+    if (state.mode === 'daily') {
+      next.textContent = 'Back to the calendar';
+      next.onclick = function () { closeOverlay(); showScreen('daily'); };
+    } else if (state.mode !== 'random') {
       var book = listFor(state.mode);
       var i = book.indexOf(lvl.id);
       var hasNext = i >= 0 && i + 1 < book.list.length;
@@ -931,6 +1022,14 @@
       state.listMode = 'campaign';
       showScreen('levels');
     });
+    $('go-daily').addEventListener('click', function () {
+      state.calMonth = null;                 /* always open on this month */
+      showScreen('daily');
+    });
+    $('daily-back').addEventListener('click', function () { showScreen('home'); });
+    $('cal-prev').addEventListener('click', function () { stepMonth(-1); });
+    $('cal-next').addEventListener('click', function () { stepMonth(1); });
+
     $('go-merge').addEventListener('click', function () {
       state.listMode = 'merge';
       showScreen('levels');
@@ -1095,7 +1194,7 @@
     }
 
     function eraseProgress() {
-      progress = { levels: {}, random: {}, merge: {} };
+      progress = { levels: {}, random: {}, merge: {}, daily: {} };
       save();
       Sound.nope();
       renderHome();

@@ -40,6 +40,19 @@
         <span class="choice__go" aria-hidden="true">&rsaquo;</span>
       </button>
 
+      <button id="go-daily" class="choice" type="button">
+        <span class="choice__cal" aria-hidden="true">
+          <i class="choice__cal-top"></i>
+          <i class="choice__cal-dot"></i><i class="choice__cal-dot"></i>
+          <i class="choice__cal-dot"></i><i class="choice__cal-dot is-on"></i>
+        </span>
+        <span class="choice__body">
+          <span class="choice__name">Daily Puzzle</span>
+          <span class="choice__sub" id="home-daily-sub">A new one every day</span>
+        </span>
+        <span class="choice__go" aria-hidden="true">&rsaquo;</span>
+      </button>
+
       <button id="go-random" class="choice" type="button">
         <span class="choice__shelf" aria-hidden="true"><i></i><i></i><i></i></span>
         <span class="choice__body">
@@ -92,6 +105,34 @@
         <input id="seed-input" type="text" inputmode="numeric" placeholder="random" autocomplete="off">
       </label>
       <p id="random-record" class="card__note"></p>
+    </div>
+  </section>
+
+  <!-- ─────────────── daily ─────────────── -->
+  <section id="screen-daily" class="screen">
+    <header class="subhead">
+      <button id="daily-back" class="btn btn--ghost">&larr; Home</button>
+      <div class="subhead__title">
+        <h2>Daily Puzzle</h2>
+        <span id="daily-note"></span>
+      </div>
+      <span class="subhead__balance" aria-hidden="true"></span>
+    </header>
+
+    <div class="card card--single">
+      <div class="cal__head">
+        <button id="cal-prev" class="btn btn--ghost" type="button" aria-label="Previous month">&lsaquo;</button>
+        <h3 id="cal-month">&nbsp;</h3>
+        <button id="cal-next" class="btn btn--ghost" type="button" aria-label="Next month">&rsaquo;</button>
+      </div>
+      <ol class="cal__names" aria-hidden="true">
+        <li>M</li><li>T</li><li>W</li><li>T</li><li>F</li><li>S</li><li>S</li>
+      </ol>
+      <ol id="cal-grid" class="cal"></ol>
+      <p class="cal__legend">
+        <i class="cal__dot cal__dot--classic"></i> Classic
+        <i class="cal__dot cal__dot--merge"></i> Merge Colours
+      </p>
     </div>
   </section>
 
@@ -246,6 +287,7 @@
 <script src="js/merge.js"></script>
 <script src="js/merge-levels.js"></script>
 <script src="js/merge-generator.js"></script>
+<script src="js/daily.js"></script>
 <script src="js/solver.js"></script>
 <script src="js/generator.js"></script>
 <script src="js/ui.js"></script>

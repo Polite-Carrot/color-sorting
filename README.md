@@ -13,9 +13,10 @@ Or run `node build.js --standalone` for the whole game as one shareable file.
 
 ## What's in it
 
-The home screen offers two ways in — Campaign and Random Puzzle — and each
-opens its own screen. The campaign's icon is a jar that fills with how far
-through you are.
+The home screen offers four ways in — Campaign, Merge Colours, Daily Puzzle
+and Random Puzzle — and each opens its own screen. The campaign's icon is a jar
+that fills with how far through you are; the daily's is a calendar page whose
+squares light up as the week is played.
 
 **Campaign** — one hundred levels, in order. The first five are written by
 hand and teach one rule each; the rest widen steadily from six jars to
@@ -188,6 +189,44 @@ a shelf being too close to tell apart.
 
 Puzzles are built from a seed, so typing the same seed replays the same puzzle.
 Leave the seed blank for a fresh one.
+
+**Daily Puzzle** — one board a day, the same board for everybody, dealt by the
+two generators above. The screen is a calendar: tap a day to play it, and days
+already solved go green.
+
+The week gives each day its own game, so the mode rotates rather than settling
+into one thing:
+
+| | Game | Setting |
+|--|------|---------|
+| Monday | Classic | Normal |
+| Tuesday | Merge Colours | Easy |
+| Wednesday | Classic | Hard |
+| Thursday | Merge Colours | Normal |
+| Friday | Classic | Extra Hard |
+| Saturday | Merge Colours | Hard |
+| Sunday | Merge Colours | Extra Hard |
+
+Nothing is downloaded and nothing is stored ahead of time. **The date is the
+seed** — 1 May 2026 deals seed `20260501` — so the board is worked out on the
+spot from the generator the weekday names, and two people opening the same date
+get the same shelf because they ran the same deal, not because they fetched the
+same file. It also means the whole back catalogue exists without anyone having
+built it: every day from **1 May 2026** onward can be played, and the calendar
+pages back to that month and stops.
+
+Days ahead of today are shown but cannot be opened. The board for tomorrow is
+perfectly derivable — the seed is just a number — so locking it is a rule of
+the mode rather than a secret being kept, and the calendar draws those days
+dashed and disabled to say so plainly.
+
+**The streak counts back from today**, and today not being done yet does not
+break it: a streak of three on Thursday means Monday to Wednesday are done and
+Thursday is still open. Missing a day ends it. Playing an old day fills that
+date in, and if it joins two runs together the streak grows accordingly — going
+back to fill a gap is the point of having the back catalogue at all. Each date
+keeps its own stars and best score under its own key, and replaying a day only
+ever improves them.
 
 ## Rules
 
@@ -501,9 +540,9 @@ simply freezing.
 
 ## Keeping progress
 
-Stars, best scores and the chosen difficulty live in the browser's own storage,
-because progress belongs to the person playing rather than to everyone who
-opens the page.
+Stars, best scores, the days done and the chosen difficulty live in the
+browser's own storage, because progress belongs to the person playing rather
+than to everyone who opens the page.
 
 That storage is not guaranteed. A private window, an embedded view, or a
 browser set to block site data can refuse it — sometimes by throwing, and

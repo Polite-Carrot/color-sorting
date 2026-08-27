@@ -334,6 +334,118 @@ input:focus-visible {
 .choice__mix i:nth-child(2) { right: 0;  top: 6px;  background: #3b7bf7; }
 .choice__mix i:nth-child(3) { left: 9px; top: 26px; background: #9a53ef; }
 
+/* A little calendar, drawn the same way as the jar and the shelf beside it. */
+.choice__cal {
+  position: relative;
+  flex: 0 0 46px;
+  width: 46px;
+  height: 62px;
+  align-self: center;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: var(--paper);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  padding: 19px 8px 9px;
+}
+.choice__cal-top {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 13px;
+  background: var(--accent);
+  border-bottom: 2px solid var(--ink);
+  border-radius: 5px 5px 0 0;
+}
+.choice__cal-dot {
+  border-radius: 2px;
+  background: var(--ink-faint);
+}
+.choice__cal-dot.is-on { background: var(--grass); }
+
+/* ───────── the calendar of days ───────── */
+
+.cal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.cal__head h3 {
+  margin: 0;
+  flex: 1;
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 800;
+  font-size: 21px;
+}
+.cal__head .btn { padding: 6px 14px; font-size: 22px; line-height: 1; }
+
+.cal__names, .cal {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cal__names {
+  margin-bottom: 6px;
+  color: var(--ink-soft);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.cal__day {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: var(--paper-warm);
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+}
+.cal__day:hover:not(:disabled) { background: #fff; }
+.cal__day:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.cal__day:disabled { opacity: .38; cursor: default; border-style: dashed; }
+.cal__day.is-today { box-shadow: 0 0 0 3px var(--gold); }
+.cal__day.is-done { background: var(--grass); color: #fff; }
+.cal__day.is-done .cal__dot { border-color: #fff; }
+.cal--blank { visibility: hidden; }
+
+.cal__dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+}
+.cal__dot--classic { background: #3b7bf7; }
+.cal__dot--merge { background: var(--accent); }
+
+.cal__legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.cal__legend .cal__dot { margin-left: 8px; }
+.cal__legend .cal__dot:first-child { margin-left: 0; }
+
 /* ───────── what mixes with what ───────── */
 
 .recipes {
@@ -1038,7 +1150,10 @@ body.cb-assist .band span { visibility: visible; }
   .choice__sub { font-size: 17px; }
   .choice__jar,
   .choice__shelf,
-  .choice__mix { flex: 0 0 60px; width: 60px; height: 82px; }
+  .choice__mix,
+  .choice__cal { flex: 0 0 60px; width: 60px; height: 82px; }
+  .choice__cal { gap: 8px; padding: 25px 11px 12px; }
+  .choice__cal-top { height: 17px; }
   .choice__mix i { width: 34px; height: 34px; }
   .choice__mix i:nth-child(1) { top: 10px; }
   .choice__mix i:nth-child(2) { top: 10px; }
