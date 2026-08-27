@@ -544,12 +544,27 @@ what previously made the hum impossible to turn off.
 
 ## Settings
 
-Sound and Colour Blind Assist live in one dialog, reachable from the home
-screen and from **Menu** on the game toolbar, so either can be flipped without
-leaving a level. They are stored under `colourjars.prefs.v1` — their own key,
+Sound, Colour Blind Assist and Reset progress live in one dialog, reachable
+from the home screen and from **Menu** on the game toolbar, so any of them can
+be reached without leaving a level. They are stored under `colourjars.prefs.v1` — their own key,
 well away from the record of stars, for the same reason the chosen difficulty
 has always had one: a preference is not something earned, and writing it must
 never put anything near progress.
+
+### Erasing progress
+
+Wiping a hundred levels of stars asks twice and then asks for six seconds of
+intent: a dialog saying plainly what goes, and then a button that has to be
+held down while a bar fills. Letting go early stops the bar dead and nothing is
+lost. It used to be a button on the home screen that you tapped twice, which
+sat one slip away from erasing everything.
+
+The bar is driven frame by frame from script rather than by a CSS transition,
+so releasing stops it exactly where it stood instead of animating on to
+somewhere it never reached. Holding works by pointer or by keyboard — space or
+enter held down, with auto-repeat ignored, since a key repeating is not a key
+being held. The pointer is captured, so a finger sliding off the button still
+counts.
 
 ## Fitting the window
 

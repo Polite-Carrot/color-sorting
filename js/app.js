@@ -1026,31 +1026,112 @@
       renderSettingsToggles();
     });
 
-    var resetArmed = false, resetTimer = null;
-    $('reset-progress').addEventListener('click', function () {
-      var btn = this;
-      function disarm() {
-        resetArmed = false;
-        clearTimeout(resetTimer);
-        btn.textContent = 'Reset progress';
-        btn.classList.remove('is-armed');
-      }
-      if (!resetArmed) {
-        resetArmed = true;
-        btn.textContent = 'Tap again to erase';
-        btn.classList.add('is-armed');
-        clearTimeout(resetTimer);
-        resetTimer = setTimeout(disarm, 4000);
+    /* Erasing progress asks twice and then asks for six seconds of intent.
+       It used to be a button on the home screen that you tapped twice, which
+       sat one slip away from wiping a hundred levels. */
+    function openReset() {
+      $('settings-modal').hidden = true;
+      $('reset-ask').hidden = false;
+      $('reset-hold-step').hidden = true;
+      $('reset-modal').hidden = false;
+      $('reset-cancel').focus();
+    }
+
+    function closeReset(back) {
+      releaseHold();
+      $('reset-modal').hidden = true;
+      if (back) { $('settings-modal').hidden = false; $('settings-close').focus(); }
+    }
+
+    $('settings-reset').addEventListener('click', openReset);
+    $('reset-cancel').addEventListener('click', function () { closeReset(true); });
+    $('reset-back').addEventListener('click', function () { closeReset(true); });
+
+    $('reset-yes').addEventListener('click', function () {
+      $('reset-ask').hidden = true;
+      $('reset-hold-step').hidden = false;
+      $('reset-hold').focus();
+    });
+
+    /* The hold. Driven frame by frame rather than by a CSS transition, so that
+       letting go stops the bar exactly where it stood instead of animating on
+       to somewhere it never reached. */
+    var HOLD_MS = 6000;
+    var holdFrom = 0, holdRaf = null;
+
+    function paintHold(fraction, label) {
+      $('reset-hold').style.setProperty('--held', fraction);
+      $('reset-hold-label').textContent = label;
+    }
+
+    function releaseHold() {
+      if (holdRaf) cancelAnimationFrame(holdRaf);
+      holdRaf = null;
+      holdFrom = 0;
+      var btn = $('reset-hold');
+      btn.classList.remove('is-done');
+      paintHold(0, 'Press and hold');
+    }
+
+    function tickHold() {
+      var held = Date.now() - holdFrom;
+      if (held >= HOLD_MS) {
+        holdRaf = null;
+        $('reset-hold').classList.add('is-done');
+        paintHold(1, 'Erased');
+        eraseProgress();
         return;
       }
-      disarm();
+      var left = Math.ceil((HOLD_MS - held) / 1000);
+      paintHold(held / HOLD_MS, 'Keep holding… ' + left);
+      holdRaf = requestAnimationFrame(tickHold);
+    }
+
+    function startHold() {
+      if (holdRaf) return;                    /* already going, or finished */
+      holdFrom = Date.now();
+      Sound.pick();
+      holdRaf = requestAnimationFrame(tickHold);
+    }
+
+    function eraseProgress() {
       progress = { levels: {}, random: {}, merge: {} };
       save();
+      Sound.nope();
       renderHome();
+      setTimeout(function () {
+        closeReset(false);
+        $('settings-modal').hidden = true;
+        showScreen('home');
+      }, 700);
+    }
+
+    var hold = $('reset-hold');
+    hold.addEventListener('pointerdown', function (e) {
+      /* Capture, so a finger sliding off the button still counts as holding —
+         and so the release is heard wherever it happens. */
+      hold.setPointerCapture(e.pointerId);
+      startHold();
+    });
+    ['pointerup', 'pointercancel'].forEach(function (type) {
+      hold.addEventListener(type, function () {
+        if (!hold.classList.contains('is-done')) releaseHold();
+      });
+    });
+    hold.addEventListener('keydown', function (e) {
+      if (e.repeat) return;                   /* auto-repeat is not holding */
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); startHold(); }
+    });
+    hold.addEventListener('keyup', function (e) {
+      if (e.key === ' ' || e.key === 'Enter') {
+        if (!hold.classList.contains('is-done')) releaseHold();
+      }
+    });
+    hold.addEventListener('blur', function () {
+      if (!hold.classList.contains('is-done')) releaseHold();
     });
 
     document.addEventListener('keydown', onKey);
-
 
     /* Rotating a phone or resizing a window changes the room available. */
     var refit = null;
@@ -1078,6 +1159,14 @@
 
     if (!$('howto').hidden) {
       if (e.key === 'Escape') { $('howto').hidden = true; $('how-to').focus(); }
+      return;
+    }
+    if (!$('reset-modal').hidden) {
+      if (e.key === 'Escape') {
+        $('reset-modal').hidden = true;
+        $('settings-modal').hidden = false;
+        $('settings-close').focus();
+      }
       return;
     }
     if (!$('settings-modal').hidden) {

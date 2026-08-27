@@ -55,7 +55,6 @@
     <footer class="menu-foot">
       <button id="how-to" class="btn btn--ghost">How to play</button>
       <button id="settings" class="btn btn--ghost">Settings</button>
-      <button id="reset-progress" class="btn btn--ghost btn--quiet">Reset progress</button>
     </footer>
   </section>
 
@@ -194,9 +193,44 @@
           <span>Colour Blind Assist</span>
           <button id="settings-cb" class="btn" type="button" aria-pressed="false">Off</button>
         </div>
+        <div class="settings-row settings-row--danger">
+          <span>Reset progress</span>
+          <button id="settings-reset" class="btn btn--quiet" type="button">Erase&hellip;</button>
+        </div>
       </div>
       <div class="modal__actions">
         <button id="settings-close" class="btn btn--primary">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── reset progress ─────────────── -->
+  <div id="reset-modal" class="overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="reset-title">
+      <h2 id="reset-title">Reset progress?</h2>
+
+      <!-- first: say plainly what goes -->
+      <div id="reset-ask">
+        <p class="modal__line">
+          Every star, every best score and every unlocked level &mdash; in the
+          campaign, in Merge Colours and in random puzzles. This cannot be undone.
+        </p>
+        <div class="modal__actions">
+          <button id="reset-cancel" class="btn btn--primary" type="button">Keep it</button>
+          <button id="reset-yes" class="btn btn--quiet" type="button">Yes, erase it</button>
+        </div>
+      </div>
+
+      <!-- then: make them mean it -->
+      <div id="reset-hold-step" hidden>
+        <p class="modal__line">Hold the button down until the bar fills.</p>
+        <button id="reset-hold" class="hold" type="button">
+          <i class="hold__fill" aria-hidden="true"></i>
+          <span class="hold__label" id="reset-hold-label">Press and hold</span>
+        </button>
+        <div class="modal__actions">
+          <button id="reset-back" class="btn btn--quiet" type="button">Cancel</button>
+        </div>
       </div>
     </div>
   </div>

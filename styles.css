@@ -34,6 +34,8 @@
   --accent-deep: #e0446f;
   --gold:        #ffc93c;
   --grass:       #35c46b;
+  /* Reserved for the one action that destroys something. */
+  --danger:      #d8365f;
 
   --lift:   4px;                       /* hard-shadow offset on raised things */
   --stroke: 3px;
@@ -1056,6 +1058,46 @@ body.is-native .keys { display: none; }
   border-bottom: 2px dashed rgba(43, 33, 66, .18);
 }
 
+/* ───────── press and hold to erase ───────── */
+
+.hold {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 4px 0 2px;
+  padding: 16px 18px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 16px;
+  background: var(--paper-warm);
+  box-shadow: 0 5px 0 var(--ink);
+  font: inherit;
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 800;
+  font-size: 19px;
+  color: var(--ink);
+  cursor: pointer;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;          /* holding must not scroll the page instead */
+}
+.hold:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.hold:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
+
+/* The fill is the whole point: it says how much longer, and it is driven from
+   script rather than a transition so that letting go stops it dead. */
+.hold__fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform: scaleX(var(--held, 0));
+  background: linear-gradient(90deg, #ff8fb1, var(--danger));
+  border-radius: 0;
+}
+.hold__label { position: relative; }
+.hold.is-done .hold__fill { background: var(--grass); }
+
 /* ───────── settings modal ───────── */
 
 .settings-list {
@@ -1080,6 +1122,12 @@ body.is-native .keys { display: none; }
   font-size: 17px;
   color: var(--ink);
 }
+
+/* Marked out from the rows that merely toggle something, so nobody reaches for
+   it by accident. It has to come after .settings-row, whose border shorthand
+   would otherwise reset the colour set here. */
+.settings-row--danger { border-color: var(--danger); }
+.settings-row--danger > span { color: var(--danger); }
 .settings-row .btn {
   padding: 8px 16px;
   min-width: 72px;
