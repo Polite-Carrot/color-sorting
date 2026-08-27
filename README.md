@@ -1,11 +1,11 @@
-# Colour Jars
+# Color Sort & Merge
 
 A browser puzzle game about pouring liquid between jars to fill one big jar
-with a single colour.
+with a single color.
 
-Colours never mix. Every jar is a stack of solid bands, and a band can only be
-poured onto the same colour or into an empty jar. Exactly one jarful of the
-target colour is scattered across the shelf, usually buried — so the puzzle is
+Colors never mix. Every jar is a stack of solid bands, and a band can only be
+poured onto the same color or into an empty jar. Exactly one jarful of the
+target color is scattered across the shelf, usually buried — so the puzzle is
 working out where to park everything that is in the way.
 
 **To play:** open `index.html` in a browser. No install, no build step, no server.
@@ -13,30 +13,30 @@ Or run `node build.js --standalone` for the whole game as one shareable file.
 
 ## What's in it
 
-The home screen offers four ways in — Campaign, Merge Colours, Daily Puzzle
-and Random Puzzle — and each opens its own screen. The campaign's icon is a jar
+The home screen offers four ways in — Sort Colors, Merge Colors, Daily Puzzle
+and Random Puzzle — and each opens its own screen. The Sort Colors mode's icon is a jar
 that fills with how far through you are; the daily's is a calendar page whose
 squares light up as the week is played.
 
-**Campaign** — one hundred levels, in order. The first five are written by
+**Sort Colors** — one hundred levels, in order. The first five are written by
 hand and teach one rule each; the rest widen steadily from six jars to
 twenty-two.
 
 | Levels | | Par |
 |--------|--|-----|
 | 1–5 | Taught: pouring, collecting, uncovering, how much fits, the empty jar | 2–5 |
-| 6–12 | Six to eight jars, three or four colours in the way | 7–15 |
+| 6–12 | Six to eight jars, three or four colors in the way | 7–15 |
 | 13–19 | Eight to nine jars, deeper stacks | 16–26 |
-| 20–25 | Ten to eleven deep jars, up to seven colours | 29–41 |
-| 26–31 | Twelve to thirteen jars, eight colours | 41–48 |
+| 20–25 | Ten to eleven deep jars, up to seven colors | 29–41 |
+| 26–31 | Twelve to thirteen jars, eight colors | 41–48 |
 | 32–37 | Jars eight deep, and the whole palette bar one | 49–51 |
-| 38–43 | A big jar taking twenty-odd, colours split across the shelf | 54–59 |
-| 44–50 | Fourteen jars eight deep, nine colours, nowhere spare to park | 59–62 |
+| 38–43 | A big jar taking twenty-odd, colors split across the shelf | 54–59 |
+| 44–50 | Fourteen jars eight deep, nine colors, nowhere spare to park | 59–62 |
 | 51–56 | Sixteen to eighteen jars, a big jar taking thirty | 62–67 |
 | 57–62 | The same shelf again, holding more | 67–69 |
 | 63–69 | Up to nineteen jars, ninety-odd units to move | 70–73 |
 | 70–75 | Nineteen jars, a hundred units to move | 74–83 |
-| 76–81 | Twenty jars, and colours scattered far thinner | 87–91 |
+| 76–81 | Twenty jars, and colors scattered far thinner | 87–91 |
 | 82–88 | Twenty-one jars, a big jar taking forty | 93–101 |
 | 89–94 | Over a hundred moves at their shortest | 102–105 |
 | 95–100 | Twenty-two jars — the widest shelf that still shows whole | 107–114 |
@@ -44,9 +44,9 @@ twenty-two.
 Each level unlocks the next. See **Keeping progress** below for how stars and
 best scores are stored.
 
-**Merge Colours** — fifty levels, and a rule the ordinary game does not
+**Merge Colors** — fifty levels, and a rule the ordinary game does not
 have.
-Pour a colour onto one it mixes with and the two become a third, so the colour
+Pour a color onto one it mixes with and the two become a third, so the color
 the big jar wants is usually not on the shelf at all — it has to be made.
 
 | | Makes |
@@ -56,42 +56,42 @@ the big jar wants is usually not on the shelf at all — it has to be made.
 | blue + yellow | green |
 
 Only the three primaries mix, and each pair makes the secondary between them on
-the wheel. Everything else is inert: still stackable on its own colour, still
+the wheel. Everything else is inert: still stackable on its own color, still
 parkable in an empty jar, but it will not combine. Three recipes is the whole
 of the rule, which is what keeps the mode readable — and they are drawn above
 the shelf so nobody has to remember them.
 
 Mixing pairs one unit for one: two reds landing on five blues make two purple
 and leave three blue underneath. A merge turns units already in the jar into
-the new colour rather than stacking on top of them, so it never needs room —
+the new color rather than stacking on top of them, so it never needs room —
 a full jar will still take one. The big jar itself never mixes, so it still
 cannot be spoiled.
 
 | Levels | | Par |
 |--------|--|-----|
 | 1–2 | Taught: mixing at all, then that it pairs one for one | 2 |
-| 3 | A colour that mixes with nothing, in the way | 3 |
-| 4 | Gathering a colour before mixing it | 3 |
+| 3 | A color that mixes with nothing, in the way | 3 |
+| 4 | Gathering a color before mixing it | 3 |
 | 5 | All three at once, with nothing to spare | 4 |
 | 6–10 | Four or five jars, the parents lightly scattered | 5–10 |
 | 11–16 | Five or six jars, deeper, more in the way | 12–14 |
 | 17–21 | Six jars, the parents buried and split | 16–21 |
 | 22–25 | Seven jars six deep | 22–25 |
-| 26–31 | Five to eight jars, five obstacle colours | 26 |
-| 32–38 | Deeper, and the two colours in ribbons | 27 |
+| 26–31 | Five to eight jars, five obstacle colors | 26 |
+| 32–38 | Deeper, and the two colors in ribbons | 27 |
 | 39–44 | Seven jars, a big jar taking eight or more | 28–30 |
 | 45–50 | The hardest boards the search can still hint on | 31–34 |
 
 The dealt levels are built so that **no wrong merge is possible**. Only the two
-parents of the target ever appear as mixable colours — the third primary is
+parents of the target ever appear as mixable colors — the third primary is
 left out entirely — so every merge a player can make produces the target, and
 no careless pour can destroy a unit that was needed. Everything else on the
-shelf is inert: no partner present, so it can only stack on its own colour or
+shelf is inert: no partner present, so it can only stack on its own color or
 sit in an empty jar. What is left to get wrong is space and order, which is
 what the ordinary game asks too.
 
 The five taught levels are the exception, deliberately: level 4 puts a rival
-recipe on the shelf precisely because spending a colour on the wrong partner is
+recipe on the shelf precisely because spending a color on the wrong partner is
 the thing it teaches. They are the only levels in the mode that can be spoiled.
 
 Levels 26 to 50 are not built from a curve at all, and that is the point.
@@ -107,7 +107,7 @@ asking a one-in-twenty event to happen on command, which is exactly what it did
 not do: shape after shape came back with nothing.
 
 So the builder samples the whole space instead — jars, depth, big jar,
-obstacle colours, churn and slack all drawn at random — deals from whatever it
+obstacle colors, churn and slack all drawn at random — deals from whatever it
 draws, keeps the board if it passes, and goes again until it has a pool. The
 pool is then sorted by the par the solver measured and spread across the
 levels. Difficulty is what the boards turned out to be, not what a curve
@@ -140,22 +140,22 @@ than guessed. Three things set it:
 Going much past par 34 needs a tighter lower bound for the mode, not bigger
 boards. The one it has reaches only about two thirds of par, because the moves
 that dominate these solutions are gathering pours — consolidating a scattered
-colour — and no sound way to count those in advance has been found yet.
+color — and no sound way to count those in advance has been found yet.
 
 **Random Puzzle** — endlessly generated, in either game. A selector at the top
-of the screen chooses between **Classic** and **Merge Colours**; everything
+of the screen chooses between **Sort Colors** and **Merge Colors**; everything
 below it is the same screen, and each game keeps its own record.
 
-Classic offers four settings:
+Sort Colors offers four settings:
 
-| Mode | Big jar | Jars | Colours in the way | Par |
+| Mode | Big jar | Jars | Colors in the way | Par |
 |------|---------|------|--------------------|-----|
 | Easy | 5 units | 6 | 3 | 5–10 moves |
 | Normal | 7 units | 7 | 4 | 11–17 moves |
 | Hard | 10 units | 9 | 6 | 18–28 moves |
 | Extra Hard | 14 units | 11 deep | 7 | 28–44 moves |
 
-Merge Colours offers the same four:
+Merge Colors offers the same four:
 
 | Mode | Big jar | Jars | In the way | Par |
 |------|---------|------|------------|-----|
@@ -177,14 +177,14 @@ make these boards cheaper to deal, not dearer**. The bound in `merge.js` counts
 every inert run sitting on a parent, so a shelf strewn with obstacles is one
 the search can see the bottom of. Emptier seven-jar shapes with the same big
 jar were measured at three to fifty seconds a deal; heaping five obstacle
-colours on and churning them hard brought it to a fifth of a second, and came
+colors on and churning them hard brought it to a fifth of a second, and came
 out harder as well — par 20–28 against 18–19.
 
 Random merge boards are built the same way the mode's levels are, so **no wrong
 merge is possible**: only the target's two parents are mixable, everything else
 on the shelf is inert, and the opening solution is worked out at deal time and
 carried with the board so the first hint is instant. `tools/check-merge-random.js`
-checks all of that, along with par landing inside its band and no two colours on
+checks all of that, along with par landing inside its band and no two colors on
 a shelf being too close to tell apart.
 
 Puzzles are built from a seed, so typing the same seed replays the same puzzle.
@@ -199,13 +199,13 @@ into one thing:
 
 | | Game | Setting |
 |--|------|---------|
-| Monday | Classic | Normal |
-| Tuesday | Merge Colours | Easy |
-| Wednesday | Classic | Hard |
-| Thursday | Merge Colours | Normal |
-| Friday | Classic | Extra Hard |
-| Saturday | Merge Colours | Hard |
-| Sunday | Merge Colours | Extra Hard |
+| Monday | Sort Colors | Normal |
+| Tuesday | Merge Colors | Easy |
+| Wednesday | Sort Colors | Hard |
+| Thursday | Merge Colors | Normal |
+| Friday | Sort Colors | Extra Hard |
+| Saturday | Merge Colors | Hard |
+| Sunday | Merge Colors | Extra Hard |
 
 Nothing is downloaded and nothing is stored ahead of time. **The date is the
 seed** — 1 May 2026 deals seed `20260501` — so the board is worked out on the
@@ -231,9 +231,9 @@ ever improves them.
 ## Rules
 
 - Tap a jar to pick it up, then tap another to pour. The whole top block of one
-  colour moves at once. Tap it again to put it down.
-- A colour can only go onto the same colour, or into an empty jar.
-- The big jar accepts nothing but the target colour, and never pours back out,
+  color moves at once. Tap it again to put it down.
+- A color can only go onto the same color, or into an empty jar.
+- The big jar accepts nothing but the target color, and never pours back out,
   so a wrong tap cannot spoil it.
 - **Par** is the fewest moves possible. Match it for three stars.
 
@@ -242,7 +242,7 @@ Keyboard: `1`–`9` jars · `0` big jar · `U` undo · `H` hint · `R` restart �
 
 ## The solver
 
-Merge Colours has its own search, in `js/merge.js`, and deliberately does not
+Merge Colors has its own search, in `js/merge.js`, and deliberately does not
 share the one below. That bound is proved against rules where every pour keeps
 the number of units on the shelf the same; merging destroys units, so it does
 not hold there, and quietly reusing it would give a wrong par. The merge search
@@ -251,13 +251,13 @@ which matters more on boards that size.
 
 It is a best-first search like the ordinary game's, guided by a bound of its
 own: every unit of target still owed to the big jar needs a pour, every unit
-that does not exist yet needs a merge to make it, and every run of a colour
+that does not exist yet needs a merge to make it, and every run of a color
 that mixes with nothing, sitting on top of a target or one of its parents, has
 to move at least once. No single move serves two of those, so they add.
 
 It also keeps one shortcut from the ordinary game: when the target can go into
 the big jar, nothing else is worth considering. The reasoning carries over
-because the target here is always a secondary colour and so is never an
+because the target here is always a secondary color and so is never an
 ingredient — nothing can consume it and no merge needs it — and the big jar
 never gives it back. That is an optimality claim, so it is checked rather than
 assumed: against a search with the shortcut removed, over 120 dealt boards,
@@ -269,7 +269,7 @@ identical, and with the bound itself never once claiming more moves were needed
 than the remaining solution actually took.
 
 `tools/make-merge-levels.js` builds the mode's levels and `tools/check-merge.js`
-checks them, the way `make-levels.js` does both for the campaign.
+checks them, the way `make-levels.js` does both for the Sort Colors mode.
 
 `js/solver.js` is a best-first (A*) search over pour states, and it does three
 jobs: it proves a generated puzzle can be finished, it sets par to the genuine
@@ -279,7 +279,7 @@ detour. A hint shows its move as two beats: the jar to pick up shakes, then a
 moment later so does where it goes. Both stay ringed — the one to lift in pink,
 its destination in green — until the next move, so the pair can still be seen
 once the shakes have finished. The jars carry no numbers, so the rings and the
-colour named in the hint are what identify them. It also means the game can say *"this position cannot be finished any
+color named in the hint are what identify them. It also means the game can say *"this position cannot be finished any
 more"* the moment it becomes true, instead of leaving someone stuck without
 knowing why.
 
@@ -287,7 +287,7 @@ Three things keep it fast enough to run inside a keypress:
 
 - Jars holding the same thing are interchangeable, so states are compared by a
   canonical key with the side jars sorted.
-- Pouring the target colour into the big jar is never wrong — the big jar takes
+- Pouring the target color into the big jar is never wrong — the big jar takes
   nothing else, always has room until it is finished, and emptying that run
   frees space. Merging target runs elsewhere first costs a move and saves at
   most one, so it can never come out ahead. When such a move exists the search
@@ -307,7 +307,7 @@ bound is what makes the large boards searchable at all.
 Counting from the deepest target rather than the shallowest is the whole point
 of it, and getting that wrong was for a long time the single biggest limit on
 the game. An earlier version looked only above the *highest* target in a jar,
-so a colour lying between two target runs — `[target, blue, target]` — was
+so a color lying between two target runs — `[target, blue, target]` — was
 invisible to it, even though the blue plainly has to move before the lower
 target can come out. That is the commonest shape on a deeply shuffled board.
 
@@ -337,7 +337,7 @@ fewest-moves count lands in the band for that difficulty. So par is always the
 true optimum, "hard" means measurably more moves rather than just more jars,
 and an unsolvable board can never reach the player.
 
-Two colours that look alike are never used together. A board with too many
+Two colors that look alike are never used together. A board with too many
 jars already showing the target on top is thrown back — that allowance scales
 with the size of the shelf, since more jars simply means more chances of it.
 
@@ -394,21 +394,21 @@ intends — they carry the icons, splash screens and signing configuration.
 ```
 node build.js               # artifact fragment, no <!doctype> wrapper
 node build.js --standalone  # complete document, opens from disk
-node make-levels.js         # rebuild the campaign into js/levels.js
+node make-levels.js         # rebuild the Sort Colors mode into js/levels.js
 ```
 
-`make-levels.js` writes the campaign. The five taught levels are written by
+`make-levels.js` writes the Sort Colors mode. The five taught levels are written by
 hand — each exists to teach one rule, which is not something a generator can be
 asked for. The rest are dealt by the ordinary puzzle generator along a widening
 curve and kept only if the solver can finish them, their par is no lower than
 the level before, and playing them badly still leaves them winnable. Boards are
-baked into the file rather than dealt on load, so the campaign is the same for
+baked into the file rather than dealt on load, so the Sort Colors mode is the same for
 everyone and par is known to be the true minimum.
 
 Difficulty is left to the board shapes; par is used only as a ratchet. Chasing
 a separate par curve fights the shapes and stalls the moment the two disagree,
 and picking the gentlest board that merely beats the level before leaves the
-middle of the campaign flat while the boards visibly grow. Each level takes a
+middle of the Sort Colors mode flat while the boards visibly grow. Each level takes a
 board from the harder end of what its shape produces.
 
 The curve is in two parts, and the second is built differently, because the
@@ -419,7 +419,7 @@ while raising the room to work in alongside it cancels out — an early attempt
 at levels 26–50 did exactly that, held the unit count still at 50, and left par
 flat at 41–45 for twenty-five levels. So the second ramp sets units directly,
 one more per level, and takes the leftover capacity as slack, which stays
-between 30% and 38% of the shelf throughout. Colours split further apart as it
+between 30% and 38% of the shelf throughout. Colors split further apart as it
 goes, which is what fills the gap between the unit count and par.
 
 The second ramp is also dealt as a whole set and then put in order of the par
@@ -432,7 +432,7 @@ progression a fact about the boards rather than a hope about the dealing.
 The third ramp is dealt and ordered the same way, but what limits it is neither
 the shelf nor the palette — it is the solver. Every level's par has to be
 *proven* minimal, and that search grows steeply with the board. Churn is what
-makes a board expensive to search, because scattering each colour into thin
+makes a board expensive to search, because scattering each color into thin
 layers is exactly what denies the search anything to home in on. At fifteen
 jars with the second ramp's churn of 0.75, not one deal in two hundred seconds
 could be settled at all; lowering churn to 0.45 on the same shape produced
@@ -447,7 +447,7 @@ strongest lever on par there is and only the search cost had been holding it
 down.
 
 Each ramp is pinned to the end point it was built against rather than to the
-campaign total. Every one of those numbers appears in a curve that would
+Sort Colors mode total. Every one of those numbers appears in a curve that would
 quietly redeal every earlier level if it moved, and people have progress
 against those boards. Levels that already exist are read back from
 `js/levels.js` and re-verified rather than dealt again, which is both far
@@ -463,16 +463,16 @@ styles.css        all styling
 fonts.css         generated — inlined webfont subsets
 build.js          bundles everything into one file
 fetch-fonts.js    regenerates fonts.css from Google Fonts
-make-levels.js    builds and verifies the 100-level campaign
-tools/make-merge-levels.js  builds the Merge Colours levels
-tools/check-merge.js  checks the Merge Colours levels the same way
-tools/check-merge-random.js  checks random Merge Colours puzzles
+make-levels.js    builds and verifies the 100-level Sort Colors mode
+tools/make-merge-levels.js  builds the Merge Colors levels
+tools/check-merge.js  checks the Merge Colors levels the same way
+tools/check-merge-random.js  checks random Merge Colors puzzles
 js/store.js       progress storage, and whether it can be trusted
-js/colour.js      the palette, and how far apart two colours look
-js/levels.js      generated — the 100 campaign levels
-js/merge.js       Merge Colours: the recipes, and its own search  (no DOM)
-js/merge-generator.js  seeded random Merge Colours puzzles  (no DOM)
-js/merge-levels.js  generated — the 25 Merge Colours levels
+js/colour.js      the palette, and how far apart two colors look
+js/levels.js      generated — the 100 Sort Colors levels
+js/merge.js       Merge Colors: the recipes, and its own search  (no DOM)
+js/merge-generator.js  seeded random Merge Colors puzzles  (no DOM)
+js/merge-levels.js  generated — the 25 Merge Colors levels
 js/engine.js      stacked jars, pouring, undo, win check  (no DOM)
 js/solver.js      best-first search: par, hints, solvability  (no DOM)
 js/generator.js   seeded random puzzles, validated by the solver
@@ -487,10 +487,10 @@ ios/ android/     generated native projects (Capacitor)
 ## Checking
 
 The engine and solver are pure logic with no DOM dependency, so they run under
-Node. Every campaign level is verified to solve at par for three stars with a
+Node. Every Sort Colors level is verified to solve at par for three stars with a
 par no lower than the level before, and 880 generated puzzles across the four
 difficulties are each verified to
-hold exactly one jarful of the target, to use no two lookalike colours, to fall
+hold exactly one jarful of the target, to use no two lookalike colors, to fall
 inside their difficulty's par band, and to have the solver's own path play back
 through the engine to a win in exactly par moves.
 
@@ -522,7 +522,7 @@ those answers are warnings, not help. Restarting a level hands the whole
 allowance back, since that is a fresh attempt; undo deliberately does not,
 which would make the ration free.
 
-Merge Colours allows its search eight seconds rather than the ordinary game's
+Merge Colors allows its search eight seconds rather than the ordinary game's
 1.2, behind a "Working it out…" line and a yield so the message paints first.
 That figure was measured, not chosen: on a six-times-throttled processor the
 dearest levels finish in three to four seconds, and at eight times throttled a
@@ -531,7 +531,7 @@ worked out when the search simply had not finished is worse than waiting.
 
 Whatever a hint works out is kept and followed. A shortest route from here
 stays a shortest route as long as the player takes it, so every hint after the
-first is read off it and costs no search at all. Merge Colours levels start
+first is read off it and costs no search at all. Merge Colors levels start
 with that route already in the level file, because the opening is both the
 dearest position to work out and the same for everybody. When the search does
 have to run there — it can take a second or two on a phone — the game says
@@ -583,7 +583,7 @@ what previously made the hum impossible to turn off.
 
 ## Settings
 
-Sound, Colour Blind Assist and Reset progress live in one dialog, reachable
+Sound, Color Blind Assist and Reset progress live in one dialog, reachable
 from the home screen and from **Menu** on the game toolbar, so any of them can
 be reached without leaving a level. They are stored under `colourjars.prefs.v1` — their own key,
 well away from the record of stars, for the same reason the chosen difficulty
@@ -648,10 +648,10 @@ earns its place rather than being decoration. The liquids are vivid and so is
 the ground, so without an outline around every jar and band the two would sit
 at the same brightness and flatten into each other. For the same reason the
 glass is tinted cool: a jar of white liquid has to read as liquid and not as an
-empty jar, since white is one of the ten playable colours.
+empty jar, since white is one of the ten playable colors.
 
 There are deliberately no `prefers-color-scheme` blocks. A game screen is a
-place, not a document, so it does not follow the reader's theme — every colour
+place, not a document, so it does not follow the reader's theme — every color
 is painted explicitly, including the ground, so the page holds whatever the
 host paints behind it.
 
@@ -661,19 +661,19 @@ Every jar reads out its contents top-down for screen readers, which is the
 order that matters when pouring. Everything is keyboard-operable, focus is
 always visible, and animation honours `prefers-reduced-motion`.
 
-Every band also carries the initial of its colour. That letter used to be drawn
-always, on the principle that colour is the mechanic and so should never be the
-only signal. It is now hidden by default and switched on by **Colour Blind
+Every band also carries the initial of its color. That letter used to be drawn
+always, on the principle that color is the mechanic and so should never be the
+only signal. It is now hidden by default and switched on by **Color Blind
 Assist** in Settings.
 
 Two things follow from that, and both are worth knowing:
 
-- The palette used to guarantee that no two colours could be confused: every
-  pair sits at least 150 apart on the distance measure in `colour.js`, and
+- The palette used to guarantee that no two colors could be confused: every
+  pair sits at least 150 apart on the distance measure in `color.js`, and
   `make-levels.js` and `tools/check-merge.js` both refuse a board that breaks
   it. **That guarantee is currently broken.** `slate` was recoloured to a
   bright cyan (`#6b7c9c` → `#22c8ff`), which sits 103 from `teal` — and 80 of
-  the 100 campaign levels, plus merge levels 24 and 25, put the two on the same
+  the 100 Sort Colors levels, plus merge levels 24 and 25, put the two on the same
   shelf. Re-running either builder would now reject those boards.
 - With the letters off by default, there is nothing else distinguishing that
   pair unless the player finds the setting.

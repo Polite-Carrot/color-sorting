@@ -2,12 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Colour Jars</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Color Sort &amp; Merge</title>
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
+<div id="boot" aria-hidden="true">
+  <div class="boot-lockup">
+    <img class="boot-mark" src="assets/polite-carrot-logo.svg" alt="">
+    <img class="boot-name" src="assets/polite-carrot-name.svg" alt="">
+  </div>
+</div>
 
 <div class="app">
 
@@ -17,16 +24,16 @@
       <div class="masthead__mark" aria-hidden="true">
         <span style="--c:#f5423c"></span><span style="--c:#ffd028"></span><span style="--c:#3b7bf7"></span>
       </div>
-      <h1>Colour&nbsp;Jars</h1>
-      <p class="masthead__tag">Dig the colour out, and fill the big jar to the brim.</p>
+      <h1>Color Sort &amp; Merge</h1>
+      <p class="masthead__tag">Sort and Merge Colors with the least amount of moves!</p>
     </header>
 
     <div class="choices">
       <button id="go-campaign" class="choice" type="button">
         <span class="choice__jar" aria-hidden="true"><i id="home-fill"></i></span>
         <span class="choice__body">
-          <span class="choice__name">Campaign</span>
-          <span class="choice__sub" id="home-campaign-sub">Twenty-five levels</span>
+          <span class="choice__name">Sort Colors</span>
+          <span class="choice__sub" id="home-campaign-sub">100 levels · sort colors into the jar</span>
         </span>
         <span class="choice__go" aria-hidden="true">›</span>
       </button>
@@ -34,8 +41,8 @@
       <button id="go-merge" class="choice" type="button">
         <span class="choice__mix" aria-hidden="true"><i></i><i></i><i></i></span>
         <span class="choice__body">
-          <span class="choice__name">Merge Colours</span>
-          <span class="choice__sub" id="home-merge-sub">Make the colour you need</span>
+          <span class="choice__name">Merge Colors</span>
+          <span class="choice__sub" id="home-merge-sub">Make the color you need</span>
         </span>
         <span class="choice__go" aria-hidden="true">&rsaquo;</span>
       </button>
@@ -48,7 +55,7 @@
         </span>
         <span class="choice__body">
           <span class="choice__name">Daily Puzzle</span>
-          <span class="choice__sub" id="home-daily-sub">A new one every day</span>
+          <span class="choice__sub" id="home-daily-sub">How long can you keep a streak?</span>
         </span>
         <span class="choice__go" aria-hidden="true">&rsaquo;</span>
       </button>
@@ -57,7 +64,7 @@
         <span class="choice__shelf" aria-hidden="true"><i></i><i></i><i></i></span>
         <span class="choice__body">
           <span class="choice__name">Random Puzzle</span>
-          <span class="choice__sub" id="home-random-sub">Endless puzzles</span>
+          <span class="choice__sub" id="home-random-sub">Choose your difficulty and game mode and challenge your friends</span>
         </span>
         <span class="choice__go" aria-hidden="true">›</span>
       </button>
@@ -76,7 +83,7 @@
     <header class="subhead">
       <button id="levels-back" class="btn btn--ghost">&larr; Home</button>
       <div class="subhead__title">
-        <h2 id="levels-heading">Campaign</h2>
+        <h2 id="levels-heading">Sort Colors</h2>
         <span id="campaign-note"></span>
       </div>
       <span class="subhead__balance" aria-hidden="true"></span>
@@ -130,8 +137,8 @@
       </ol>
       <ol id="cal-grid" class="cal"></ol>
       <p class="cal__legend">
-        <i class="cal__dot cal__dot--classic"></i> Classic
-        <i class="cal__dot cal__dot--merge"></i> Merge Colours
+        <i class="cal__dot cal__dot--classic"></i> Sort Colors
+        <i class="cal__dot cal__dot--merge"></i> Merge Colors
       </p>
     </div>
   </section>
@@ -209,13 +216,13 @@
     <div class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="howto-title">
       <h2 id="howto-title">How to play</h2>
       <ol class="rules">
-        <li><b>Fill the big jar</b> with the colour shown under &ldquo;Collect&rdquo;. There is exactly one jarful of it spread across the shelf &mdash; you need every last drop.</li>
-        <li><b>Tap a jar, then tap where it goes.</b> The whole top block of colour moves at once. Tap the jar again to put it down.</li>
-        <li><b>A colour can only go onto the same colour</b>, or into an empty jar.</li>
-        <li><b>The big jar accepts nothing but the target colour</b> and never pours back out, so you cannot spoil it.</li>
+        <li><b>Fill the big jar</b> with the color shown under &ldquo;Collect&rdquo;. There is exactly one jarful of it spread across the shelf &mdash; you need every last drop.</li>
+        <li><b>Tap a jar, then tap where it goes.</b> The whole top block of color moves at once. Tap the jar again to put it down.</li>
+        <li><b>A color can only go onto the same color</b>, or into an empty jar.</li>
+        <li><b>The big jar accepts nothing but the target color</b> and never pours back out, so you cannot spoil it.</li>
         <li><b>Par</b> is the fewest moves possible, worked out by solving the puzzle. Match it for three stars.</li>
       </ol>
-      <p class="modal__line"><b>Merge Colours</b> plays by the same rules but adds one: pour a colour onto one it mixes with, and the two become a third. The colour the big jar wants is usually not on the shelf at all &mdash; you have to make it. Mixing pairs one for one, so two reds landing on five blues make two purple and leave three blue underneath. The recipes sit above the shelf, and the big jar still never mixes.</p>
+      <p class="modal__line"><b>Merge Colors</b> plays by the same rules but adds one: pour a color onto one it mixes with, and the two become a third. The color the big jar wants is usually not on the shelf at all &mdash; you have to make it. Mixing pairs one for one, so two reds landing on five blues make two purple and leave three blue underneath. The recipes sit above the shelf, and the big jar still never mixes.</p>
       <p class="modal__line">Stuck? <b>Hint</b> works out the next move from wherever you are. It shakes the jar to pick up, then where it goes, and rings them both until you move. It will also tell you if a position has become impossible.</p>
       <div class="modal__actions"><button id="howto-close" class="btn btn--primary">Got it</button></div>
     </div>
@@ -231,7 +238,7 @@
           <button id="settings-sound" class="btn" type="button" aria-pressed="true">On</button>
         </div>
         <div class="settings-row">
-          <span>Colour Blind Assist</span>
+          <span>Color Blind Assist</span>
           <button id="settings-cb" class="btn" type="button" aria-pressed="false">Off</button>
         </div>
         <div class="settings-row settings-row--danger">
@@ -254,7 +261,7 @@
       <div id="reset-ask">
         <p class="modal__line">
           Every star, every best score and every unlocked level &mdash; in the
-          campaign, in Merge Colours and in random puzzles. This cannot be undone.
+          Sort Colors, in Merge Colors and in random puzzles. This cannot be undone.
         </p>
         <div class="modal__actions">
           <button id="reset-cancel" class="btn btn--primary" type="button">Keep it</button>
@@ -280,6 +287,25 @@
 
 </div>
 
+<script>
+(function () {
+  var boot = document.getElementById('boot');
+  if (!boot) return;
+
+  function dismissBoot() {
+    if (boot.classList.contains('done')) return;
+    boot.classList.add('done');
+    boot.addEventListener('transitionend', function () { boot.remove(); }, { once: true });
+    setTimeout(function () { if (boot.isConnected) boot.remove(); }, 700);
+  }
+
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.addEventListener('load', function () {
+    setTimeout(dismissBoot, reduced ? 100 : 1350);
+  }, { once: true });
+  setTimeout(dismissBoot, 4000);
+})();
+</script>
 <script src="js/store.js"></script>
 <script src="js/colour.js"></script>
 <script src="js/levels.js"></script>

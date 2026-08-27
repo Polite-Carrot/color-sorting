@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">color Jars</string>
-    <string name="title_activity_main">color Jars</string>
+    <string name="app_name">Color Sort &amp; Merge</string>
+    <string name="title_activity_main">Color Sort &amp; Merge</string>
     <string name="package_name">com.politecarrot.colorjars</string>
     <string name="custom_url_scheme">com.politecarrot.colorjars</string>
 </resources>

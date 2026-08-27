@@ -1,4 +1,4 @@
-/* merge-generator.js — seeded random puzzles for Merge Colours.
+/* merge-generator.js — seeded random puzzles for Merge Colors.
  *
  * The same shape as generator.js: deal a board, ask the solver to finish it,
  * keep it only if it lands inside the setting's par band. What differs is the
@@ -11,7 +11,7 @@
  * shelf is inert: it has no partner present, so it can only stack on its own
  * colour or sit in an empty jar. What is left to get wrong is space and order.
  *
- * The settings stop well short of the campaign's hardest merge levels, and
+ * The settings stop well short of the Sort Colors mode's hardest merge levels, and
  * deliberately. A random puzzle is dealt while somebody waits, and this mode's
  * search has no tight bound to lean on: the states climb steeply with the size
  * of the big jar, so a board that would be fine to ship after an overnight
@@ -25,13 +25,13 @@
   var DIFFICULTY = {
     easy: {
       label: 'Easy',
-      blurb: 'Two colours to mix, four jars, and room to spare.',
+      blurb: 'Two colors to mix, four jars, and room to spare.',
       mainCap: 3, sideJars: 4, sideCap: 4, fillers: 1, fillerUnits: 4,
       burial: 0, churn: 0.1, par: [4, 9]
     },
     normal: {
       label: 'Normal',
-      blurb: 'Five jars, the two colours spread about, and something in the way.',
+      blurb: 'Five jars, the two colors spread about, and something in the way.',
       mainCap: 5, sideJars: 5, sideCap: 5, fillers: 2, fillerUnits: 6,
       burial: 0.3, churn: 0.3, par: [9, 16]
     },
@@ -52,7 +52,7 @@
        deal; this one takes about a fifth of a second and comes out harder. */
     extraHard: {
       label: 'Extra Hard',
-      blurb: 'Seven deep jars, five colours in the way, and nothing left in one piece.',
+      blurb: 'Seven deep jars, five colors in the way, and nothing left in one piece.',
       mainCap: 7, sideJars: 7, sideCap: 6, fillers: 5, fillerUnits: 14,
       burial: 0.6, churn: 0.65, par: [20, 30]
     }

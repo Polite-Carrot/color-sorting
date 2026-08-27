@@ -1,8 +1,8 @@
 # Build outputs — reproduce with `node build.js` (no network needed).
 # fonts.css is generated too, but is committed: regenerating it requires
 # network access, and the game should build and run without any.
-colour-jars.html
-colour-jars-standalone.html
+color-sort-and-merge.html
+color-sort-and-merge-standalone.html
 
 # Node / Capacitor
 node_modules/

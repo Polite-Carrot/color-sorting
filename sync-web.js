@@ -21,7 +21,13 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const scripts = [...html.matchAll(/<script\s+src="([^"]+)"><\/script>/gi)].map(m => m[1]);
 const styles  = [...html.matchAll(/<link[^>]+href="([^"]+\.css)"/gi)].map(m => m[1]);
 
-const files = new Set(['index.html', ...scripts, ...styles]);
+const files = new Set([
+  'index.html',
+  'assets/polite-carrot-logo.svg',
+  'assets/polite-carrot-name.svg',
+  ...scripts,
+  ...styles
+]);
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });

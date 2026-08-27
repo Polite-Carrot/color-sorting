@@ -6,7 +6,7 @@
  *  - Pouring moves the whole top run of one colour from one jar to another.
  *  - A pour is legal only onto an empty jar, or onto the same colour, and
  *    only as far as there is room.
- *  - In Merge Colours levels one more landing is legal: pouring onto a colour
+ *  - In Merge Colors levels one more landing is legal: pouring onto a colour
  *    that mixes with it. See merge.js for the recipes.
  *  - The big jar accepts the target colour and nothing else, and never pours
  *    back out. It cannot be spoiled, so a wrong tap costs nothing. */
@@ -38,7 +38,7 @@
     this.level = level;
     this.target = level.target;
     this.par = level.par;
-    /* Merge Colours levels say so on the level itself, so a Game is enough to
+    /* Merge Colors levels say so on the level itself, so a Game is enough to
        know which rules it is playing by and nothing else has to be told. */
     this.merging = level.mode === 'merge';
     this.restart();

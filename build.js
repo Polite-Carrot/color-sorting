@@ -21,7 +21,7 @@ const root = __dirname;
 const args = process.argv.slice(2);
 const standalone = args.includes('--standalone');
 const out = path.resolve(root, args.filter(a => a !== '--standalone')[0] ||
-  (standalone ? 'colour-jars-standalone.html' : 'colour-jars.html'));
+  (standalone ? 'color-sort-and-merge-standalone.html' : 'color-sort-and-merge.html'));
 const read = f => fs.readFileSync(path.join(root, f), 'utf8');
 
 const html = read('index.html');
@@ -38,7 +38,7 @@ if (!body) throw new Error('index.html: no <body> found');
 
 const markup = body[1].replace(/[ \t]*<script\s+src=[^>]*><\/script>\s*/gi, '').trim();
 
-const title = (html.match(/<title>([\s\S]*?)<\/title>/i) || [, 'Colour Jars'])[1].trim();
+const title = (html.match(/<title>([\s\S]*?)<\/title>/i) || [, 'Color Sort &amp; Merge'])[1].trim();
 
 /* A literal </script> or </style> inside the inlined text would close the tag
  * early. Nothing uses them today; guard anyway so a future edit cannot

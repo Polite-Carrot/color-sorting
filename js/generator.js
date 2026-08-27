@@ -12,17 +12,17 @@
   var DIFFICULTY = {
     easy: {
       label: 'Easy',
-      blurb: 'Six jars, three colours in the way, and room to work.',
+      blurb: 'Six jars, three colors in the way, and room to work.',
       mainCap: 5, sideJars: 6, sideCap: 4, fillers: 3, fillerUnits: 10, par: [5, 10]
     },
     normal: {
       label: 'Normal',
-      blurb: 'Seven jars and four colours, with less spare space to park them.',
+      blurb: 'Seven jars and four colors, with less spare space to park them.',
       mainCap: 7, sideJars: 7, sideCap: 5, fillers: 4, fillerUnits: 17, par: [11, 17]
     },
     hard: {
       label: 'Hard',
-      blurb: 'Nine jars, six colours, and the target buried right down.',
+      blurb: 'Nine jars, six colors, and the target buried right down.',
       mainCap: 10, sideJars: 9, sideCap: 6, fillers: 6, fillerUnits: 30, par: [18, 28]
     },
     /* The jars here are deeper rather than more numerous. Depth is what makes
@@ -33,7 +33,7 @@
        roughly one game in ten. */
     extraHard: {
       label: 'Extra Hard',
-      blurb: 'Eleven deep jars, seven colours, and a big jar that takes some filling.',
+      blurb: 'Eleven deep jars, seven colors, and a big jar that takes some filling.',
       mainCap: 14, sideJars: 11, sideCap: 7, fillers: 7, fillerUnits: 40,
       burial: 0.6, sizeUp: 600, par: [28, 44]
     }
@@ -201,7 +201,7 @@
     level.name = 'Collect the ' + C.name(level.target);
     level.subtitle = cfg.label + ' · seed ' + seed;
     level.brief = 'Fill the big jar with ' + C.name(level.target) +
-                  '. Pour a colour onto the same colour, or into an empty jar.';
+                  '. Pour a color onto the same color, or into an empty jar.';
     level.hint = null;
     return level;
   }
@@ -214,7 +214,7 @@
       difficulty: difficulty, seed: seed, par: 3,
       name: 'Collect the red',
       subtitle: (DIFFICULTY[difficulty] || DIFFICULTY.normal).label + ' · seed ' + seed,
-      brief: 'Fill the big jar with red. Pour a colour onto the same colour, or into an empty jar.',
+      brief: 'Fill the big jar with red. Pour a color onto the same color, or into an empty jar.',
       target: 'red',
       main: { cap: 4 },
       jars: [

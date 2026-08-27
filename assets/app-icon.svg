@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#79cbf2"/>
+      <stop offset="1" stop-color="#d3f1fc"/>
+    </linearGradient>
+    <clipPath id="redJar"><path d="M190 390H370V718Q370 775 313 775H247Q190 775 190 718Z"/></clipPath>
+    <clipPath id="yellowJar"><path d="M422 390H602V718Q602 775 545 775H479Q422 775 422 718Z"/></clipPath>
+    <clipPath id="blueJar"><path d="M654 390H834V718Q834 775 777 775H711Q654 775 654 718Z"/></clipPath>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#sky)"/>
+  <circle cx="150" cy="148" r="88" fill="#fff" opacity=".25"/>
+  <circle cx="880" cy="138" r="36" fill="#fff" opacity=".2"/>
+  <circle cx="930" cy="194" r="15" fill="#fff" opacity=".2"/>
+  <path d="M180 855H844" stroke="#2b2142" stroke-width="20" stroke-linecap="round" opacity=".2"/>
+
+  <g clip-path="url(#redJar)">
+    <rect x="190" y="390" width="180" height="385" fill="#cbe9f8" fill-opacity=".88"/>
+    <rect x="190" y="588" width="180" height="187" fill="#f5423c"/>
+    <path d="M190 488H370M190 588H370M190 688H370" stroke="#2b2142" stroke-opacity=".13" stroke-width="6"/>
+    <path d="M190 588H370" stroke="#2b2142" stroke-opacity=".22" stroke-width="7"/>
+  </g>
+  <path d="M190 390H370V718Q370 775 313 775H247Q190 775 190 718Z" fill="none" stroke="#2b2142" stroke-width="18" stroke-linejoin="round"/>
+  <path d="M220 430V556" stroke="#fff" stroke-opacity=".78" stroke-width="23" stroke-linecap="round"/>
+
+  <g clip-path="url(#yellowJar)">
+    <rect x="422" y="390" width="180" height="385" fill="#cbe9f8" fill-opacity=".88"/>
+    <rect x="422" y="520" width="180" height="255" fill="#ffd028"/>
+    <path d="M422 488H602M422 588H602M422 688H602" stroke="#2b2142" stroke-opacity=".13" stroke-width="6"/>
+    <path d="M422 520H602" stroke="#2b2142" stroke-opacity=".22" stroke-width="7"/>
+  </g>
+  <path d="M422 390H602V718Q602 775 545 775H479Q422 775 422 718Z" fill="none" stroke="#2b2142" stroke-width="18" stroke-linejoin="round"/>
+  <path d="M452 430V488" stroke="#fff" stroke-opacity=".78" stroke-width="23" stroke-linecap="round"/>
+
+  <g clip-path="url(#blueJar)">
+    <rect x="654" y="390" width="180" height="385" fill="#cbe9f8" fill-opacity=".88"/>
+    <rect x="654" y="638" width="180" height="137" fill="#3b7bf7"/>
+    <path d="M654 488H834M654 588H834M654 688H834" stroke="#2b2142" stroke-opacity=".13" stroke-width="6"/>
+    <path d="M654 638H834" stroke="#2b2142" stroke-opacity=".22" stroke-width="7"/>
+  </g>
+  <path d="M654 390H834V718Q834 775 777 775H711Q654 775 654 718Z" fill="none" stroke="#2b2142" stroke-width="18" stroke-linejoin="round"/>
+  <path d="M684 430V606" stroke="#fff" stroke-opacity=".78" stroke-width="23" stroke-linecap="round"/>
+
+  <path d="M166 775H858Q879 775 879 796V832H145V796Q145 775 166 775Z" fill="#f7cd97" stroke="#2b2142" stroke-width="18" stroke-linejoin="round"/>
+  <path d="M154 816H870" stroke="#d89a55" stroke-width="15"/>
+</svg>

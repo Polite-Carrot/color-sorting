@@ -1,4 +1,4 @@
-/* merge.js — the rules and the search for Merge Colours.
+/* merge.js — the rules and the search for Merge Colors.
  *
  * The ordinary game moves colours around; this mode makes them. Pouring one
  * colour onto a different one mixes the two, so the colour the big jar wants

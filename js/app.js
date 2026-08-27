@@ -20,7 +20,7 @@
      no warning rather than a freeze. */
   var WATCH_BUDGET = 40000, WATCH_MS = 150;
   var HINT_MS = 1200;
-  /* Merge Colours gets far longer, because its search has no tight bound to
+  /* Merge Colors gets far longer, because its search has no tight bound to
      guide it and a hard board genuinely takes seconds on a phone. Rather than
      claim the position is too tangled — which would be a lie, the search
      simply had not finished — it says what it is doing and yields first, so
@@ -108,7 +108,7 @@
     var table = randomGen().DIFFICULTY;
     return RANDOM_KEYS.filter(function (k) { return !!table[k]; });
   }
-  /* Records are kept per game as well as per setting. Classic keeps its bare
+  /* Records are kept per game as well as per setting. Sort Colors keeps its bare
      setting name so scores earned before this existed still count. */
   function randomRecordKey(key) {
     return state.randomMerge ? 'merge:' + key : key;
@@ -221,7 +221,7 @@
 
     $('home-fill').style.height = (100 * done / list.length) + '%';
     $('home-campaign-sub').textContent = done === 0
-      ? list.length + ' levels · start with the basics'
+      ? list.length + ' levels · sort colors into the jar'
       : done === list.length
         ? 'All ' + list.length + ' done · ' + stars + ' of ' + (list.length * 3) + ' stars'
         : 'Next up: level ' + (nextUp + 1) + ' · ' + done + ' of ' + list.length + ' done';
@@ -229,7 +229,7 @@
     var merge = window.MergeLevels.list;
     var mergeDone = merge.filter(function (l) { return progress.merge[l.id]; }).length;
     $('home-merge-sub').textContent = mergeDone === 0
-      ? merge.length + ' levels · mix to make the colour'
+      ? merge.length + ' levels · mix to make the color'
       : mergeDone === merge.length
         ? 'All ' + merge.length + ' done'
         : 'Next up: level ' + (mergeDone + 1) + ' · ' + mergeDone + ' of ' + merge.length + ' done';
@@ -241,14 +241,14 @@
       ? (streak > 1 ? 'Done today · ' + streak + ' day streak' : 'Done today')
       : streak
         ? streak + ' day streak · today is waiting'
-        : D.planFor(D.today()).label + ' today';
+        : 'How long can you keep a streak?';
 
     var table = randomGen().DIFFICULTY;
     var cfg = table[state.difficulty] || table.normal;
     var rec = progress.random[randomRecordKey(state.difficulty)];
-    $('home-random-sub').textContent =
-      (state.randomMerge ? 'Merge Colours · ' : '') + cfg.label +
-      (rec ? ' · ' + rec.won + ' solved' : ' · none solved yet');
+    $('home-random-sub').textContent = rec
+      ? (state.randomMerge ? 'Merge Colors · ' : '') + cfg.label + ' · ' + rec.won + ' solved'
+      : 'Choose your difficulty and game mode and challenge your friends';
 
     var warn = $('save-warning');
     if (window.Store.survivesClosing) {
@@ -268,7 +268,7 @@
     var mode = state.listMode;
     var list = listFor(mode).list;
     var record = recordFor(mode);
-    $('levels-heading').textContent = mode === 'merge' ? 'Merge Colours' : 'Campaign';
+    $('levels-heading').textContent = mode === 'merge' ? 'Merge Colors' : 'Sort Colors';
     var nextUp = -1, done = 0, stars = 0;
 
     list.forEach(function (lvl, i) {
@@ -384,7 +384,7 @@
   function renderRandom() {
     var modes = $('random-mode');
     if (!modes.childNodes.length) {
-      [['classic', 'Classic'], ['merge', 'Merge Colours']].forEach(function (pair) {
+      [['classic', 'Sort Colors'], ['merge', 'Merge Colors']].forEach(function (pair) {
         var b = UI.el('button', 'diff', modes);
         b.type = 'button';
         b.textContent = pair[1];
@@ -705,7 +705,7 @@
         result.reason === 'full' ? 'That jar is full.' :
         result.reason === 'empty' ? 'Nothing left to pour.' :
         result.reason === 'wrong-colour' ? 'The big jar only takes ' + C.name(g.target) + '.' :
-        result.reason === 'mismatch' ? 'A colour can only go onto the same colour, or an empty jar.' :
+        result.reason === 'mismatch' ? 'A color can only go onto the same color, or an empty jar.' :
         result.reason === 'no-mix' ? 'Those two do not mix. Try a pair from the list above the shelf.' :
         'You cannot pour that way.', 'warn');
       return;

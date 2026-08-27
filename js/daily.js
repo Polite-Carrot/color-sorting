@@ -17,13 +17,13 @@
 
   /* Sunday first, to match Date#getDay. */
   var WEEK = [
-    { game: 'merge',   difficulty: 'extraHard', label: 'Merge Colours' },   /* Sun */
-    { game: 'classic', difficulty: 'normal',    label: 'Classic' },         /* Mon */
-    { game: 'merge',   difficulty: 'easy',      label: 'Merge Colours' },   /* Tue */
-    { game: 'classic', difficulty: 'hard',      label: 'Classic' },         /* Wed */
-    { game: 'merge',   difficulty: 'normal',    label: 'Merge Colours' },   /* Thu */
-    { game: 'classic', difficulty: 'extraHard', label: 'Classic' },         /* Fri */
-    { game: 'merge',   difficulty: 'hard',      label: 'Merge Colours' }    /* Sat */
+    { game: 'merge',   difficulty: 'extraHard', label: 'Merge Colors' },   /* Sun */
+    { game: 'classic', difficulty: 'normal',    label: 'Sort Colors' },    /* Mon */
+    { game: 'merge',   difficulty: 'easy',      label: 'Merge Colors' },   /* Tue */
+    { game: 'classic', difficulty: 'hard',      label: 'Sort Colors' },    /* Wed */
+    { game: 'merge',   difficulty: 'normal',    label: 'Merge Colors' },   /* Thu */
+    { game: 'classic', difficulty: 'extraHard', label: 'Sort Colors' },    /* Fri */
+    { game: 'merge',   difficulty: 'hard',      label: 'Merge Colors' }    /* Sat */
   ];
 
   var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
