@@ -22,9 +22,10 @@
 
   var C = global.Colour, M = global.Merge;
 
-  /* Easy and Normal take the 3 and 6 jars the classic mode uses. Hard and
-     Extra Hard stop at seven, and that is this mode's ceiling rather than a
-     choice — every wider shape was measured and none of them works.
+  /* Easy and Normal take the 3 and 6 jars the classic mode uses. Hard deals
+     at seven. Extra Hard opens at ten, stepping down to a seven-jar shape if
+     the player narrows the shelf — sideJars stays seven so that board is the
+     one they get.
 
      Merge has no tight lower bound, so cost climbs with the branching factor
      and width drives it. A random puzzle is dealt while somebody waits, so
@@ -42,11 +43,24 @@
      four or less and still costs a second and a half; eleven, twelve and
      sixteen produce nothing at all inside 200,000 states.
 
-     So width and difficulty trade against each other here, and seven jars is
-     where the trade stops being worth making. Extra Hard steps up on depth and
-     clutter instead — which is also the surprise in this mode: heaping
-     obstacle colours on and churning them hard makes a board CHEAPER to deal,
-     because the bound counts every inert run sitting on a parent. */
+     Those numbers were taken before the search grew a heap and a weight, and
+     the weight is what moved the ceiling: a wide board no longer has to have
+     its par PROVEN, only found, so ten jars deals in 206ms median where it
+     used to be hopeless. Extra Hard therefore opens on ten rather than seven.
+     What it buys is width, not difficulty — ten jars has to stay five deep
+     with a small target, and measured over forty deals that is par 18-31
+     (median 24) against seven jars' 21-29 (median 26). The wider board reads
+     as the bigger one and is a shade easier; the deep seven-jar board is
+     still there a tap down the stepper for anyone who wants the longer
+     solution.
+
+     The tail is the cost: ten jars deals in 206ms median but 2511ms at the
+     90th and 4170ms worst, against 139/488/977 at seven. The button says
+     "Dealing…" throughout, so this is a wait rather than a fault.
+
+     The other surprise in this mode still holds: heaping obstacle colours on
+     and churning them hard makes a board CHEAPER to deal, because the bound
+     counts every inert run sitting on a parent. */
   var DIFFICULTY = {
     easy: {
       label: 'Easy',
@@ -68,9 +82,13 @@
     },
     extraHard: {
       label: 'Extra Hard',
-      blurb: 'Seven deep jars, five colors in the way, and nothing left in one piece.',
+      blurb: 'Ten jars, five colors in the way, and nothing left in one piece.',
       mainCap: 7, sideJars: 7, sideCap: 6, fillers: 5, fillerUnits: 14,
-      burial: 0.6, churn: 0.65, par: [21, 30]
+      burial: 0.6, churn: 0.65, par: [21, 30],
+      /* The width the stepper opens on. sideJars is the shape dealt when the
+         player picks that width exactly, so this is the only way to land them
+         somewhere other than the preset's own shelf. */
+      defaultJars: 10
     }
   };
 

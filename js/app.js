@@ -528,9 +528,13 @@
       b.setAttribute('aria-checked', on ? 'true' : 'false');
     });
     $('difficulty-blurb').textContent = randomGen().DIFFICULTY[key].blurb;
-    /* Picking a difficulty resets the width to that preset's own, so the
-       presets stay meaningful and the stepper is an adjustment from one. */
-    state.jars = randomGen().DIFFICULTY[key].sideJars;
+    /* Picking a difficulty resets the width, so the presets stay meaningful and
+       the stepper is an adjustment from one. Usually that is the preset's own
+       shelf; a setting may name a different opening width, which is how Merge
+       Extra Hard lands on ten jars while still dealing its deep seven-jar
+       shape if the player steps down to seven. */
+    var cfg = randomGen().DIFFICULTY[key];
+    state.jars = cfg.defaultJars || cfg.sideJars;
     renderJars();
 
     var rec = progress.random[randomRecordKey(key)];
