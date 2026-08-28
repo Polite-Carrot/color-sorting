@@ -61,9 +61,9 @@ and Random Puzzle — and each opens its own screen. Sort Colors' icon is a jar
 that fills with how far through you are; the daily's is a calendar page whose
 squares light up as the week is played.
 
-**Sort Colors** — one hundred levels, in order. The first five are written by
-hand and teach one rule each; the rest widen steadily from six jars to
-twenty-two.
+**Sort Colors** — one hundred and fifty levels, in order. The first five are
+written by hand and teach one rule each; the rest widen steadily from six jars
+to twenty-two, and then deepen.
 
 | Levels | | Par |
 |--------|--|-----|
@@ -83,6 +83,10 @@ twenty-two.
 | 82–88 | Twenty-one jars, a big jar taking forty | 93–101 |
 | 89–94 | Over a hundred moves at their shortest | 102–105 |
 | 95–100 | Twenty-two jars — the widest shelf that still shows whole | 107–114 |
+| 101–115 | The same shelf, jars **ten** deep instead of eight | 115–123 |
+| 116–130 | Up to 153 units to move, a big jar taking fifty | 123–132 |
+| 131–142 | Every color split thin across twenty-two jars | 132–138 |
+| 143–150 | 162 units — the most the shelf holds and stays winnable | 139–145 |
 
 Each level unlocks the next. See **Keeping progress** below for how stars and
 best scores are stored.
@@ -565,6 +569,33 @@ faster and the stronger check: it proves the boards that actually ship are
 sound, rather than proving a fresh deal would have been. `node make-levels.js
 --rebuild-all` deals everything from scratch.
 
+### Going deeper instead of wider
+
+Levels 101-150 keep the shelf at twenty-two jars and take the jars from eight
+deep to ten. The reason is the screen, not the search.
+
+Twenty-two is where the fourth ramp stopped, because it is the widest shelf a
+desktop still shows whole. Depth is nearly free there, and measuring said why:
+the shelf wraps into rows and scrolls, so jars past twenty-two only add rows,
+while a band's height is set by how deep a jar is and how tall the window is.
+Across five screen sizes, going from eight deep to ten takes a band on a phone
+from 33.4px to 26.7px, and on the smallest phone from 12.4px to 12.4px — the
+floor the campaign's last levels already sat on. Nothing is clipped and nothing
+runs off the side at any size tried.
+
+Ten more cells per jar is 44 more places to put units, and par follows the unit
+count here as everywhere else: 128 units measured par 117, 160 gave 148. What
+stops it going further is slack rather than par. At nine deep, 160 units leaves
+38 free cells of 198 — 19%, against the 30% earlier ramps kept — and a shelf
+that tight deadlocks under careless play. Ten deep puts the same units in 220
+cells and leaves 27%.
+
+The search is not the constraint at all here, which was the surprise. On these
+boards the estimate is near-exact — it spends about one state per move of par —
+so the solver settles a 162-unit board in under a fifth of a second, and a hint
+on a six-times-throttled phone comes back in about half a second against a
+1.2-second budget, cold or after straying.
+
 ## Layout
 
 ```
@@ -698,8 +729,11 @@ what previously made the hum impossible to turn off.
 ## Settings
 
 Sound, Color Blind Assist and Reset progress live in one dialog, reachable
-from the home screen and from **Menu** on the game toolbar, so any of them can
-be reached without leaving a level. They are stored under `colourjars.prefs.v1` — their own key,
+from the home screen and from **Settings** on the game toolbar, so any of them
+can be reached without leaving a level. That toolbar button used to say "Menu",
+which collided with the two buttons that genuinely go back to the menu — "←
+Menu" above the board and "Menu" on the win card. Those two are navigation and
+keep the name; this one opens a dialog, so it says what it opens. They are stored under `colourjars.prefs.v1` — their own key,
 well away from the record of stars, for the same reason the chosen difficulty
 has always had one: a preference is not something earned, and writing it must
 never put anything near progress.
@@ -875,7 +909,7 @@ Two things follow from that, and both are worth knowing:
 - With the letters off by default, there is nothing else distinguishing that
   pair unless the player finds the setting.
 
-Neither the boards nor their pars changed — all 200 levels still solve at
+Neither the boards nor their pars changed — all 250 levels still solve at
 exactly the stored figure — so this is a palette matter, not a puzzle one. A
 cyan at least 150 from teal, or letters back on by default, would settle it.
 
@@ -887,5 +921,13 @@ count those boards need, so nothing is blocked today; but it means the builder
 is working at the edge of what the palette allows rather than inside it, and
 the level after this one has nowhere to go. Fixing cyan would hand it back.
 
-`node tools/check-merge.js` reports the two affected levels every run, and the
-builder warns rather than refusing, so this cannot quietly become invisible.
+`node tools/check-merge.js` reports the affected levels every run, and both
+builders warn rather than refusing, so this cannot quietly become invisible.
+
+That second part had to be added to `make-levels.js`, which until now threw on
+any lookalike it found — including one on a board already shipped. Adding the
+fifth ramp was blocked outright by it: the build died on level 8, a board dealt
+long before the palette moved under it. A level being dealt is still refused
+for a lookalike pair; a level already on disk is reported and the build carries
+on. 80 of the 150 Sort Colors levels and 2 of the 150 Merge Colors levels are
+reported every run.

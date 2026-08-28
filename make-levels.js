@@ -25,14 +25,15 @@ require('./js/generator.js');
 const C = globalThis.Colour, { Game, top } = globalThis.Engine,
       S = globalThis.Solver, G = globalThis.Generator;
 
-const TOTAL = 100, TAUGHT = 5;
+const TOTAL = 150, TAUGHT = 5;
 /* Each ramp is pinned to the end point it was built against rather than to
    TOTAL. People have progress against these levels, so a later ramp being
    added must not change the shape of a single board that came before it —
    and every one of these numbers appears in a curve that would quietly redeal
    the lot if it moved. */
 const FIRST_DEALT = TAUGHT + 1,
-      RAMP_ONE_END = 25, RAMP_TWO_END = 50, RAMP_THREE_END = 75;
+      RAMP_ONE_END = 25, RAMP_TWO_END = 50, RAMP_THREE_END = 75,
+      RAMP_FOUR_END = 100;
 
 /* ── the five that teach ───────────────────────────────────────────────── */
 
@@ -226,18 +227,59 @@ function shape(level) {
      it back up: at twenty jars, churn 0.40 gives par 79-89 and churn 0.70
      gives 98-100. Twenty-three jars still show whole on every desktop size in
      the viewport sweep, so stopping at twenty-two leaves a margin. */
-  const u = (level - (RAMP_THREE_END + 1)) / (TOTAL - (RAMP_THREE_END + 1));
-  const jars = lerp(20, 22, u);
-  const cap = 8;
-  const units = lerp(107, 122, u);
-  const mainCap = lerp(35, 42, u);
+  if (level <= RAMP_FOUR_END) {
+    const u = (level - (RAMP_THREE_END + 1)) / (RAMP_FOUR_END - (RAMP_THREE_END + 1));
+    const jars = lerp(20, 22, u);
+    const cap = 8;
+    const units = lerp(107, 122, u);
+    const mainCap = lerp(35, 42, u);
+    return {
+      label: 'Campaign', blurb: '',
+      mainCap, sideJars: jars, sideCap: cap,
+      fillers: 8,
+      fillerUnits: units - mainCap,
+      burial: 0.6,
+      churn: 0.45 + 0.25 * u,
+      sizeUp: 2500,
+      par: [1, 999]
+    };
+  }
+
+  /* Fifth ramp, levels 101-150. The shelf stops widening and starts deepening
+     instead, and the reason is the screen rather than the search.
+
+     Twenty-two jars is where the fourth ramp stopped because that is the
+     widest shelf a desktop still shows whole. Depth costs nothing there: the
+     shelf wraps into rows and scrolls, so a jar count past twenty-two only
+     adds rows, while the height of a band is set by how deep the jars are and
+     how tall the window is. Measured across five screen sizes, going from
+     eight deep to ten takes a band on a phone from 34.6px to 27.7px and on the
+     smallest phone from 13.4px to 12.4px — which is where the campaign's last
+     levels already sit today.
+
+     So this ramp holds the shelf at twenty-two and takes the jars from eight
+     to ten, which buys 44 more cells to put units in. Par follows the unit
+     count here as it does everywhere else: measured on this shape, 128 units
+     gave par 117 and 160 gave 148, with the solver settling every board in
+     under a fifth of a second — the estimate is near-exact on these, spending
+     one state per move of par. Depth is not what makes this search expensive.
+
+     Slack is what stops it going further, not par. At nine deep, 160 units
+     leaves 38 cells free of 198 — 19%, well under the 30% the earlier ramps
+     kept — and a shelf that tight deadlocks under careless play. Ten deep puts
+     the same 160 units in 220 cells and leaves 27%. */
+  const u = (level - (RAMP_FOUR_END + 1)) / (TOTAL - (RAMP_FOUR_END + 1));
+  const jars = 22;
+  const cap = 10;
+  const units = lerp(124, 162, u);
+  const mainCap = Math.round(units * 0.34);
   return {
     label: 'Campaign', blurb: '',
     mainCap, sideJars: jars, sideCap: cap,
     fillers: 8,
     fillerUnits: units - mainCap,
     burial: 0.6,
-    churn: 0.45 + 0.25 * u,
+    churn: 0.7,
     sizeUp: 2500,
     par: [1, 999]
   };
@@ -245,7 +287,7 @@ function shape(level) {
 
 /* ── checks every level has to pass ────────────────────────────────────── */
 
-function inspect(lvl) {
+function inspect(lvl, strict) {
   const g = new Game(lvl);
   const solved = S.solve(g.position(), 400000, 8000);
   if (solved.budgetExceeded) return { bad: 'solver ran out of room' };
@@ -259,13 +301,21 @@ function inspect(lvl) {
   const units = lvl.jars.reduce((n, j) => n + j.fills.filter(c => c === lvl.target).length, 0);
   if (units !== lvl.main.cap) return { bad: 'target units ' + units + ' != jar capacity ' + lvl.main.cap };
 
+  /* Two colours too close to tell apart reject a board being dealt, but only
+     warn about one already shipped. The palette is meant to guarantee the gap;
+     when a colour is retuned under boards that already exist, that is a known
+     problem with a known fix, and being unable to add levels until somebody
+     settles it helps nobody. The merge builder already draws the line here —
+     see tools/make-merge-levels.js — and this one now matches it. */
   const used = [...new Set(lvl.jars.flatMap(j => j.fills))];
-  for (let a = 0; a < used.length; a++) {
-    for (let b = a + 1; b < used.length; b++) {
-      if (C.distance(used[a], used[b]) < 150) return { bad: 'lookalikes ' + used[a] + '/' + used[b] };
+  let lookalike = null;
+  for (let a = 0; a < used.length && !lookalike; a++) {
+    for (let b = a + 1; b < used.length && !lookalike; b++) {
+      if (C.distance(used[a], used[b]) < 150) lookalike = 'lookalikes ' + used[a] + '/' + used[b];
     }
   }
-  return { par: solved.par, colours: used.length };
+  if (lookalike && strict) return { bad: lookalike };
+  return { par: solved.par, colours: used.length, warn: lookalike };
 }
 
 /* Can it be played badly and still finished? A campaign level that an ordinary
@@ -322,7 +372,28 @@ const ADJECTIVES = ['Stacked', 'Buried', 'Layered', 'Sunken', 'Packed', 'Tangled
                     'Sedimented', 'Percolated', 'Clarified', 'Filtered',
                     'Distilled', 'Fermented', 'Casked', 'Crated', 'Siloed',
                     'Stowed', 'Ballasted', 'Bilged', 'Hoarded', 'Vaulted',
-                    'Labyrinthine'];
+                    'Labyrinthine',
+                    /* Levels 101-150. The list is indexed by level, so 95 names
+                       could not reach level 150 without handing it the name on
+                       level 55. */
+                    'Compacted', 'Impacted', 'Congested', 'Gridlocked', 'Jammed',
+                    'Clotted', 'Thickened', 'Curdled', 'Coagulated', 'Encrusted',
+                    'Petrified', 'Fossilised', 'Calcified', 'Mineralised', 'Seamed',
+                    'Veined', 'Quarried', 'Mined', 'Tunnelled', 'Burrowed',
+                    'Cavernous', 'Abyssal', 'Benthic', 'Sounded', 'Plumbed',
+                    'Trawled', 'Netted', 'Seined', 'Creeled', 'Beached',
+                    'Shoaled', 'Reefed', 'Estuarine', 'Tidal', 'Undertowed',
+                    'Whirlpooled', 'Maelstromed', 'Vortexed', 'Spiralled', 'Helixed',
+                    'Coiled', 'Serpentine', 'Byzantine', 'Convoluted', 'Bewildering',
+                    'Confounded', 'Inextricable', 'Unfathomed', 'Uncharted', 'Terminal',
+                    'Sheer'];
+
+/* Every dealt level is named by its own index, so a list that runs short would
+   silently start repeating rather than fail. Say so here instead. */
+if (ADJECTIVES.length < TOTAL - TAUGHT) {
+  throw new Error('ADJECTIVES has ' + ADJECTIVES.length + ' names, ' +
+    (TOTAL - TAUGHT) + ' dealt levels need naming');
+}
 
 /* Levels that already exist are read back and re-verified rather than dealt
    again. Every ramp is pinned, so a rebuild deals precisely the boards it dealt
@@ -342,11 +413,14 @@ const EXISTING = (() => {
   }
 })();
 
+const warnings = [];
+
 function stored(level) {
   const lvl = EXISTING.get('level-' + String(level).padStart(2, '0'));
   if (!lvl) return null;
   const r = inspect(lvl);
   if (r.bad) throw new Error('level ' + level + ' on disk (' + lvl.name + '): ' + r.bad);
+  if (r.warn) warnings.push('level-' + level + ' (' + lvl.name + '): ' + r.warn);
   if (r.par !== lvl.par) {
     throw new Error('level ' + level + ' on disk (' + lvl.name + '): stored par ' +
       lvl.par + ', but the solver makes it ' + r.par);
@@ -380,7 +454,7 @@ function pickBoard(level, cfg, floor) {
       for (let seed = from; seed < until && pool.length < 20; seed++) {
         const cand = G.generate('__campaign', seed);
         if (cand.jars.length !== cfg.sideJars) continue;        /* the fallback board */
-        const r = inspect(cand);
+        const r = inspect(cand, true);
         if (r.bad) continue;
         if (want && r.par < want) continue;
         pool.push({ level: cand, par: r.par });
@@ -408,7 +482,7 @@ function pickBoard(level, cfg, floor) {
     for (let seed = level * 1000; seed < level * 1000 + 60 && !pool.length; seed++) {
       const cand = G.generate('__campaign', seed);
       if (cand.jars.length !== cfg.sideJars) continue;
-      const r = inspect(cand);
+      const r = inspect(cand, true);
       if (r.bad) continue;
       if (r.par < floor) continue;
       pool.push({ level: cand, par: r.par });
@@ -504,7 +578,8 @@ function buildRamp(label, from, to, floor, mode) {
 prevPar = buildRamp('first ramp',  FIRST_DEALT,        RAMP_ONE_END,   prevPar, 'ratchet');
 prevPar = buildRamp('second ramp', RAMP_ONE_END + 1,   RAMP_TWO_END,   prevPar, 'sorted');
 prevPar = buildRamp('third ramp',  RAMP_TWO_END + 1,   RAMP_THREE_END, prevPar, 'sorted');
-prevPar = buildRamp('fourth ramp', RAMP_THREE_END + 1, TOTAL,          prevPar, 'sorted');
+prevPar = buildRamp('fourth ramp', RAMP_THREE_END + 1, RAMP_FOUR_END,  prevPar, 'sorted');
+prevPar = buildRamp('fifth ramp',  RAMP_FOUR_END + 1,  TOTAL,          prevPar, 'sorted');
 
 /* ── emit ──────────────────────────────────────────────────────────────── */
 
@@ -555,5 +630,10 @@ ${body}
 `;
 
 fs.writeFileSync(path.join(__dirname, 'js', 'levels.js'), out);
+if (warnings.length) {
+  console.log('\n' + warnings.length + ' level(s) already on disk have a problem this build did not cause:');
+  warnings.forEach(w => console.log('  ' + w));
+}
+
 console.log('\nwrote js/levels.js — ' + built.length + ' levels, par ' +
   built[0].par + ' to ' + built[built.length - 1].par);

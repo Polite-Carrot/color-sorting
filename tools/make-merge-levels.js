@@ -33,13 +33,14 @@ const C = globalThis.Colour, { Game } = globalThis.Engine, M = globalThis.Merge;
 require('../js/merge-generator.js');
 const { deal, rng } = globalThis.MergeGenerator;
 
-const TOTAL = 100, TAUGHT = 5, FIRST_DEALT = TAUGHT + 1;
+const TOTAL = 150, TAUGHT = 5, FIRST_DEALT = TAUGHT + 1;
 /* Each ramp is pinned to the end it was built against rather than to TOTAL, so
    adding levels after it cannot redeal boards people have progress against.
    Levels already on disk are read back and re-verified, never rebuilt;
    --rebuild-all deals everything again. */
 const RAMP_ONE_END = 25;
 const RAMP_TWO_END = 50;
+const RAMP_THREE_END = 100;
 const REBUILD_ALL = process.argv.includes('--rebuild-all');
 
 /* The ceiling, in states the search has to visit from the opening position.
@@ -136,6 +137,37 @@ const SPACE_THREE = {
   jars:   [7],
   cap:    [8, 9, 10],
   mainCap:[10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+  fillers:[5],
+  churn:  [0.40, 0.55, 0.70, 0.85],
+  slack:  [0.28, 0.32, 0.36, 0.40]
+};
+
+/* Levels 101-150, and this is where the mode runs out of room. Three probes
+   said so, and they are worth recording because they are what a later ramp
+   should not repeat:
+
+   - Width is still the wall, and it has not moved. Eight and nine jars were
+     tried 268 times against a par floor of 40 — deliberately low, to give them
+     every chance — and not one settled inside the search budget. Not a thin
+     yield: zero.
+   - Raising the budget does not buy much. At 30,000 states the top of the
+     space yields 0.50 boards a minute and reaches par 55; at 55,000 it yields
+     0.57 and reaches par 55. The boards that fail do not fail narrowly, they
+     fail by miles, so paying more for the search buys almost nothing while
+     costing the player hint time on a phone.
+   - Depth still works, and it is all that is left: eleven and twelve deep with
+     a big jar into the twenties is where every keeper came from.
+
+   So this ramp reaches par 52-56 and no further, and the progression people
+   will feel is the board growing rather than par climbing — deeper jars, a
+   bigger jar to fill. Going past this needs a tighter lower bound for the
+   mode, which is the same conclusion the third ramp reached about par 34 and
+   was wrong about; the difference is that this time the space either side has
+   been measured rather than assumed. */
+const SPACE_FOUR = {
+  jars:   [7],
+  cap:    [10, 11, 12],
+  mainCap:[18, 19, 20, 21, 22, 23, 24, 25, 26],
   fillers:[5],
   churn:  [0.40, 0.55, 0.70, 0.85],
   slack:  [0.28, 0.32, 0.36, 0.40]
@@ -310,7 +342,18 @@ const ADJECTIVES = ['Stirred', 'Folded', 'Steeped', 'Tinted', 'Blended', 'Swirle
                     'Congested', 'Gridlocked', 'Wedged', 'Jammed', 'Clotted',
                     'Snarled', 'Bristling', 'Thorned', 'Barbed', 'Cragged',
                     'Riven', 'Cloven', 'Sheared', 'Splintered', 'Fissured',
-                    'Crazed', 'Webbed', 'Filigreed', 'Damascened'];
+                    'Crazed', 'Webbed', 'Filigreed', 'Damascened',
+                    /* Levels 101-150. */
+                    'Alloyed', 'Amalgamated', 'Retempered', 'Requenched',
+                    'Vitrified', 'Glazed', 'Enamelled', 'Lacquered', 'Varnished',
+                    'Pigmented', 'Saturated', 'Suffused', 'Imbued', 'Permeated',
+                    'Decocted', 'Reduced', 'Concentrated', 'Condensed', 'Rendered',
+                    'Emulsified', 'Colloidal', 'Suspended', 'Precipitated', 'Settled',
+                    'Stratified', 'Ribboned', 'Laminated', 'Interlaced', 'Plied',
+                    'Cabled', 'Twisted', 'Corded', 'Roped', 'Hawsered',
+                    'Anchored', 'Moored', 'Fastened', 'Riveted', 'Welded',
+                    'Fused', 'Bonded', 'Cemented', 'Mortared', 'Grouted',
+                    'Immured', 'Entombed', 'Sepulchral', 'Unyielding', 'Final'];
 
 /* 95 levels are dealt and the list is indexed by level, so a short list would
    silently start repeating rather than fail. Say so here instead. */
@@ -368,13 +411,21 @@ const wanted = TOTAL - firstToDeal + 1;
    which is the one thing this tool must never do. */
 const dealt = [];
 if (wanted > 0) {
-const POOL_TARGET = Math.round(wanted * 1.6);
-const POOL_MINUTES = Number(process.env.MERGE_POOL_MINUTES || 45);
-
 /* Which space to sample depends on the block being dealt, so a rebuild of the
    second ramp cannot accidentally deal it from the third ramp's shapes and
    hand level 26 a par-fifty board. */
-const SPACE = firstToDeal > RAMP_TWO_END ? SPACE_THREE : SPACE_TWO;
+const SPACE = firstToDeal > RAMP_THREE_END ? SPACE_FOUR
+            : firstToDeal > RAMP_TWO_END   ? SPACE_THREE
+            : SPACE_TWO;
+
+/* The pool is normally larger than the number of levels needed, so the ones
+   that ship can be spread across the par range rather than being whatever
+   turned up. That only pays while there is a range to spread across. The
+   fourth ramp spans four points of par and yields about one board every two
+   minutes, so a 60% surplus would cost an extra hour to choose between boards
+   that are, by par, the same board. There it takes what it finds. */
+const POOL_TARGET = Math.round(wanted * (SPACE === SPACE_FOUR ? 1.05 : 1.6));
+const POOL_MINUTES = Number(process.env.MERGE_POOL_MINUTES || 45);
 
 const pool = [];
 const rand = rng(0xC0FFEE);

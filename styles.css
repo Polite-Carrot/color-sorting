@@ -1352,6 +1352,11 @@ body.is-native .keys { display: none; }
   flex-wrap: wrap;
   margin-top: auto;
   padding-top: 14px;
+  /* The footer is the last thing in a screen that scrolls, so its bottom edge
+     is a clipping edge. These buttons carry a hard shadow --lift below their
+     border box, and a focus ring 5px outside it, so both were being shaved
+     off. Same trap the cards fell into; the room has to be asked for. */
+  padding-bottom: calc(var(--lift) + 2px);
 }
 /* Landscape has width to spare and height it cannot spare, so the menu goes
    two across instead of four down. This is what makes the four modes fit an

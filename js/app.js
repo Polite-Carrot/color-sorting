@@ -1089,8 +1089,12 @@
 
     $('hint').addEventListener('click', doHint);
 
-    /* In-game Menu — opens the same settings dialog as the home screen, so
-       sound and colour-blind assist can be flipped without leaving the level. */
+    /* In-game Settings — the same dialog as the home screen, so sound and
+       colour-blind assist can be flipped without leaving the level. It used to
+       be labelled "Menu", which collided with the two buttons that really do
+       go back to the menu: "← Menu" in the toolbar above, and "Menu" on the
+       win card. Those two are navigation and keep the name; this one opens a
+       dialog and now says what it opens. */
     $('game-menu').addEventListener('click', function () {
       renderSettingsToggles();
       openModal('settings-modal', 'settings-close');
