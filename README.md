@@ -324,6 +324,24 @@ carried with the board so the first hint is instant. `tools/check-merge-random.j
 checks all of that, along with par landing inside its band and no two colors on
 a shelf being too close to tell apart.
 
+**The shelf width is also a dial.** Under the four settings is a stepper that
+takes the jar count anywhere from 3 to 16 in Sort Colors, or 3 to 7 in Merge
+Colors. Picking a difficulty resets it to that preset's own width, so the
+presets stay meaningful and the stepper reads as an adjustment from one.
+
+Moving it off the preset builds a derived shape rather than just changing a
+number, because everything that depends on the shelf has to move with it: the
+big jar and the obstacle count are taken as a share of the cells available, so
+three jars is never asked to hold a jarful of eighteen. The preset's par band
+is dropped, since that band described the preset's width — whatever par the
+board deals at is the honest answer, and it is shown on the board.
+
+Obstacle colours grow with the width, and in merge that is not garnish. The
+bound counts every inert run sitting on a parent, so a wide shelf with few
+obstacles is one the search cannot see the bottom of: Easy stretched to seven
+jars while keeping its single obstacle took **eleven seconds** to deal, and
+letting the count follow the width brought the same board back to 353ms.
+
 Puzzles are built from a seed, so typing the same seed replays the same puzzle.
 Leave the seed blank for a fresh one.
 

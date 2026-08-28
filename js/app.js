@@ -64,6 +64,10 @@
     mode: 'campaign',
     difficulty: 'easy',
     randomMerge: false,
+    /* How wide a random shelf to deal. Follows the chosen difficulty's own
+       width until the stepper is used, and is re-clamped when the game
+       changes, since merge cannot go as wide as Sort Colors. */
+    jars: 3,
     selected: null,
     mainView: null,
     jarViews: [],
@@ -100,6 +104,56 @@
   /* Random puzzles come in both games. The setting names are shared, but each
      game has its own shapes behind them. */
   var RANDOM_KEYS = ['easy', 'normal', 'hard', 'extraHard'];
+
+  /* How wide the shelf may be dealt, per game. Sort Colors reaches sixteen
+     because its bound is near-exact — a sixteen-jar board deals in about 11ms.
+     Merge stops at seven, and that is measured rather than cautious: eight
+     jars is only affordable with a target so small the board comes out easier
+     than seven, and adding depth to win that back costs seconds a deal. See
+     the note above DIFFICULTY in js/merge-generator.js. */
+  var JAR_RANGE = { classic: [3, 16], merge: [3, 7] };
+
+  function jarRange() {
+    return JAR_RANGE[state.randomMerge ? 'merge' : 'classic'];
+  }
+
+  /* A preset with the jar count moved off its default. Everything that has to
+     scale with the shelf does: the big jar and the obstacles are taken as a
+     share of the cells available, so three jars is not asked to hold a jarful
+     of eighteen. The par band goes, because the preset's band described the
+     preset's width and no longer applies — whatever par the board comes out at
+     is the honest answer. */
+  function shapeFor(key, jars) {
+    var base = randomGen().DIFFICULTY[key];
+    if (!base || jars === base.sideJars) return null;
+    var cap = base.sideCap;
+    var cells = jars * cap;
+    var mainCap = Math.max(2, Math.round(cells * (base.mainCap / (base.sideJars * cap))));
+    var slack = Math.round(cells * 0.33);
+    /* Obstacle colours grow with the shelf, and in merge that is not garnish:
+       the bound counts every inert run sitting on a parent, so a wide shelf
+       with few obstacles is one the search cannot see the bottom of. Easy
+       stretched to seven jars while keeping its single obstacle took eleven
+       seconds to deal; letting the count follow the width brings it back under
+       a second. Five is the ceiling — the obstacle pool is the palette minus
+       the primaries and the target, and the lookalike rule bars one of those. */
+    var want = state.randomMerge
+      ? Math.round(jars * 0.7)
+      : Math.round(jars * (base.fillers / base.sideJars));
+    var fillers = Math.max(base.fillers, want);
+    fillers = Math.max(1, Math.min(fillers, jars - 1, state.randomMerge ? 5 : 7));
+    var fillerUnits = cells - slack - mainCap;
+    if (state.randomMerge) fillerUnits = cells - slack - mainCap * 2;
+    if (fillerUnits < fillers) return null;
+    var out = {};
+    for (var k in base) if (Object.prototype.hasOwnProperty.call(base, k)) out[k] = base[k];
+    out.sideJars = jars;
+    out.mainCap = mainCap;
+    out.fillers = fillers;
+    out.fillerUnits = fillerUnits;
+    out.par = [1, 999];
+    return out;
+  }
 
   function randomGen() {
     return state.randomMerge ? window.MergeGenerator : window.Generator;
@@ -417,6 +471,23 @@
     setDifficulty(state.difficulty);
   }
 
+  function renderJars() {
+    var span = jarRange();
+    if (state.jars < span[0]) state.jars = span[0];
+    if (state.jars > span[1]) state.jars = span[1];
+    $('jars-count').textContent = state.jars;
+    $('jars-down').disabled = state.jars <= span[0];
+    $('jars-up').disabled = state.jars >= span[1];
+  }
+
+  function stepJars(by) {
+    var span = jarRange();
+    var want = state.jars + by;
+    if (want < span[0] || want > span[1]) return;
+    state.jars = want;
+    renderJars();
+  }
+
   function setRandomMode(merge) {
     state.randomMerge = !!merge;
     prefs.randomMerge = state.randomMerge;
@@ -432,6 +503,10 @@
       b.setAttribute('aria-checked', on ? 'true' : 'false');
     });
     $('difficulty-blurb').textContent = randomGen().DIFFICULTY[key].blurb;
+    /* Picking a difficulty resets the width to that preset's own, so the
+       presets stay meaningful and the stepper is an adjustment from one. */
+    state.jars = randomGen().DIFFICULTY[key].sideJars;
+    renderJars();
 
     var rec = progress.random[randomRecordKey(key)];
     $('random-record').textContent = rec
@@ -468,7 +543,25 @@
        Yield first so the button state paints. */
     setTimeout(function () {
       try {
-        startLevel(randomGen().generate(state.difficulty, seed), 'random');
+        var gen = randomGen();
+        var key = state.difficulty;
+        var custom = shapeFor(key, state.jars);
+        if (custom) {
+          /* Registered under a name because generate() takes a difficulty key
+             rather than a config — the same way make-levels.js hands the
+             campaign its shapes. */
+          gen.DIFFICULTY.__custom = custom;
+          key = '__custom';
+        }
+        var lvl = gen.generate(key, seed);
+        if (custom) {
+          /* The level carries the preset's name, not the scratch key, so the
+             board reads as "Hard · seed 1234" and a record still slots in. */
+          lvl.difficulty = state.difficulty;
+          lvl.subtitle = randomGen().DIFFICULTY[state.difficulty].label +
+                         ' · ' + state.jars + ' jars · seed ' + lvl.seed;
+        }
+        startLevel(lvl, 'random');
       } finally {
         btn.disabled = false;
         btn.textContent = 'Deal me a puzzle';
@@ -1025,6 +1118,8 @@
     renderSettingsToggles();
 
     $('play-random').addEventListener('click', startRandom);
+    $('jars-down').addEventListener('click', function () { stepJars(-1); });
+    $('jars-up').addEventListener('click', function () { stepJars(1); });
     $('seed-input').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') startRandom();
     });

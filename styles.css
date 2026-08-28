@@ -681,6 +681,33 @@ input:focus-visible {
   min-height: 3em;
 }
 
+/* Jar count, as a stepper rather than fourteen buttons or a slider: it stays
+   one line on the narrowest phone, and the number is the thing worth reading. */
+.jarpick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 2px 0 16px;
+}
+.jarpick__step {
+  min-width: 46px;
+  padding: 8px 0;
+  font-size: 22px;
+  line-height: 1;
+}
+.jarpick__count {
+  min-width: 92px;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 16px;
+}
+.jarpick__count b {
+  color: var(--ink);
+  font-size: 22px;
+  margin-right: 4px;
+}
+
 .seed {
   display: flex;
   align-items: center;
@@ -1427,4 +1454,11 @@ body.is-native .keys { display: none; }
   #screen-home .choice { padding: 16px 26px; }
 }
 
-#screen-random.is-active { justify-content: flex-start; }
+/* The random card grew a jar stepper, and on a 320px phone that pushed its
+   last line past the bottom of a screen that could not scroll — the same trap
+   the home menu fell into. Let the screen scroll rather than clip. */
+#screen-random.is-active {
+  justify-content: flex-start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
