@@ -23,6 +23,7 @@ const styles  = [...html.matchAll(/<link[^>]+href="([^"]+\.css)"/gi)].map(m => m
 
 const files = new Set([
   'index.html',
+  'assets/app-icon.svg',
   'assets/polite-carrot-logo.svg',
   'assets/polite-carrot-name.svg',
   ...scripts,
