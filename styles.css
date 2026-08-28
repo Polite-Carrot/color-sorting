@@ -244,7 +244,7 @@ input:focus-visible {
   display: flex;
   justify-content: center;
   gap: 9px;
-  padding-top: 8px;
+  padding-top: 16px;
   margin-bottom: 14px;
 }
 .masthead__mark span {
@@ -1416,7 +1416,7 @@ body.is-native .keys { display: none; }
 @media (min-width: 761px) and (max-height: 920px) {
   #screen-home .masthead { margin: 2px 0 12px; }
   #screen-home .masthead h1 { font-size: clamp(44px, 5.4vw, 64px); }
-  #screen-home .masthead__mark { padding-top: 0; margin-bottom: 8px; }
+  #screen-home .masthead__mark { padding-top: 16px; margin-bottom: 8px; }
   #screen-home .masthead__tag { font-size: 17px; margin-top: 6px; }
   #screen-home .choices { gap: 14px; }
   #screen-home .choice { padding: 16px 26px; }
