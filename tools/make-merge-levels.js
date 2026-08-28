@@ -150,16 +150,19 @@ const SPACE_THREE = {
      tried 268 times against a par floor of 40 — deliberately low, to give them
      every chance — and not one settled inside the search budget. Not a thin
      yield: zero.
-   - Raising the budget does not buy much. At 30,000 states the top of the
-     space yields 0.50 boards a minute and reaches par 55; at 55,000 it yields
-     0.57 and reaches par 55. The boards that fail do not fail narrowly, they
-     fail by miles, so paying more for the search buys almost nothing while
-     costing the player hint time on a phone.
+   - Raising the state budget a little buys almost nothing: 30,000 yields 0.50
+     boards a minute, 55,000 yields 0.57, and both stop at the same place.
+     Raising it a lot buys volume but not difficulty — sampled deeper than this
+     ramp draws, 0 of 40 boards settle at 30,000 states and 13 of 40 at
+     500,000, and those 13 come in at par 48-66 against the 52-67 this ramp
+     already reaches. So a bigger search finds more of the same boards rather
+     than harder ones, which is worth knowing before anyone spends the player's
+     hint time on it.
    - Depth still works, and it is all that is left: eleven and twelve deep with
      a big jar into the twenties is where every keeper came from.
 
-   So this ramp reaches par 52-56 and no further, and the progression people
-   will feel is the board growing rather than par climbing — deeper jars, a
+   So this ramp reaches par 67, and most of the way up it is the board growing
+   rather than par climbing — deeper jars, a
    bigger jar to fill. Going past this needs a tighter lower bound for the
    mode, which is the same conclusion the third ramp reached about par 34 and
    was wrong about; the difference is that this time the space either side has

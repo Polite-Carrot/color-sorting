@@ -91,8 +91,8 @@ to twenty-two, and then deepen.
 Each level unlocks the next. See **Keeping progress** below for how stars and
 best scores are stored.
 
-**Merge Colors** — one hundred levels, and a rule the ordinary game does not
-have.
+**Merge Colors** — one hundred and fifty levels, and a rule the ordinary game
+does not have.
 Pour a color onto one it mixes with and the two become a third, so the color
 the big jar wants is usually not on the shelf at all — it has to be made.
 
@@ -133,6 +133,9 @@ cannot be spoiled.
 | 73–86 | The same shelf, wound tighter | 39–41 |
 | 87–95 | Nine and ten deep throughout | 42–46 |
 | 96–100 | Ten deep, every one — the hardest the search can prove | 47–51 |
+| 101–120 | Eleven and twelve deep, a big jar taking twenty-odd | 52–54 |
+| 121–140 | The same shelf wound tighter — par climbs a point at a time | 54–57 |
+| 141–150 | Where the search stops, not where the boards do | 57–67 |
 
 The dealt levels are built so that **no wrong merge is possible**. Only the two
 parents of the target ever appear as mixable colors — the third primary is
@@ -219,12 +222,34 @@ was hiding:
   **Accessibility**. The palette bug is costing level design, not just
   legibility.
 
-What has not changed is the bound itself, which still reaches only about two
-thirds of par, because the moves that dominate these solutions are gathering
-pours — consolidating a scattered color — and no sound way to count those in
-advance has been found yet. Par 51 is where the *sampled space* ran out, not
-where the search did, so the next ramp should start by widening the space
-again rather than by rewriting the bound.
+What has not changed is the bound itself, and levels 101-150 are where that
+finally bites. Three things were measured while building them, and together
+they say the mode is at its ceiling rather than short of a wider space:
+
+- **Eight jars is impossible, and not because of the hint.** Wide boards were
+  offered three budgets: the builder's 30,000 states, a generous 500,000, and
+  an offline 4,000,000 with a four-minute wall. Eight jars and nine jars are
+  over all three. The width limit is the search itself, so no amount of
+  offline patience buys it.
+- **A tighter bound is worth a great deal, and hard to get.** The bound reaches
+  45% of the true remaining distance, measured over 3,123 states along 100
+  optimal paths. Dividing by the longest run rather than the largest jar takes
+  that to 76% and cuts states 4.5x — six boards that could not be settled at
+  400,000 states became solvable, one of them in 194 — but it is **not
+  admissible**: runs grow when they are gathered, so a later pour can move more
+  than the longest run that existed when the bound was taken, and it returned
+  par 49 on two boards whose true par is 48. Counting *jars* holding each
+  colour instead is sound, because gathering only ever reduces a jar count —
+  and it is worth 0.3%.
+- **A bigger search finds more boards, not harder ones.** Sampled deeper than
+  this ramp draws, 0 of 40 boards settle at 30,000 states and 13 of 40 at
+  500,000 — but those 13 come in at par 48-66, against the 52-67 already
+  reached here. Spending the player's hint time would buy volume, not
+  difficulty.
+
+So par 67 is where the *search* stops rather than where the boards do, and the
+next ramp needs a tighter bound or a rule that prunes the tree — not a wider
+shelf.
 
 **Random Puzzle** — endlessly generated, in either game. A selector at the top
 of the screen chooses between **Sort Colors** and **Merge Colors**; everything
@@ -909,7 +934,7 @@ Two things follow from that, and both are worth knowing:
 - With the letters off by default, there is nothing else distinguishing that
   pair unless the player finds the setting.
 
-Neither the boards nor their pars changed — all 250 levels still solve at
+Neither the boards nor their pars changed — all 300 levels still solve at
 exactly the stored figure — so this is a palette matter, not a puzzle one. A
 cyan at least 150 from teal, or letters back on by default, would settle it.
 
