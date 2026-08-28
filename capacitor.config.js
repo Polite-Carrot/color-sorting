@@ -19,6 +19,6 @@ try {
 
 module.exports = {
   appId: 'com.politecarrot.colorjars',
-  appName: 'Color Sort & Merge',
+  appName: 'Color Match & Merge',
   webDir: 'www'
 };

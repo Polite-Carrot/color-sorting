@@ -1,4 +1,4 @@
-# Color Sort & Merge
+# Color Match & Merge
 
 A browser puzzle game about pouring liquid between jars to fill one big jar
 with a single color.
@@ -13,7 +13,7 @@ Or run `node build.js --standalone` for the whole game as one shareable file.
 
 ## What it is called
 
-The game ships as **Color Sort & Merge**, and its two main modes are **Sort
+The game ships as **Color Match & Merge**, and its two main modes are **Sort
 Colors** and **Merge Colors**. Player-facing text uses US spelling throughout —
 *color*, not *colour*. The code does not: `js/colour.js`, the `wrong-colour`
 move-refusal code and a good deal of internal prose still say *colour*, because
@@ -686,27 +686,6 @@ well away from the record of stars, for the same reason the chosen difficulty
 has always had one: a preference is not something earned, and writing it must
 never put anything near progress.
 
-### Remove Ads
-
-A third button on the home footer opens a dialog offering **Pay for No Ads**
-and **Restore purchase**, with **Done** to close.
-
-**Nothing is connected behind it yet** — there is no in-app purchase product
-and no billing plugin in either native project — and both actions say so
-plainly rather than appearing to work. That is deliberate: a button labelled
-"Pay for No Ads" that quietly does nothing reads as a payment that failed
-silently, and on a shipped build it would read as money taken and lost. Saying
-"not connected in this build yet" is the only honest thing it can do until a
-store is wired up.
-
-The plumbing around it is real, so wiring one up is a small change. `prefs`
-carries an `adFree` flag under the same key as the other preferences, the
-dialog already renders the owned state (title becomes **No Ads**, both actions
-disappear), and `app.js` picks up `window.Purchases` if something defines it.
-Give that object `buy()` and `restore()` returning a promise of
-`{ ok, message }` and the rest already works; the stub it falls back to is the
-only thing to replace.
-
 ### Erasing progress
 
 Wiping a hundred levels of stars asks twice and then asks for six seconds of
@@ -777,8 +756,8 @@ cannot quietly reintroduce this.
 
 The home menu has the matching problem and the same shape of fix. It is
 declared as content that shrinks rather than scrolls — the footer holds How to
-play, Settings and Remove Ads, and pushing those off a screen that cannot
-scroll makes them unreachable, not merely hidden. `flex: 0 1 auto` alone does
+play and Settings, and pushing those off a screen that cannot scroll makes
+them unreachable, not merely hidden. `flex: 0 1 auto` alone does
 not do that, though: a flex item will not shrink below its content, so once
 the menu had four cards the footer sat below the fold on an iPhone SE with no
 way to reach it.

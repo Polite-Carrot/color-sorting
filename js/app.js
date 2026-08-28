@@ -146,7 +146,7 @@
      rather than a key each so a future toggle does not have to touch storage.
      Colour blind assist prints the letter on every band — off by default so
      the game reads as its colours, on when someone asks for it. */
-  var prefs = { sound: true, cbAssist: false, randomMerge: false, adFree: false };
+  var prefs = { sound: true, cbAssist: false, randomMerge: false };
 
   function loadPrefs() {
     try {
@@ -156,7 +156,6 @@
         if (typeof p.sound === 'boolean') prefs.sound = p.sound;
         if (typeof p.cbAssist === 'boolean') prefs.cbAssist = p.cbAssist;
         if (typeof p.randomMerge === 'boolean') prefs.randomMerge = p.randomMerge;
-        if (typeof p.adFree === 'boolean') prefs.adFree = p.adFree;
       }
     } catch (e) { /* corrupt — stick with defaults */ }
   }
@@ -212,28 +211,18 @@
 
   function renderHome() {
     var list = window.Levels.list;
-    var done = 0, stars = 0, nextUp = -1;
-    list.forEach(function (lvl, i) {
-      var record = progress.levels[lvl.id];
-      if (record) { done++; stars += record.stars; }
-      var unlocked = i === 0 || !!progress.levels[list[i - 1].id];
-      if (unlocked && !record && nextUp < 0) nextUp = i;
-    });
+    var done = list.filter(function (lvl) { return progress.levels[lvl.id]; }).length;
 
     $('home-fill').style.height = (100 * done / list.length) + '%';
     $('home-campaign-sub').textContent = done === 0
       ? list.length + ' levels · sort colors into the jar'
-      : done === list.length
-        ? 'All ' + list.length + ' done · ' + stars + ' of ' + (list.length * 3) + ' stars'
-        : 'Next up: level ' + (nextUp + 1) + ' · ' + done + ' of ' + list.length + ' done';
+      : done + ' out of ' + list.length + ' done';
 
     var merge = window.MergeLevels.list;
     var mergeDone = merge.filter(function (l) { return progress.merge[l.id]; }).length;
     $('home-merge-sub').textContent = mergeDone === 0
       ? merge.length + ' levels · mix to make the color'
-      : mergeDone === merge.length
-        ? 'All ' + merge.length + ' done'
-        : 'Next up: level ' + (mergeDone + 1) + ' · ' + mergeDone + ' of ' + merge.length + ' done';
+      : mergeDone + ' out of ' + merge.length + ' done';
 
     var D = window.Daily;
     var streak = D.streak(progress.daily);
@@ -1120,76 +1109,6 @@
     $('win-menu').addEventListener('click', function () { closeOverlay(); showScreen(state.from); });
 
     $('how-to').addEventListener('click', function () { openModal('howto', 'howto-close'); });
-
-    /* Remove Ads.
-
-       There is no store behind this yet — no in-app purchase product, and no
-       billing plugin in either native project — so the two actions say plainly
-       that it is not connected rather than appearing to work. A button labelled
-       "Pay for No Ads" that quietly does nothing is the worst of the options
-       here: it reads as a payment that failed silently, and on a build people
-       have paid on it would read as a purchase lost.
-
-       When a store is wired up, `store` below is the only thing to replace: give
-       it buy() and restore() returning a promise of { ok, message }, and set
-       prefs.adFree from the result. Everything else already works off that flag. */
-    var store = window.Purchases || {
-      available: false,
-      buy: function () {
-        return Promise.resolve({ ok: false,
-          message: 'Purchases are not connected in this build yet.' });
-      },
-      restore: function () {
-        return Promise.resolve({ ok: false,
-          message: 'Nothing to restore — purchases are not connected in this build yet.' });
-      }
-    };
-
-    function renderAds() {
-      var owned = prefs.adFree;
-      $('ads-buy').hidden = owned;
-      $('ads-restore').hidden = owned;
-      $('ads-title').textContent = owned ? 'No Ads' : 'Remove Ads';
-      $('ads-line').textContent = owned
-        ? 'Ads are off on this device. Thank you.'
-        : 'Play the whole game with no ads, on this device.';
-    }
-
-    function adsBusy(on, label) {
-      $('ads-buy').disabled = on;
-      $('ads-restore').disabled = on;
-      if (on) $('ads-status').textContent = label;
-    }
-
-    function adsResult(r) {
-      adsBusy(false);
-      if (r && r.ok) prefs.adFree = true;
-      if (r && r.ok) savePrefs();
-      $('ads-status').textContent = (r && r.message) || '';
-      renderAds();
-    }
-
-    $('remove-ads').addEventListener('click', function () {
-      $('ads-status').textContent = '';
-      renderAds();
-      openModal('ads-modal', 'ads-close');
-    });
-    $('ads-close').addEventListener('click', function () {
-      $('ads-modal').hidden = true;
-      $('remove-ads').focus();
-    });
-    $('ads-buy').addEventListener('click', function () {
-      adsBusy(true, 'Talking to the store\u2026');
-      Promise.resolve(store.buy()).then(adsResult, function () {
-        adsResult({ ok: false, message: 'That did not go through. Nothing was charged.' });
-      });
-    });
-    $('ads-restore').addEventListener('click', function () {
-      adsBusy(true, 'Looking for a previous purchase\u2026');
-      Promise.resolve(store.restore()).then(adsResult, function () {
-        adsResult({ ok: false, message: 'Could not check for a previous purchase.' });
-      });
-    });
     $('howto-close').addEventListener('click', function () { $('howto').hidden = true; $('how-to').focus(); });
 
     $('settings').addEventListener('click', function () {
@@ -1354,10 +1273,6 @@
         $('reset-modal').hidden = true;
         openModal('settings-modal', 'settings-close');
       }
-      return;
-    }
-    if (!$('ads-modal').hidden) {
-      if (e.key === 'Escape') { $('ads-modal').hidden = true; $('remove-ads').focus(); }
       return;
     }
     if (!$('settings-modal').hidden) {
