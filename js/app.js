@@ -161,7 +161,15 @@
     fillers = Math.max(1, Math.min(fillers, jars - 1, state.randomMerge ? 5 : 7));
     var fillerUnits = cells - slack - mainCap;
     if (state.randomMerge) fillerUnits = cells - slack - mainCap * 2;
-    if (fillerUnits < fillers) return null;
+    /* An obstacle colour needs at least one unit to exist in, so the count the
+       width asks for is only ever a wish. Merge reserves twice the big jar --
+       a unit of the target costs one of each primary -- which at five jars
+       leaves three units against the four colours the width rule wants, and
+       the whole setting was thrown away rather than dealt one colour lighter.
+       Take what the units can pay for; four jars already runs on three
+       obstacles and six on four, so five landing on three sits between them. */
+    if (fillerUnits < fillers) fillers = fillerUnits;
+    if (fillers < 1) return null;
     var out = {};
     for (var k in base) if (Object.prototype.hasOwnProperty.call(base, k)) out[k] = base[k];
     out.sideJars = jars;
