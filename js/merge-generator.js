@@ -79,6 +79,15 @@
      deals, and the player is watching. */
   var SIZE_UP_BUDGET = 12000;
 
+  /* The widest shelf whose true shortest can still be proved while somebody
+     waits. Past this the generator inflates the bound instead. */
+  var PROVABLE_JARS = 7;
+
+  /* What the bound is multiplied by once the true shortest is out of reach.
+     Two: below that the wide boards were still over budget, and above it the
+     answers drift further from the shortest for nothing. */
+  var PUSH_WEIGHT = 2;
+
   /* Two colours closer than this are too easily confused to put on one shelf.
      The same figure generator.js uses, and enforced here for the same reason:
      the palette is meant to guarantee it, but a generator that assumes the
@@ -190,13 +199,33 @@
       var candidate = deal(cfg, rand);
       if (!candidate) continue;
 
-      var result = M.solve({
+      var position = {
         target: candidate.target,
         main: { capacity: candidate.main.cap, cells: [] },
         jars: candidate.jars.map(function (j, i) {
           return { id: 'jar' + i, capacity: j.cap, cells: j.fills.slice() };
         })
-      }, cfg.sizeUp || SIZE_UP_BUDGET);
+      };
+
+      /* Up to seven jars the true shortest is found quickly, so par stays the
+         proven minimum it has always been. Past that the search cannot prove
+         anything in the time somebody will wait, so the bound is inflated: the
+         search then dives for a good solution instead of proving the best one.
+
+         The width decides it rather than trying and failing. Falling back only
+         after weight 1 gives up sounds tidier but pays the whole timeout
+         first — measured at nine jars, 5.4s a deal that way against 9ms when
+         the weight is chosen up front.
+
+         Measured on ten-jar boards: over budget at weight 1, 1.3 and 1.6;
+         solved at weight 2 in 176ms to 1.4s. What comes back is a real
+         solution — it is replayed through the engine before shipping — and a
+         weighted search is never worse than `weight` times the shortest. So
+         par on a wide board means "the best this found", not "the fewest
+         possible". */
+      var wide = candidate.jars.length > PROVABLE_JARS;
+      var result = M.solve(position, (cfg.sizeUp || SIZE_UP_BUDGET) * (wide ? 4 : 1),
+                           null, wide ? PUSH_WEIGHT : 1);
 
       if (result.budgetExceeded || result.par == null) continue;
       if (result.par < cfg.par[0] || result.par > cfg.par[1]) continue;

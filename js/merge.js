@@ -205,8 +205,60 @@
      the bound never overshoots, the first time the finished position comes off
      the queue it is by a shortest route — the answer is the true minimum, not
      merely a good one. */
-  function solve(pos, budget, msBudget) {
+  /* A binary min-heap on f = cost + weight * bound.
+
+     The queue used to be buckets indexed by f, which is cheaper than a heap
+     and perfectly sound while f never decreases along a path — which holds for
+     a bound that is admissible AND consistent, as this one is at weight 1.
+     Weighting the bound breaks that guarantee: a child can rank below its
+     parent, and a bucket scan that has already passed that rank loses the node
+     silently. A heap makes no such assumption, which is the only reason a
+     weight can exist here at all.
+
+     Ties are broken towards the node inserted most recently, which is what
+     `bucket.pop()` did before — a depth-first lean that reaches a goal sooner
+     without changing which goal is optimal. */
+  function Heap() { this.a = []; }
+  Heap.prototype.before = function (x, y) {
+    return x.f < y.f || (x.f === y.f && x.seq > y.seq);
+  };
+  Heap.prototype.push = function (f, seq, index) {
+    var a = this.a, i = a.length;
+    a.push({ f: f, seq: seq, i: index });
+    while (i > 0) {
+      var p = (i - 1) >> 1;
+      if (this.before(a[p], a[i])) break;
+      var t = a[p]; a[p] = a[i]; a[i] = t;
+      i = p;
+    }
+  };
+  Heap.prototype.pop = function () {
+    var a = this.a;
+    if (!a.length) return -1;
+    var top = a[0], last = a.pop();
+    if (a.length) {
+      a[0] = last;
+      var i = 0, n = a.length;
+      for (;;) {
+        var l = 2 * i + 1, r = l + 1, best = i;
+        if (l < n && this.before(a[l], a[best])) best = l;
+        if (r < n && this.before(a[r], a[best])) best = r;
+        if (best === i) break;
+        var t = a[best]; a[best] = a[i]; a[i] = t;
+        i = best;
+      }
+    }
+    return top.i;
+  };
+
+  /* `weight` inflates the bound. At 1 the search is ordinary A* and par is the
+     proven minimum. Above 1 it dives for a goal instead of proving one: far
+     fewer states, and a solution that may be longer than the shortest — no
+     more than `weight` times longer, which is the standard guarantee. Callers
+     that need a true par must leave it at 1. */
+  function solve(pos, budget, msBudget, weight) {
     budget = budget || DEFAULT_BUDGET;
+    weight = weight || 1;
     var expiry = msBudget ? Date.now() + msBudget : 0;
     var nextTimeCheck = 512;
 
@@ -217,18 +269,13 @@
     var cheapest = Object.create(null);
     cheapest[key(start.main, start.jars)] = 0;
 
-    /* Costs are whole numbers that only ever grow by one, so buckets serve as
-       the queue — cheaper than a heap. */
-    var queue = [];
-    function enqueue(rank, index) { (queue[rank] || (queue[rank] = [])).push(index); }
-    enqueue(bound(pos, start.main, start.jars), 0);
+    var queue = new Heap(), seq = 0;
+    function enqueue(f, index) { queue.push(f, seq++, index); }
+    enqueue(weight * bound(pos, start.main, start.jars), 0);
 
-    var rank = 0, expanded = 0;
-    while (rank < queue.length) {
-      var bucket = queue[rank];
-      if (!bucket || !bucket.length) { rank++; continue; }
-
-      var index = bucket.pop();
+    var expanded = 0;
+    while (queue.a.length) {
+      var index = queue.pop();
       var node = nodes[index];
       var here = key(node.state.main, node.state.jars);
       if (cheapest[here] < node.cost) continue;       /* a better route got here first */
@@ -255,7 +302,7 @@
         cheapest[id] = cost;
 
         nodes.push({ state: next, prev: index, move: list[m], cost: cost });
-        enqueue(cost + bound(pos, next.main, next.jars), nodes.length - 1);
+        enqueue(cost + weight * bound(pos, next.main, next.jars), nodes.length - 1);
       }
     }
     return { par: null, path: null, explored: expanded };   /* no way through */

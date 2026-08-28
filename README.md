@@ -273,9 +273,10 @@ Merge Colors offers the same four, but stops at seven jars:
 | Hard | 5 units | 7 | 5 | 16–21 moves |
 | Extra Hard | 7 units | 7 deep | 5 | 21–29 moves |
 
-**Why merge stops at seven where Sort Colors reaches sixteen.** Not an
-oversight — every wider shape was measured, timing a whole deal end to end with
-its retries, since a random puzzle is dealt while somebody waits:
+**Merge reaches ten now, and what changed was the search rather than the
+boards.** It used to stop at seven. Every wider shape had been measured, timing
+a whole deal end to end with its retries, since a random puzzle is dealt while
+somebody waits:
 
 | Shape | Par | Median deal | Worst |
 |-------|-----|-------------|-------|
@@ -285,12 +286,57 @@ its retries, since a random puzzle is dealt while somebody waits:
 | 8 jars, 6 deep, big jar 4 | 14–20 | 4,135ms | 11,067ms |
 | 8 jars, 6 deep, big jar 5 | 14–20 | 16,624ms | 106,296ms |
 
-Eight jars is affordable only with a target so small the board comes out
-*easier* than seven — par 11–19 against 22–27 — and adding depth to win that
-back costs seconds a deal. Ten jars needs a target of four or less and still
-takes a second and a half; eleven, twelve and sixteen produce nothing at all
-inside 200,000 states. Width and difficulty trade against each other here, and
-seven jars is where the trade stops being worth making.
+Every one of those numbers assumed par had to be the *proven* minimum, and
+that proof is what costs the search: A* has to exhaust everything cheaper than
+the answer before it can claim there is nothing shorter. Giving that up past
+seven jars is what opened the mode up — see **Proving par, or not** below.
+
+Four other mechanics were prototyped first and all measured worse. Sealed jars
+(frozen, untouchable) make boards *unwinnable*, because they strand parent
+units the solution needs. One-way jars — pour in, never out — work, but only as
+six playable jars plus four bins, which costs about three seconds a board and
+makes the puzzle easier than seven jars would be; and they are dear because a
+jar's *contents* multiply the state space, one bin costing 13k states against
+11.5k with none, two costing 156k. Shallow bins are worse, being almost always
+available as a destination. Drains — pour in and the units vanish, so only a
+count is kept — are worst of all: they accept from any jar at any moment, and
+the branching swamps the state saving.
+
+### Proving par, or not
+
+Up to seven jars merge par is the true shortest, proven, exactly as it always
+was. Past seven the generator inflates the bound instead, which makes the
+search dive for a good solution rather than prove the best one. Ten-jar boards
+are over budget at weight 1, 1.3 and 1.6, and solve at weight 2 in 176ms to
+1.4s.
+
+So par on a wide merge board means *the best this found*, not *the fewest
+possible*. A weighted search is never worse than its weight times the shortest,
+so those pars are within a factor of two, and in practice usually much closer —
+at nine jars the weighted answer was the optimum. Every path is replayed
+through the engine before it ships, so a board is always winnable in exactly
+the par it advertises.
+
+Two things this needed:
+
+- **The queue is a binary heap now, not buckets.** Buckets indexed by f are
+  cheaper, and perfectly sound while f never decreases along a path — which
+  holds for a bound that is admissible and consistent. Weighting breaks that:
+  a child can rank below its parent, and a bucket scan that has already passed
+  that rank loses it silently. That is not a subtle failure — the first attempt
+  at this returned "unwinnable" after five states. The heap is a drop-in: all
+  150 shipped merge levels re-solve to exactly their stored par, every returned
+  path wins, and hints on a throttled phone are unchanged (worst 4,375ms
+  against 4,377ms before).
+- **The weight is chosen by width, not by trying and failing.** Falling back
+  only after weight 1 gives up sounds tidier but pays the whole timeout first:
+  at nine jars that was 5.4s a deal against 9ms when the width decides up front.
+
+The shape has to stay inside what the weighted search can deal, too. Scaling
+the big jar up with the width the way Sort Colors does gave a ten-jar board a
+jar of ten, which measured 55 seconds; capping depth at five and the big jar at
+five brings the same width to 6–97ms. Gridded across 8, 9 and 10 jars, every
+combination deals inside a second and a half, worst case three.
 
 Sort Colors has no such problem because its bound is near-exact: even a
 sixteen-jar board deals in about 11ms, worst measured 22ms. Its ceiling is the
@@ -327,7 +373,7 @@ checks all of that, along with par landing inside its band and no two colors on
 a shelf being too close to tell apart.
 
 **The shelf width is also a dial.** Under the four settings is a stepper that
-takes the jar count anywhere from 3 to 14 in Sort Colors, or 3 to 7 in Merge
+takes the jar count anywhere from 3 to 14 in Sort Colors, or 3 to 10 in Merge
 Colors. Picking a difficulty resets it to that preset's own width, so the
 presets stay meaningful and the stepper reads as an adjustment from one.
 

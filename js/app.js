@@ -108,15 +108,19 @@
   /* How wide the shelf may be dealt, per game. Sort Colors stops at fourteen —
      its search would go wider happily enough (a sixteen-jar board deals in
      about 11ms) but fourteen is where the board still reads well on a phone.
-     Merge stops at seven, and that is measured rather than cautious: eight
-     jars is only affordable with a target so small the board comes out easier
-     than seven, and adding depth to win that back costs seconds a deal. See
-     the note above DIFFICULTY in js/merge-generator.js. */
-  var JAR_RANGE = { classic: [3, 14], merge: [3, 7] };
+     Merge reaches ten, but only because the generator stops insisting on a
+     proven-minimum par past seven jars — see PUSH_WEIGHT in
+     js/merge-generator.js. Below eight jars par is still the true shortest. */
+  var JAR_RANGE = { classic: [3, 14], merge: [3, 10] };
 
   /* Most jars on one shelf row. Wider than this and a row stops reading as a
      row; the shelf wraps on its own below it. */
   var JARS_PER_ROW = 8;
+
+  /* Past this width the merge generator stops proving par is the minimum and
+     dives for a good solution instead — so the shape has to stay inside what
+     that can still deal quickly. See PROVABLE_JARS in js/merge-generator.js. */
+  var MERGE_PROVABLE_JARS = 7;
 
   function jarRange() {
     return JAR_RANGE[state.randomMerge ? 'merge' : 'classic'];
@@ -132,8 +136,16 @@
     var base = randomGen().DIFFICULTY[key];
     if (!base || jars === base.sideJars) return null;
     var cap = base.sideCap;
+    /* A wide merge shelf has to stay shallow, and its big jar small. Scaling
+       both up with the width the way Sort Colors does produced boards that took
+       the best part of a minute to deal: at ten jars a big jar of ten measured
+       55s, where the same width with a jar of four or five is 6-97ms. Grid
+       measured over 8, 9 and 10 jars at depths 4-5 and jars 4-6 — every one of
+       those dealt inside a second and a half, worst case three. */
+    if (state.randomMerge && jars > MERGE_PROVABLE_JARS) cap = Math.min(cap, 5);
     var cells = jars * cap;
-    var mainCap = Math.max(2, Math.round(cells * (base.mainCap / (base.sideJars * cap))));
+    var mainCap = Math.max(2, Math.round(cells * (base.mainCap / (base.sideJars * base.sideCap))));
+    if (state.randomMerge && jars > MERGE_PROVABLE_JARS) mainCap = Math.min(mainCap, 5);
     var slack = Math.round(cells * 0.33);
     /* Obstacle colours grow with the shelf, and in merge that is not garnish:
        the bound counts every inert run sitting on a parent, so a wide shelf
