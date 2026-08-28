@@ -27,14 +27,32 @@ even though the display name changed. That is deliberate — the identifier is
 how a store recognises an app as an update to one already installed, so
 changing it would strand every existing install rather than update it.
 
-The name is set in six places, and they all have to agree for a store build:
-`<title>` and the masthead in `index.html`, `appName` in `capacitor.config.js`,
-`CFBundleDisplayName` in `ios/App/App/Info.plist`, and `app_name` plus
-`title_activity_main` in `android/app/src/main/res/values/strings.xml`. The two native files are
-generated projects that are checked in, so they hold whatever they were last
-set to; the rename had to edit both by hand alongside `appName`. They are the
-two most likely to be left behind, and a stale one shows up as the wrong name
-under the icon rather than as a build failure.
+The name is set in six places, and they do **not** all say the same thing —
+which is deliberate, and worth knowing before anyone "fixes" it:
+
+| Where | Says |
+|-------|------|
+| `<title>` and the masthead in `index.html` | Color Match & Merge |
+| `appName` in `capacitor.config.js` | Color Match & Merge |
+| `CFBundleDisplayName` in `ios/App/App/Info.plist` | Color Match |
+| `app_name`, `title_activity_main` in `android/.../values/strings.xml` | Color Match |
+
+The long name is what the game calls itself once you are in it. The short one
+is what sits under the icon on a home screen, where both platforms truncate
+anything much longer — so the two native files carry a name that fits, and the
+web build carries the full one. `appName` in the Capacitor config only seeds a
+native project at creation, so it never overwrites those two; it is the one
+entry that agrees with the web build purely because nothing forces it not to.
+
+Both native files are generated projects that are checked in, so they hold
+whatever they were last set to, and a rename has to edit them by hand. They
+are the two most likely to be left behind, and a stale one shows up as the
+wrong name under the icon rather than as a build failure.
+
+Two internal names still say `color-sort-and-merge`: the `name` in
+`package.json` and the filenames `build.js` writes. Neither reaches a player —
+one is a private npm package name, the other is what the bundle is called on
+disk — so they are left alone rather than churned.
 
 ## What's in it
 
