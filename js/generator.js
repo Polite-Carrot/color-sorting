@@ -9,33 +9,43 @@
 
   var C = global.Colour;
 
+  /* Jar counts are 3, 6, 10, 16 across the four settings — a shelf that
+     visibly doubles each step rather than creeping up by one or two. Classic
+     can afford that because its bound is near-exact, so a sixteen-jar board
+     deals in about 11ms and the solver settles it immediately; measured over
+     eight deals a step, the worst deal at sixteen jars was 22ms.
+
+     Par is deliberately not pushed to the ceiling. Sixteen jars eight deep
+     with a big jar of thirty reaches par 62-76, which is campaign territory
+     and too much to hand somebody who tapped "new puzzle" — so Extra Hard
+     takes the same sixteen jars at six deep and lands at 39-48. The width is
+     the step up; the length of the solution is not. */
   var DIFFICULTY = {
     easy: {
       label: 'Easy',
-      blurb: 'Six jars, three colors in the way, and room to work.',
-      mainCap: 5, sideJars: 6, sideCap: 4, fillers: 3, fillerUnits: 10, par: [5, 10]
+      blurb: 'Three jars, two colors in the way, and room to work.',
+      mainCap: 3, sideJars: 3, sideCap: 4, fillers: 2, fillerUnits: 5, par: [4, 8]
     },
     normal: {
       label: 'Normal',
-      blurb: 'Seven jars and four colors, with less spare space to park them.',
-      mainCap: 7, sideJars: 7, sideCap: 5, fillers: 4, fillerUnits: 17, par: [11, 17]
+      blurb: 'Six jars and three colors, with less spare space to park them.',
+      mainCap: 6, sideJars: 6, sideCap: 5, fillers: 3, fillerUnits: 14, par: [9, 17]
     },
     hard: {
       label: 'Hard',
-      blurb: 'Nine jars, six colors, and the target buried right down.',
-      mainCap: 10, sideJars: 9, sideCap: 6, fillers: 6, fillerUnits: 30, par: [18, 28]
+      blurb: 'Ten jars, five colors, and the target buried right down.',
+      mainCap: 12, sideJars: 10, sideCap: 6, fillers: 5, fillerUnits: 28,
+      burial: 0.55, par: [21, 36]
     },
-    /* The jars here are deeper rather than more numerous. Depth is what makes
-       it hard — there is more sitting on top of the target — while the extra
-       capacity leaves room to put things down. An earlier version had the
-       same jars one unit shallower, and with only twelve free cells across
-       the whole shelf a run of ordinary moves could leave it unwinnable
-       roughly one game in ten. */
+    /* The widest shelf the mode offers, and wide rather than deep on purpose:
+       six deep keeps the bands legible on a phone at sixteen jars, and the
+       spare capacity is what stops an ordinary run of careless moves leaving
+       the board unwinnable. */
     extraHard: {
       label: 'Extra Hard',
-      blurb: 'Eleven deep jars, seven colors, and a big jar that takes some filling.',
-      mainCap: 14, sideJars: 11, sideCap: 7, fillers: 7, fillerUnits: 40,
-      burial: 0.6, sizeUp: 600, par: [28, 44]
+      blurb: 'Sixteen jars, seven colors, and a big jar that takes some filling.',
+      mainCap: 18, sideJars: 16, sideCap: 6, fillers: 7, fillerUnits: 45,
+      burial: 0.6, sizeUp: 600, par: [36, 52]
     }
   };
 

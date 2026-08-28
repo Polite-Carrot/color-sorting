@@ -22,39 +22,55 @@
 
   var C = global.Colour, M = global.Merge;
 
+  /* Easy and Normal take the 3 and 6 jars the classic mode uses. Hard and
+     Extra Hard stop at seven, and that is this mode's ceiling rather than a
+     choice — every wider shape was measured and none of them works.
+
+     Merge has no tight lower bound, so cost climbs with the branching factor
+     and width drives it. A random puzzle is dealt while somebody waits, so
+     what matters is a whole deal end to end, retries included:
+
+       7 jars, 6 deep, main 6      par 22-27      169ms      worst 499ms
+       8 jars, 5 deep, main 4      par 11-19       89ms      worst 195ms
+       8 jars, 5 deep, main 5      par 14-20      498ms     worst 2669ms
+       8 jars, 6 deep, main 4      par 14-20     4135ms    worst 11067ms
+       8 jars, 6 deep, main 5      par 14-20    16624ms   worst 106296ms
+
+     Eight jars is affordable only with a target so small the board comes out
+     EASIER than seven — par 11-19 against 22-27 — and the moment depth is
+     added to win that back, a deal takes seconds. Ten jars needs a target of
+     four or less and still costs a second and a half; eleven, twelve and
+     sixteen produce nothing at all inside 200,000 states.
+
+     So width and difficulty trade against each other here, and seven jars is
+     where the trade stops being worth making. Extra Hard steps up on depth and
+     clutter instead — which is also the surprise in this mode: heaping
+     obstacle colours on and churning them hard makes a board CHEAPER to deal,
+     because the bound counts every inert run sitting on a parent. */
   var DIFFICULTY = {
     easy: {
       label: 'Easy',
-      blurb: 'Two colors to mix, four jars, and room to spare.',
-      mainCap: 3, sideJars: 4, sideCap: 4, fillers: 1, fillerUnits: 4,
-      burial: 0, churn: 0.1, par: [4, 9]
+      blurb: 'Two colors to mix, three jars, and room to spare.',
+      mainCap: 3, sideJars: 3, sideCap: 4, fillers: 1, fillerUnits: 4,
+      burial: 0, churn: 0.1, par: [4, 11]
     },
     normal: {
       label: 'Normal',
-      blurb: 'Five jars, the two colors spread about, and something in the way.',
-      mainCap: 5, sideJars: 5, sideCap: 5, fillers: 2, fillerUnits: 6,
-      burial: 0.3, churn: 0.3, par: [9, 16]
+      blurb: 'Six jars, the two colors spread about, and something in the way.',
+      mainCap: 5, sideJars: 6, sideCap: 5, fillers: 3, fillerUnits: 9,
+      burial: 0.3, churn: 0.35, par: [9, 20]
     },
     hard: {
       label: 'Hard',
-      blurb: 'Six jars, with what you need buried and split into thin layers.',
-      mainCap: 6, sideJars: 6, sideCap: 5, fillers: 3, fillerUnits: 7,
-      burial: 0.5, churn: 0.45, par: [15, 24]
+      blurb: 'Seven jars, with what you need buried and split into thin layers.',
+      mainCap: 5, sideJars: 7, sideCap: 5, fillers: 5, fillerUnits: 13,
+      burial: 0.5, churn: 0.5, par: [14, 24]
     },
-    /* Seven jars is as wide as this game's search reaches, so the rest of the
-       step up comes from depth, a bigger jar to fill, and clutter.
-
-       Clutter is the surprise: heaping five obstacle colours on and churning
-       them hard makes these boards CHEAPER to deal, not dearer. The bound in
-       merge.js counts every inert run sitting on a parent, so a shelf strewn
-       with them is one the search can see the bottom of. Emptier seven-jar
-       shapes with the same big jar were measured at three to fifty seconds a
-       deal; this one takes about a fifth of a second and comes out harder. */
     extraHard: {
       label: 'Extra Hard',
       blurb: 'Seven deep jars, five colors in the way, and nothing left in one piece.',
       mainCap: 7, sideJars: 7, sideCap: 6, fillers: 5, fillerUnits: 14,
-      burial: 0.6, churn: 0.65, par: [20, 30]
+      burial: 0.6, churn: 0.65, par: [21, 30]
     }
   };
 
