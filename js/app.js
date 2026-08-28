@@ -1402,10 +1402,31 @@
 
     /* Rotating a phone or resizing a window changes the room available. */
     var refit = null;
-    window.addEventListener('resize', function () {
+    function refitSoon() {
       clearTimeout(refit);
       refit = setTimeout(function () { fitBoard(); tagShelfRows(); }, 120);
-    });
+    }
+    window.addEventListener('resize', refitSoon);
+
+    /* Safari on iOS shows and hides its toolbars over the page, and does not
+       reliably fire `resize` when it does — so the board stayed sized for the
+       taller window and the bottom of the shelf ended up underneath the
+       toolbar, with the big jar filling the screen. The visual viewport is
+       what is actually on show, so track that: publish its height for the
+       layout to use, and refit whenever it changes.
+
+       Height is also read from here rather than left to 100dvh, because dvh
+       resolves to the LARGEST viewport — the one with the toolbars retracted
+       — which is exactly the measurement that was too generous. */
+    var vv = window.visualViewport;
+    if (vv) {
+      var applyViewport = function () {
+        document.documentElement.style.setProperty('--vvh', vv.height + 'px');
+        refitSoon();
+      };
+      vv.addEventListener('resize', applyViewport);
+      applyViewport();
+    }
   }
 
   function renderSettingsToggles() {

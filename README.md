@@ -873,6 +873,20 @@ the cap set out to fix. So the board is settled uncapped first; if no row is
 over eight there is nothing to do, and if capping would cost the whole shelf
 being in view, the uncapped layout stands.
 
+**The board is sized to the visual viewport, not to `dvh`.** On iOS Safari the
+browser draws its toolbars *over* the page, and `dvh` resolves to the viewport
+with those toolbars retracted — the tallest it could ever be. A board sized to
+that runs underneath the toolbar: on an iPhone, Extra Hard came out with the
+big jar filling half the screen and the shelf cut off behind the address bar.
+Safari also does not reliably fire `resize` when the toolbars come and go.
+
+So `app.js` publishes `window.visualViewport.height` as `--vvh` and refits
+whenever it changes, and the layout prefers that over `dvh`. Simulated at
+440×956 with 145px of chrome appearing: the app resizes from 956 to 811, the
+jars from 109px to 87px, and the buttons move from 849 to 747 — inside what is
+actually on screen, with no jar left under the toolbar. `dvh` stays as the
+fallback for anything with no visual viewport.
+
 The shelf reserves head-room at the top, because a picked-up jar lifts and
 tilts, and the shelf can scroll on a short window — without it the top row was
 clipped mid-lift while lower rows were fine. A picked-up jar also rises above

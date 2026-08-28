@@ -116,8 +116,14 @@ body {
 .app {
   max-width: 1040px;
   margin: 0 auto;
+  /* --vvh is the visual viewport, published by app.js. It is preferred over
+     dvh because dvh resolves to the viewport with the browser's toolbars
+     retracted — the tallest it could be — and on iOS Safari the toolbar is
+     drawn over the page, so a board sized to dvh runs underneath it. The dvh
+     values stay as the fallback for anything without a visual viewport. */
   height: 100vh;
   height: 100dvh;
+  height: var(--vvh, 100dvh);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -154,6 +160,7 @@ body.playing { overflow: hidden; }
 body.playing .app {
   height: 100vh;
   height: 100dvh;
+  height: var(--vvh, 100dvh);
   padding-top: calc(12px + env(safe-area-inset-top));
   padding-bottom: calc(12px + env(safe-area-inset-bottom));
   display: flex;
