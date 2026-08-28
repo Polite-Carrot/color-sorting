@@ -1353,6 +1353,61 @@ body.is-native .keys { display: none; }
   margin-top: auto;
   padding-top: 14px;
 }
+/* Landscape has width to spare and height it cannot spare, so the menu goes
+   two across instead of four down. This is what makes the four modes fit an
+   iPad held sideways: in Safari the toolbar takes about a hundred points off
+   an already short window, and a single column put the fourth card and the
+   whole footer below the fold.
+
+   Keyed to orientation rather than to a height threshold on purpose. A
+   threshold would flip the layout between two devices that feel identical, or
+   on the same device when a subtitle happens to wrap — where "sideways means
+   two across" is a rule someone can predict. min-width keeps phones in
+   landscape out of it, where two columns would be two cramped ones. */
+@media (min-width: 761px) and (orientation: landscape) {
+  #screen-home .choices {
+    grid-template-columns: 1fr 1fr;
+    max-width: 940px;
+    /* Two rows leave real space below on a tall landscape window. The footer
+       is already pinned to the bottom by its own auto margin, so giving the
+       cards auto margins too shares the slack above and below them instead of
+       pooling it all in one gap under the grid. */
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+}
+
+/* A phone held sideways is the extreme of the same problem: 390 points of
+   height against a menu that wants 486. Two columns alone do not close that,
+   so the title screen gives up the parts that are decoration — the three jars
+   and the tagline — and keeps the name and the four modes, which are what the
+   screen is for. Above this height there is room for all of it, and the
+   shortest iPad landscape window is comfortably clear of the threshold. */
+@media (orientation: landscape) and (max-height: 500px) {
+  #screen-home .masthead { margin: 0 0 10px; }
+  #screen-home .masthead__mark { display: none; }
+  #screen-home .masthead__tag { display: none; }
+  #screen-home .masthead h1 { font-size: clamp(28px, 5vw, 40px); }
+  #screen-home .choices { grid-template-columns: 1fr 1fr; max-width: 940px; gap: 10px; }
+  #screen-home .choice { padding: 12px 18px; gap: 14px; }
+  /* Past 760px wide the tablet type sizes apply, and on a phone lying down
+     they are what stops the four fitting. Wind them back here rather than
+     moving that breakpoint, which the tablet layout wants where it is. */
+  #screen-home .choice__name { font-size: 20px; }
+  #screen-home .choice__sub { font-size: 14px; }
+  #screen-home .choice__jar,
+  #screen-home .choice__shelf,
+  #screen-home .choice__mix,
+  #screen-home .choice__cal { flex: 0 0 40px; width: 40px; height: 54px; }
+  #screen-home .choice__cal { gap: 5px; padding: 16px 7px 8px; }
+  #screen-home .choice__cal-top { height: 11px; }
+  #screen-home .choice__mix i { width: 22px; height: 22px; }
+  #screen-home .choice__mix i:nth-child(1),
+  #screen-home .choice__mix i:nth-child(2) { top: 5px; }
+  #screen-home .choice__mix i:nth-child(3) { left: 9px; top: 23px; }
+  #screen-home .menu-foot { padding-top: 8px; }
+}
+
 /* The title-screen masthead assumes a tall window. With four cards on the
    menu a 1040x860 desktop no longer has room for both, and the fourth card
    ended up cut in half behind the footer. Rather than shrink the title

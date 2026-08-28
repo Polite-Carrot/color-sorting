@@ -797,6 +797,28 @@ On wide screens the masthead is the thing in the way rather than the window
 height, so a height-conditional rule trades the title-screen scale back on
 windows too short to hold both it and four cards.
 
+### The menu turns sideways
+
+Held sideways, the menu goes two across and two down rather than four in a
+column. That is what makes the four modes fit an iPad in landscape: Safari
+takes about a hundred points of height off an already short window, and a
+single column left the fourth card and the whole footer below the fold.
+
+It is keyed to `orientation: landscape` rather than to a height threshold, and
+deliberately. A threshold flips the layout between two devices that feel the
+same to hold, or on one device when a subtitle happens to wrap onto another
+line; *sideways means two across* is a rule somebody can predict. A `min-width`
+keeps phones in landscape out of the tablet sizing, where two columns of tablet
+type would be two cramped ones.
+
+A phone lying down is the extreme of the same problem — 390 points of height
+against a menu wanting 486 — and two columns alone do not close that. Below
+500 points the title screen gives up what is decoration, the three jars and the
+tagline, and keeps the name and the four modes, which are what the screen is
+for. The shortest iPad landscape window sits well clear of that threshold.
+
+Both are CSS alone, so rotating re-lays it out with nothing to listen for.
+
 ## Look
 
 One committed visual world — a bright shelf under a summer sky, drawn with
