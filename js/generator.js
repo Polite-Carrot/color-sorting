@@ -38,14 +38,15 @@
       burial: 0.55, par: [21, 36]
     },
     /* The widest shelf the mode offers, and wide rather than deep on purpose:
-       six deep keeps the bands legible on a phone at sixteen jars, and the
-       spare capacity is what stops an ordinary run of careless moves leaving
-       the board unwinnable. */
+       six deep keeps the bands legible on a phone, and the spare capacity is
+       what stops an ordinary run of careless moves leaving the board
+       unwinnable. Fourteen rather than sixteen: the search is happy either way,
+       but fourteen is where the shelf still reads as a shelf on a phone. */
     extraHard: {
       label: 'Extra Hard',
-      blurb: 'Sixteen jars, seven colors, and a big jar that takes some filling.',
-      mainCap: 18, sideJars: 16, sideCap: 6, fillers: 7, fillerUnits: 45,
-      burial: 0.6, sizeUp: 600, par: [36, 52]
+      blurb: 'Fourteen jars, seven colors, and a big jar that takes some filling.',
+      mainCap: 16, sideJars: 14, sideCap: 6, fillers: 7, fillerUnits: 40,
+      burial: 0.6, sizeUp: 600, par: [32, 48]
     }
   };
 

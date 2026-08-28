@@ -105,13 +105,14 @@
      game has its own shapes behind them. */
   var RANDOM_KEYS = ['easy', 'normal', 'hard', 'extraHard'];
 
-  /* How wide the shelf may be dealt, per game. Sort Colors reaches sixteen
-     because its bound is near-exact — a sixteen-jar board deals in about 11ms.
+  /* How wide the shelf may be dealt, per game. Sort Colors stops at fourteen —
+     its search would go wider happily enough (a sixteen-jar board deals in
+     about 11ms) but fourteen is where the board still reads well on a phone.
      Merge stops at seven, and that is measured rather than cautious: eight
      jars is only affordable with a target so small the board comes out easier
      than seven, and adding depth to win that back costs seconds a deal. See
      the note above DIFFICULTY in js/merge-generator.js. */
-  var JAR_RANGE = { classic: [3, 16], merge: [3, 7] };
+  var JAR_RANGE = { classic: [3, 14], merge: [3, 7] };
 
   /* Most jars on one shelf row. Wider than this and a row stops reading as a
      row; the shelf wraps on its own below it. */

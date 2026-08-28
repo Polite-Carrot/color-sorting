@@ -255,14 +255,14 @@ shelf.
 of the screen chooses between **Sort Colors** and **Merge Colors**; everything
 below it is the same screen, and each game keeps its own record.
 
-Sort Colors offers four settings, and the shelf roughly doubles each step:
+Sort Colors offers four settings, and the shelf grows sharply each step:
 
 | Mode | Big jar | Jars | Colors in the way | Par |
 |------|---------|------|--------------------|-----|
 | Easy | 3 units | 3 | 2 | 4–7 moves |
 | Normal | 6 units | 6 | 3 | 9–15 moves |
-| Hard | 12 units | 10 | 5 | 21–29 moves |
-| Extra Hard | 18 units | 16 | 7 | 36–49 moves |
+| Hard | 12 units | 10 | 5 | 22–36 moves |
+| Extra Hard | 16 units | 14 | 7 | 32–42 moves |
 
 Merge Colors offers the same four, but stops at seven jars:
 
@@ -292,14 +292,16 @@ takes a second and a half; eleven, twelve and sixteen produce nothing at all
 inside 200,000 states. Width and difficulty trade against each other here, and
 seven jars is where the trade stops being worth making.
 
-Sort Colors has no such problem because its bound is near-exact: a sixteen-jar
-board deals in about 11ms, worst measured 22ms.
+Sort Colors has no such problem because its bound is near-exact: even a
+sixteen-jar board deals in about 11ms, worst measured 22ms. Its ceiling is the
+screen rather than the search — fourteen jars is where the shelf still reads as
+a shelf on a phone, wrapping to 6+6+2 rather than sprawling.
 
-Par is also deliberately kept short of the ceiling. Sixteen jars eight deep
-with a big jar of thirty measures par 62–76, which is campaign territory and
-too much to hand somebody who just tapped for a new puzzle — so Extra Hard
-takes the same sixteen jars at six deep and lands at 36–49. The width is the
-step up; the length of the solution is not.
+Par is also deliberately kept short of what the shape could reach. Sixteen jars
+eight deep with a big jar of thirty measures par 62–76, which is campaign
+territory and too much to hand somebody who just tapped for a new puzzle — so
+Extra Hard stays six deep and lands at 32–42. The width is the step up; the
+length of the solution is not.
 
 A random puzzle is dealt while somebody waits, and this game's search has no
 tight bound to lean on, so what a setting can ask for is limited by what can be
@@ -325,7 +327,7 @@ checks all of that, along with par landing inside its band and no two colors on
 a shelf being too close to tell apart.
 
 **The shelf width is also a dial.** Under the four settings is a stepper that
-takes the jar count anywhere from 3 to 16 in Sort Colors, or 3 to 7 in Merge
+takes the jar count anywhere from 3 to 14 in Sort Colors, or 3 to 7 in Merge
 Colors. Picking a difficulty resets it to that preset's own width, so the
 presets stay meaningful and the stepper reads as an adjustment from one.
 
