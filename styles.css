@@ -1040,6 +1040,27 @@ body.cb-assist .band span { visibility: visible; }
   padding: 20px 8px 0;
 }
 
+/* Eight jars to a row at most, however wide the window is.
+
+   The shelf wraps on available width, which is right up to a point and wrong
+   past it: a sixteen-jar board put all sixteen in one line on a landscape
+   iPad — small, cramped, with the lower half of the screen empty — and split
+   12 and 4 on a desktop. An even pair of rows reads better than either.
+
+   Done with a hard break every eighth jar rather than a max-width on the
+   shelf. A width cap has to be expressed in jar widths, and jar width is the
+   very thing fitBoard() is bisecting, so the cap moved under the search and
+   it settled somewhere absurd — eleven rows of two on a phone. A break
+   element is a fixed fact about the markup: it forces a wrap at eight and is
+   invisible to the sizing. Narrower windows still wrap sooner on their own. */
+.shelf__break { display: none; }
+.shelf--capped .shelf__break {
+  display: block;
+  flex-basis: 100%;
+  height: 0;
+  margin: 0;
+}
+
 .slot { position: relative; }
 
 /* Each jar carries its own length of plank, reaching into the gaps on both

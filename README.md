@@ -854,6 +854,25 @@ Seeing every jar at once beats seeing big ones, so the search first looks for
 a size that shows the whole shelf, and only lets the shelf scroll inside
 itself when no readable size manages that.
 
+**A row holds eight jars at most, when that is affordable.** Sixteen jars put
+all sixteen in one line on a landscape iPad — small, cramped, and leaving the
+lower half of the screen empty — and split 12 and 4 on a desktop. Two rows of
+eight read better than either.
+
+It is done with a hard break element every eighth jar rather than a width cap
+on the shelf, and that took two tries worth recording. A width cap has to be
+expressed in jar widths, and jar width is the very thing the search is
+bisecting, so the cap moved underneath the search and it settled somewhere
+absurd — eleven rows of two on a phone.
+
+The cap is also offered rather than imposed, because on the campaign's widest
+levels it is not affordable: twenty-two jars in rows of eight is three rows,
+which no readable size can show all of, so the fitter falls through to letting
+the shelf scroll and picks the largest jars it can — worse than the uneven rows
+the cap set out to fix. So the board is settled uncapped first; if no row is
+over eight there is nothing to do, and if capping would cost the whole shelf
+being in view, the uncapped layout stands.
+
 The shelf reserves head-room at the top, because a picked-up jar lifts and
 tilts, and the shelf can scroll on a short window — without it the top row was
 clipped mid-lift while lower rows were fine. A picked-up jar also rises above

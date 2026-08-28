@@ -113,6 +113,10 @@
      the note above DIFFICULTY in js/merge-generator.js. */
   var JAR_RANGE = { classic: [3, 16], merge: [3, 7] };
 
+  /* Most jars on one shelf row. Wider than this and a row stops reading as a
+     row; the shelf wraps on its own below it. */
+  var JARS_PER_ROW = 8;
+
   function jarRange() {
     return JAR_RANGE[state.randomMerge ? 'merge' : 'classic'];
   }
@@ -599,6 +603,11 @@
     var shelf = $('shelf');
     shelf.innerHTML = '';
     state.jarViews = g.jars.map(function (jar, i) {
+      /* A hard wrap every eighth jar. Sixteen jars across one landscape iPad
+         row was cramped and left half the screen empty; two rows of eight
+         read far better. See .shelf__break in styles.css for why this is a
+         break element and not a width cap on the shelf. */
+      if (i && i % JARS_PER_ROW === 0) UI.el('i', 'shelf__break', shelf).setAttribute('aria-hidden', 'true');
       var view = new UI.JarView({
         keyLabel: String(i + 1),
         onClick: function () { onJarClick(jar.id); }
@@ -643,7 +652,55 @@
     });
   }
 
+  /* How many jars the widest row is currently holding. */
+  function widestRow() {
+    var rows = {}, most = 0;
+    var jars = document.querySelectorAll('#shelf .jar');
+    for (var i = 0; i < jars.length; i++) {
+      /* Jars differ in depth and the shelf aligns them flex-end, so it is the
+         BOTTOM edge that a row shares. Grouping by the top split one visual
+         row into several and made this read rows that were not there. */
+      var t = Math.round(jars[i].getBoundingClientRect().bottom);
+      rows[t] = (rows[t] || 0) + 1;
+      if (rows[t] > most) most = rows[t];
+    }
+    return most;
+  }
+
+  /* Is every jar in view without the shelf having to scroll? */
+  function shelfWhollyVisible() {
+    var wrap = document.querySelector('.shelf-wrap');
+    return !wrap || wrap.scrollHeight <= wrap.clientHeight + 1;
+  }
+
+  /* Sixteen jars in one line on a landscape iPad was cramped and left half the
+     screen empty, so a row is capped at eight. But the cap is an improvement
+     only when it is affordable, and on the campaign's widest levels it is not:
+     twenty-two jars forced into rows of eight is three rows, which no readable
+     jar size can show all of, so the fitter falls through to letting the shelf
+     scroll and picks the largest jars it can — which was far worse than the
+     uneven rows the cap set out to fix.
+
+     So the cap is offered, not imposed. Settle uncapped; if no row is over
+     eight there is nothing to do. Otherwise settle capped, and keep it only if
+     the whole shelf is still in view. If capping costs that, it is not worth
+     having and the uncapped layout stands. */
   function fitBoard() {
+    var shelf = $('shelf');
+    shelf.classList.remove('shelf--capped');
+    settleBoard();
+    if (widestRow() <= JARS_PER_ROW) return;
+
+    var wasWhole = shelfWhollyVisible();
+    shelf.classList.add('shelf--capped');
+    settleBoard();
+    if (wasWhole && !shelfWhollyVisible()) {
+      shelf.classList.remove('shelf--capped');
+      settleBoard();
+    }
+  }
+
+  function settleBoard() {
     var screen = $('screen-game');
     if (!screen.classList.contains('is-active')) return;
 
@@ -711,13 +768,17 @@
   function tagShelfRows() {
     var shelf = document.getElementById('shelf');
     if (!shelf) return;
-    var slots = shelf.children;
+    /* Only the jar slots — the row-break elements are children too, and
+       counting them as slots put a plank end-cap in the middle of a row. */
+    var slots = shelf.querySelectorAll('.slot');
     for (var i = 0; i < slots.length; i++) {
       slots[i].classList.remove('slot--row-start', 'slot--row-end');
     }
     var lastTop = null, prev = null;
     for (var j = 0; j < slots.length; j++) {
-      var top = slots[j].offsetTop;
+      /* Jars vary in depth and the shelf aligns them flex-end, so the row is
+         shared by the bottom edge, not the top. */
+      var top = slots[j].offsetTop + slots[j].offsetHeight;
       if (top !== lastTop) {
         slots[j].classList.add('slot--row-start');
         if (prev) prev.classList.add('slot--row-end');
