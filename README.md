@@ -255,23 +255,51 @@ shelf.
 of the screen chooses between **Sort Colors** and **Merge Colors**; everything
 below it is the same screen, and each game keeps its own record.
 
-Sort Colors offers four settings:
+Sort Colors offers four settings, and the shelf roughly doubles each step:
 
 | Mode | Big jar | Jars | Colors in the way | Par |
 |------|---------|------|--------------------|-----|
-| Easy | 5 units | 6 | 3 | 5–10 moves |
-| Normal | 7 units | 7 | 4 | 11–17 moves |
-| Hard | 10 units | 9 | 6 | 18–28 moves |
-| Extra Hard | 14 units | 11 deep | 7 | 28–44 moves |
+| Easy | 3 units | 3 | 2 | 4–7 moves |
+| Normal | 6 units | 6 | 3 | 9–15 moves |
+| Hard | 12 units | 10 | 5 | 21–29 moves |
+| Extra Hard | 18 units | 16 | 7 | 36–49 moves |
 
-Merge Colors offers the same four:
+Merge Colors offers the same four, but stops at seven jars:
 
 | Mode | Big jar | Jars | In the way | Par |
 |------|---------|------|------------|-----|
-| Easy | 3 units | 4 | 1 | 4–9 moves |
-| Normal | 5 units | 5 | 2 | 9–16 moves |
-| Hard | 6 units | 6 | 3 | 15–19 moves |
-| Extra Hard | 7 units | 7 deep | 5 | 20–28 moves |
+| Easy | 3 units | 3 | 1 | 5–10 moves |
+| Normal | 5 units | 6 | 3 | 10–17 moves |
+| Hard | 5 units | 7 | 5 | 16–21 moves |
+| Extra Hard | 7 units | 7 deep | 5 | 21–29 moves |
+
+**Why merge stops at seven where Sort Colors reaches sixteen.** Not an
+oversight — every wider shape was measured, timing a whole deal end to end with
+its retries, since a random puzzle is dealt while somebody waits:
+
+| Shape | Par | Median deal | Worst |
+|-------|-----|-------------|-------|
+| 7 jars, 6 deep, big jar 6 | 22–27 | 169ms | 499ms |
+| 8 jars, 5 deep, big jar 4 | 11–19 | 89ms | 195ms |
+| 8 jars, 5 deep, big jar 5 | 14–20 | 498ms | 2,669ms |
+| 8 jars, 6 deep, big jar 4 | 14–20 | 4,135ms | 11,067ms |
+| 8 jars, 6 deep, big jar 5 | 14–20 | 16,624ms | 106,296ms |
+
+Eight jars is affordable only with a target so small the board comes out
+*easier* than seven — par 11–19 against 22–27 — and adding depth to win that
+back costs seconds a deal. Ten jars needs a target of four or less and still
+takes a second and a half; eleven, twelve and sixteen produce nothing at all
+inside 200,000 states. Width and difficulty trade against each other here, and
+seven jars is where the trade stops being worth making.
+
+Sort Colors has no such problem because its bound is near-exact: a sixteen-jar
+board deals in about 11ms, worst measured 22ms.
+
+Par is also deliberately kept short of the ceiling. Sixteen jars eight deep
+with a big jar of thirty measures par 62–76, which is campaign territory and
+too much to hand somebody who just tapped for a new puzzle — so Extra Hard
+takes the same sixteen jars at six deep and lands at 36–49. The width is the
+step up; the length of the solution is not.
 
 A random puzzle is dealt while somebody waits, and this game's search has no
 tight bound to lean on, so what a setting can ask for is limited by what can be
