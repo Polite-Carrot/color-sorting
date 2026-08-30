@@ -33,7 +33,7 @@ require(J + 'merge.js'); require(J + 'merge-generator.js');
 const C = globalThis.Colour, M = globalThis.Merge, { Game } = globalThis.Engine;
 const G = globalThis.MergeGenerator;
 
-const TOTAL = 200, TAUGHT = 5;
+const TOTAL = 250, TAUGHT = 5;
 const LABEL = { easy: 'Easy', normal: 'Normal', hard: 'Hard', extraHard: 'Extra Hard' };
 const PROVABLE_JARS = 7;
 /* What the search was given while these seeds were picked. It has to match, or
@@ -244,7 +244,59 @@ const LADDER = [
   [197, 'hard', 10, 4300017, 28],
   [198, 'extraHard', 10, 4400021, 29],
   [199, 'extraHard', 10, 4400038, 31],
-  [200, 'extraHard', 10, 4400018, 30]
+  [200, 'extraHard', 10, 4400018, 30],
+
+  /* Levels 201-250: another block at ten jars. */
+  [201, 'easy', 10, 5100018, 11],
+  [202, 'normal', 10, 5200012, 17],
+  [203, 'hard', 10, 5300004, 20],
+  [204, 'extraHard', 10, 5400002, 22],
+  [205, 'easy', 10, 5100019, 12],
+  [206, 'normal', 10, 5200003, 18],
+  [207, 'hard', 10, 5300009, 20],
+  [208, 'extraHard', 10, 5400004, 22],
+  [209, 'easy', 10, 5100020, 13],
+  [210, 'normal', 10, 5200033, 19],
+  [211, 'hard', 10, 5300013, 20],
+  [212, 'extraHard', 10, 5400013, 22],
+  [213, 'easy', 10, 5100004, 14],
+  [214, 'normal', 10, 5200007, 20],
+  [215, 'hard', 10, 5300015, 21],
+  [216, 'extraHard', 10, 5400012, 23],
+  [217, 'easy', 10, 5100007, 14],
+  [218, 'normal', 10, 5200008, 20],
+  [219, 'hard', 10, 5300010, 22],
+  [220, 'extraHard', 10, 5400001, 24],
+  [221, 'easy', 10, 5100002, 15],
+  [222, 'normal', 10, 5200004, 21],
+  [223, 'hard', 10, 5300026, 22],
+  [224, 'extraHard', 10, 5400015, 24],
+  [225, 'easy', 10, 5100003, 15],
+  [226, 'normal', 10, 5200009, 21],
+  [227, 'hard', 10, 5300006, 23],
+  [228, 'extraHard', 10, 5400011, 25],
+  [229, 'easy', 10, 5100011, 16],
+  [230, 'normal', 10, 5200001, 22],
+  [231, 'hard', 10, 5300018, 23],
+  [232, 'extraHard', 10, 5400029, 25],
+  [233, 'easy', 10, 5100015, 16],
+  [234, 'normal', 10, 5200006, 23],
+  [235, 'hard', 10, 5300001, 24],
+  [236, 'extraHard', 10, 5400003, 26],
+  [237, 'easy', 10, 5100017, 17],
+  [238, 'normal', 10, 5200016, 23],
+  [239, 'hard', 10, 5300003, 25],
+  [240, 'extraHard', 10, 5400005, 26],
+  [241, 'easy', 10, 5100006, 18],
+  [242, 'normal', 10, 5200013, 24],
+  [243, 'hard', 10, 5300008, 26],
+  [244, 'extraHard', 10, 5400006, 27],
+  [245, 'easy', 10, 5100009, 19],
+  [246, 'normal', 10, 5200020, 27],
+  [247, 'hard', 10, 5300047, 28],
+  [248, 'extraHard', 10, 5400033, 29],
+  [249, 'extraHard', 10, 5400008, 28],
+  [250, 'extraHard', 10, 5400009, 28]
 ];
 
 /* The shape a slot deals at, derived the way the Random Puzzle screen derives
@@ -392,7 +444,18 @@ const ADJECTIVES = ['Stirred', 'Folded', 'Steeped', 'Tinted', 'Blended', 'Swirle
   'Veiled', 'Filmed', 'Anodised', 'Patinaed', 'Oxidised',
   'Tarnished', 'Burnished', 'Gilded', 'Leafed', 'Inlaid',
   'Nielloed', 'Cloisonne', 'Champleve', 'Slipped', 'Engobed',
-  'Underglazed', 'Overglazed', 'Lustred', 'Sintered', 'Quenching'];
+  'Underglazed', 'Overglazed', 'Lustred', 'Sintered', 'Quenching',
+  /* Levels 201-250. */
+  'Braiding', 'Twisting', 'Plying', 'Spinning', 'Carding',
+  'Combing', 'Drafting', 'Roving', 'Slubbing', 'Doubling',
+  'Winding', 'Skeining', 'Hanking', 'Reeling', 'Warping',
+  'Beaming', 'Sleying', 'Threading', 'Picking', 'Beating',
+  'Shedding', 'Treadling', 'Weaving', 'Fulling', 'Napping',
+  'Shearing', 'Pressing', 'Calendering', 'Mangling', 'Sizing',
+  'Dressing', 'Bleaching', 'Scouring', 'Mordanting', 'Dyeing',
+  'Rinsing', 'Wringing', 'Drying', 'Airing', 'Folding',
+  'Baling', 'Bundling', 'Stacking', 'Sorting', 'Grading',
+  'Tallying', 'Weighing', 'Marking', 'Sealing', 'Dispatching'];
 if (ADJECTIVES.length < TOTAL - TAUGHT)
   throw new Error('ADJECTIVES has ' + ADJECTIVES.length + ' names, ' +
     (TOTAL - TAUGHT) + ' dealt levels need naming');
