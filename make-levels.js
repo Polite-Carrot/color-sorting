@@ -1,4 +1,12 @@
 #!/usr/bin/env node
+/* SUPERSEDED — js/levels.js is now built by tools/build-campaign.js.
+ *
+ * Running this file would overwrite the seeded campaign with the older dealt
+ * one. It is kept because the five hand-written teaching levels below are the
+ * source those five came from, and because the ramp machinery is worth reading
+ * if the campaign is ever rebuilt from scratch. Do not run it expecting to
+ * refresh the campaign.
+ */
 /* make-levels.js — build the 100-level campaign into js/levels.js.
  *
  *   node make-levels.js
