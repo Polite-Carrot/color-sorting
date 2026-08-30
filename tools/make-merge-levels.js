@@ -1,4 +1,26 @@
 #!/usr/bin/env node
+/* Sort Colors builds its campaign from seeds dealt by the Random Puzzle
+ * generator (see tools/build-campaign.js). That does not transfer to this
+ * mode, and the reason is measured rather than suspected.
+ *
+ * A campaign board here has to do two things a random one never does: answer
+ * a hint after the player has strayed off the stored path, and survive being
+ * played carelessly. Both bite hard.
+ *
+ *   - The hint is a live search with an eight second cap, which is what the
+ *     30,000 state ceiling below stands for. Seven jars settles inside it at
+ *     around 23,000 states. Eight, nine and ten do not settle at all -- so a
+ *     stuck player on a wide shelf would be told the board is too tangled to
+ *     work out. Width past seven is therefore unusable here, however cheap it
+ *     is to deal.
+ *   - A narrow shelf at a hard setting has no spare room, so ordinary careless
+ *     play deadlocks it. Screening the random generator's own presets against
+ *     both gates, seventy deals a cell yielded nothing usable at all for Extra
+ *     Hard at four, five or six jars, or for Hard at six.
+ *
+ * Which is why this file defines its own shape spaces rather than reaching for
+ * the random presets: those are tuned for a board somebody plays once, not for
+ * one that has to hold up under a hint and a bad run of moves. */
 /* make-merge-levels.js — build the Merge Colours levels into js/merge-levels.js.
  *
  *   node tools/make-merge-levels.js
