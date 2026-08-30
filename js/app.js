@@ -547,6 +547,7 @@
   /* ───────── starting a level ───────── */
 
   function startLevel(level, mode) {
+    closeStuck();
     state.game = new window.Engine.Game(level);
     state.hintsLeft = hintAllowance(state.game.par);
     state.followed = level.path && level.path.length ? level.path : null;
@@ -937,19 +938,82 @@
     state.onPath = (from === fromId && to === toId) ? state.onPath + 1 : -1;
   }
 
+  function doUndo() {
+    if (!state.game || !state.game.undo()) return false;
+    /* Undo walks back along the stored solution as well: a position one move
+       back from the path is on the path. Somebody who had strayed stays
+       strayed, unless they have undone all the way to the start. */
+    if (state.onPath > 0) state.onPath--;
+    else if (state.game.moves === 0 && state.game.level.path) {
+      state.followed = state.game.level.path;
+      state.onPath = 0;
+    } else state.onPath = -1;
+    state.selected = null;
+    clearHintMarks();
+    Sound.pick();
+    setStatus('Undone.', '');
+    refresh();
+    return true;
+  }
+
+  function doRestart() {
+    if (!state.game) return;
+    closeStuck();
+    state.game.restart();
+    /* A restart is a fresh attempt, so the hints come back with it. Undo is
+       deliberately not the same thing — that would make the ration free. */
+    state.hintsLeft = hintAllowance(state.game.par);
+    state.followed = state.game.level.path || null;
+    state.onPath = state.followed ? 0 : -1;
+    state.selected = null;
+    clearTimeout(state.hintTimer);
+    clearHintMarks();
+    setStatus('Back to the start.', '');
+    refresh();
+  }
+
   /* Say so early when a position can no longer be finished, rather than
-     leaving someone to discover it several moves later. */
+     leaving someone to discover it several moves later.
+
+     This used to be a line of status text, which is easy to miss and leaves
+     the player looking for the way out on their own. It now raises the same
+     card the win uses, with the ways out on it. Two different endings share
+     it: no legal move at all, and legal moves that lead nowhere. */
   function watchForDeadEnd() {
     var g = state.game;
-    if (!g.hasMoves()) {
-      setStatus('No moves left. Undo, or restart.', 'warn');
-      return;
-    }
+    if (!g.hasMoves()) { showStuckCard('nomoves'); return; }
     var check = solverFor(g).solve(g.position(), WATCH_BUDGET, WATCH_MS);
-    if (!check.budgetExceeded && check.par == null) {
-      setStatus('This position cannot be finished any more — undo a move.', 'warn');
-    }
+    if (!check.budgetExceeded && check.par == null) showStuckCard('unwinnable');
   }
+
+  function showStuckCard(why) {
+    var g = state.game;
+    if (!g || g.won) return;
+
+    $('stuck-swatch').style.background = C.hex(g.target);
+    $('stuck-title').textContent = why === 'nomoves' ? 'No moves left' : 'No way on from here';
+    $('stuck-line').textContent = (why === 'nomoves'
+      ? 'Nothing on the shelf will pour anywhere.'
+      : 'There are moves left, but none of them finish the jar.') +
+      ' ' + g.moves + (g.moves === 1 ? ' move' : ' moves') + ' in.';
+
+    /* Undo is the gentlest way out, so it leads -- unless there is nothing to
+       undo, which means the board arrived like this and only a restart or a
+       different puzzle helps. */
+    var undo = $('stuck-undo');
+    undo.hidden = !g.canUndo();
+
+    /* Offered only where there IS another one to try. A campaign level is a
+       particular puzzle; being handed a different one instead is not a way
+       through it. */
+    var another = $('stuck-another');
+    another.hidden = state.mode !== 'random';
+
+    $('stuck').hidden = false;
+    (undo.hidden ? $('stuck-retry') : undo).focus();
+  }
+
+  function closeStuck() { $('stuck').hidden = true; }
 
   /* The hint marks its pair of jars. Cleared as soon as play resumes, so a
      stale ring never points at a move that has already been made. */
@@ -1145,7 +1209,10 @@
       return;
     }
     if (result.par == null) {
-      setStatus('There is no way to finish from this position. Undo, or restart.', 'warn');
+      /* The same ending the watcher raises, reached by asking instead of by
+         playing on, so it gets the same card and the same ways out. The hint
+         is not spent on it: there was no move to give. */
+      showStuckCard('unwinnable');
       return;
     }
     if (!result.path.length) return;
@@ -1235,37 +1302,10 @@
       showScreen(state.from);
     });
 
-    $('undo').addEventListener('click', function () {
-      if (state.game && state.game.undo()) {
-        /* Undo walks back along the stored solution as well: a position one
-           move back from the path is on the path. Somebody who had strayed
-           stays strayed, unless they have undone all the way to the start. */
-        if (state.onPath > 0) state.onPath--;
-        else if (state.game.moves === 0 && state.game.level.path) {
-          state.followed = state.game.level.path;
-          state.onPath = 0;
-        } else state.onPath = -1;
-        state.selected = null;
-        clearHintMarks();
-        Sound.pick();
-        setStatus('Undone.', '');
-        refresh();
-      }
-    });
+    $('undo').addEventListener('click', function () { doUndo(); });
 
     $('restart').addEventListener('click', function () {
-      if (!state.game) return;
-      state.game.restart();
-      /* A restart is a fresh attempt, so the hints come back with it. Undo is
-         deliberately not the same thing — that would make the ration free. */
-      state.hintsLeft = hintAllowance(state.game.par);
-      state.followed = state.game.level.path || null;
-      state.onPath = state.followed ? 0 : -1;
-      state.selected = null;
-      clearTimeout(state.hintTimer);
-      clearHintMarks();
-      setStatus('Back to the start.', '');
-      refresh();
+      doRestart();
     });
 
     $('hint').addEventListener('click', doHint);
@@ -1292,6 +1332,25 @@
       setStatus('', '');
     });
     $('win-menu').addEventListener('click', function () { closeOverlay(); showScreen(state.from); });
+
+    /* The stuck card's ways out. Undo and restart re-check the position rather
+       than assuming they fixed it: undoing one move out of a dead end can land
+       on another one, and saying nothing there would be worse than the status
+       line this replaced. */
+    $('stuck-undo').addEventListener('click', function () {
+      closeStuck();
+      if (doUndo()) watchForDeadEnd();
+    });
+    $('stuck-retry').addEventListener('click', function () {
+      closeStuck();
+      doRestart();
+    });
+    $('stuck-another').addEventListener('click', function () {
+      closeStuck();
+      $('seed-input').value = '';
+      startRandom();
+    });
+    $('stuck-menu').addEventListener('click', function () { closeStuck(); showScreen(state.from); });
 
     $('how-to').addEventListener('click', function () { openModal('howto', 'howto-close'); });
     $('howto-close').addEventListener('click', function () { $('howto').hidden = true; $('how-to').focus(); });
@@ -1487,6 +1546,14 @@
     }
     if (!$('overlay').hidden) {
       if (e.key === 'Escape') { closeOverlay(); showScreen(state.from); }
+      return;
+    }
+    /* Escape leaves the stuck card on the board rather than on the menu: the
+       player may want to look at the shelf before choosing. The card can be
+       raised again by the next move, and undo and restart are still on the
+       toolbar. */
+    if (!$('stuck').hidden) {
+      if (e.key === 'Escape') { closeStuck(); }
       return;
     }
     if (!$('screen-game').classList.contains('is-active') || !state.game) return;

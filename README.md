@@ -844,6 +844,37 @@ refuses to run rather than pass vacuously.
 | 2 | Normal | The same search run with a deliberately weaker bound — still never an overestimate, so it must agree, but it takes a very different route (~350x more states) |
 | 3 | Normal, hard, extra hard | The bound itself: walking real solutions and confirming it never claims more moves are needed than the remaining path actually takes (it is exactly right 94% of the time) |
 
+## When there is no way on
+
+A position that can no longer be finished used to be a line of status text
+under the board — easy to miss, and it left the player to work out the way out
+on their own. It now raises the same card the win uses, with the ways out on
+it: **Undo last move**, **Restart level**, **Menu**, and on a random puzzle
+**Another puzzle**, since there a different board really is a reasonable answer
+where on a campaign level it is not.
+
+Two different endings share the card. Having no legal move at all is titled
+*No moves left*; having moves that lead nowhere is *No way on from here*. The
+second is far and away the common one — the generator guarantees every board
+starts winnable, so a shelf with nothing to pour is close to unreachable.
+
+Three details are deliberate:
+
+- **Undo leads, and is hidden when there is nothing to undo.** It is the
+  gentlest way out. If the board arrived unwinnable, only a restart or a
+  different puzzle helps, so the button that cannot help is not offered.
+- **Undo re-checks rather than assuming it worked.** One move back out of a
+  dead end can land on another one, and going quiet there would be worse than
+  the status line this replaced — so the card comes straight back, and the
+  player knows to keep undoing.
+- **Escape dismisses it onto the board, not to the menu.** Someone may want to
+  look at the shelf before choosing. The card returns on the next move, and
+  undo and restart are still on the toolbar.
+
+The hint reaches the same conclusion by asking rather than by playing on, so it
+raises the same card. It does not spend a hint doing it: there was no move to
+give.
+
 ## Hints
 
 A hint works the next move out from wherever the player actually is, not from

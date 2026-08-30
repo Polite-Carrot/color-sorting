@@ -217,6 +217,21 @@
     </div>
   </div>
 
+  <!-- ─────────────── stuck ─────────────── -->
+  <div id="stuck" class="overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="stuck-title">
+      <div class="modal__swatch modal__swatch--stuck" id="stuck-swatch"></div>
+      <h2 id="stuck-title">No way on from here</h2>
+      <p class="modal__line" id="stuck-line"></p>
+      <div class="modal__actions">
+        <button id="stuck-undo" class="btn btn--primary">Undo last move</button>
+        <button id="stuck-retry" class="btn">Restart level</button>
+        <button id="stuck-another" class="btn" hidden>Another puzzle</button>
+        <button id="stuck-menu" class="btn btn--ghost">Menu</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ─────────────── help ─────────────── -->
   <div id="howto" class="overlay" hidden>
     <div class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="howto-title">
