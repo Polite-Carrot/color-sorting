@@ -47,6 +47,36 @@
       blurb: 'Fourteen jars, seven colors, and a big jar that takes some filling.',
       mainCap: 16, sideJars: 14, sideCap: 6, fillers: 7, fillerUnits: 40,
       burial: 0.6, sizeUp: 600, par: [32, 48]
+    },
+    /* The same fourteen jars, half again as deep. Depth rather than width,
+       because width has run out: fourteen is where the shelf still reads as a
+       shelf on a phone, while depth had never been used at all -- every other
+       setting takes the jar height it ships with, four to six.
+
+       126 cells against Extra Hard's 84, and par follows the unit count as it
+       always does: 59 median against 35, on a big jar of twenty-four. The big
+       jar is drawn the same size either way -- more bands in it, not a taller
+       jar -- so the board's proportions do not change. A deal stays under
+       25ms.
+
+       This setting SCROLLS THE SHELF on a phone, and that is the whole cost of
+       it. Dealt through the Random screen at 390px and measured, the shapes
+       the fitter can show whole at fourteen jars stop at seven deep (par 42),
+       and the only other whole-shelf shape worth having is ten jars eight deep
+       (par 34). Eight deep and nine both fall through to the scrolling
+       fallback, where the fitter picks large jars -- 139px wide, bands of 28px
+       -- and the shelf runs past the bottom of the screen.
+
+       So there is no harder board that also fits: par beyond about 42 costs
+       the whole-shelf view. Given that, the fallback is a good trade here --
+       the bands are twice as tall as a fitted board's and every jar is
+       reachable by scrolling -- but it is a trade, and it is why no earlier
+       setting goes deeper. */
+    expert: {
+      label: 'Expert',
+      blurb: 'Fourteen jars nine deep, and a big jar taking twenty-four.',
+      mainCap: 24, sideJars: 14, sideCap: 9, fillers: 7, fillerUnits: 60,
+      burial: 0.6, sizeUp: 250000, par: [48, 70]
     }
   };
 

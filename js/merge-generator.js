@@ -89,6 +89,22 @@
          player picks that width exactly, so this is the only way to land them
          somewhere other than the preset's own shelf. */
       defaultJars: 10
+    },
+    /* Seven jars a unit deeper. Modest, and that is the ceiling rather than a
+       choice: merge cannot widen past ten and cannot deepen much past this.
+
+       Measured over ten deals at seven jars, eight deep reaches par 36 but the
+       hint answers on only five of them -- a merge hint off the stored path is
+       a live search, and half the boards are past what it can settle. Seven
+       deep answers on nine of ten and costs 346ms against 907ms. So seven, and
+       the step up over Extra Hard is real but small: par 28-36 against 21-30.
+       If the mode is ever to get properly harder it needs a tighter bound, not
+       a bigger board. */
+    expert: {
+      label: 'Expert',
+      blurb: 'Seven jars seven deep, and everything in the way of everything.',
+      mainCap: 8, sideJars: 7, sideCap: 7, fillers: 5, fillerUnits: 17,
+      burial: 0.6, churn: 0.65, sizeUp: 250000, par: [28, 36]
     }
   };
 

@@ -103,7 +103,7 @@
 
   /* Random puzzles come in both games. The setting names are shared, but each
      game has its own shapes behind them. */
-  var RANDOM_KEYS = ['easy', 'normal', 'hard', 'extraHard'];
+  var RANDOM_KEYS = ['easy', 'normal', 'hard', 'extraHard', 'expert'];
 
   /* How wide the shelf may be dealt, per game. Sort Colors stops at fourteen —
      its search would go wider happily enough (a sixteen-jar board deals in

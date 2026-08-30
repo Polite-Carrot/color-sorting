@@ -604,6 +604,52 @@ more deals land in the intended range, so far fewer are dealt and thrown
 away — which is why the largest boards are quick to produce rather than the
 slowest.
 
+## The fifth setting
+
+Easy, Normal, Hard and Extra Hard are joined by **Expert**, and it exists
+because the campaign had run out of room. Every other setting takes the jar
+height it ships with — four to six deep — so once the shelf reached fourteen
+jars there was nothing left to turn. Expert turns depth instead: fourteen jars
+**nine** deep for Sort Colors, seven jars **seven** deep for Merge.
+
+It is additive on purpose. The four existing settings are untouched, so all 450
+campaign levels still deal exactly the boards they were built from — checked by
+re-dealing sampled seeds from both ladders and comparing par — and no daily
+puzzle moves.
+
+|  | Sort Colors | Merge Colors |
+|---|---|---|
+| Shape | 14 jars × 9 deep | 7 jars × 7 deep |
+| Big jar | 24 | 8 |
+| Par | 54–66 measured | 28–34 measured |
+| Deal | 9ms median, 25ms worst | 850ms median, 2.8s worst |
+
+**Sort Colors Expert scrolls the shelf on a phone, and that is its whole cost.**
+Dealt through the Random screen at 390px and measured, the shapes the fitter
+can show whole at fourteen jars stop at seven deep (par 42); the only other
+whole-shelf shape worth having is ten jars eight deep (par 34). Eight and nine
+deep both fall through to the scrolling fallback, where the fitter picks large
+jars — 139px wide, 28px bands — and the shelf runs past the bottom of the
+screen.
+
+So there is no harder board that also fits: par past about 42 costs the
+whole-shelf view. The trade is a reasonable one here, since the bands come out
+twice as tall as a fitted board's and every jar is reachable by scrolling, but
+it is a trade, and it is why no other setting goes deeper. An earlier note in
+this file claimed nine deep fitted whole at 10.9px bands; that came from
+injecting a board into the campaign list rather than dealing one, and it did
+not survive being measured on the real path.
+
+**Merge Expert is a small step, and that is the ceiling rather than a choice.**
+Eight deep reaches par 36 but the hint answers on only five boards in ten — a
+merge hint off the stored path is a live search, and half the boards are past
+what it can settle. Seven deep answers on nine in ten and costs 346ms against
+907ms. So seven, and par 28–34 against Extra Hard's 21–30. For the mode to get
+properly harder it needs a tighter bound, not a bigger board.
+
+The fifth button costs the Random Puzzle screen 62px — the settings row goes
+from three rows to four at 390px.
+
 ## Running on a phone
 
 The game is wrapped as a native app with Capacitor, which puts the same web
