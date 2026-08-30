@@ -1186,11 +1186,6 @@ body.cb-assist .band span { visibility: visible; }
   border: var(--stroke) solid var(--ink);
   box-shadow: 0 5px 0 var(--ink);
 }
-/* The win card's swatch is the colour you just made, shown proudly. The stuck
-   card shows the same colour for the same reason -- it says which puzzle this
-   was -- but muted, because nothing has been achieved. */
-.modal__swatch--stuck { filter: saturate(0.45) brightness(0.85); }
-
 .modal__actions {
   display: flex;
   gap: 10px;

@@ -858,6 +858,11 @@ Two different endings share the card. Having no legal move at all is titled
 second is far and away the common one — the generator guarantees every board
 starts winnable, so a shelf with nothing to pour is close to unreachable.
 
+The swatch is the colour the big jar wants, at exactly the value the jar
+paints it — `Colour.hex(target)`, the same as the win card. It was briefly
+muted, on the reasoning that nothing had been achieved, which just made it a
+different colour from the one on screen.
+
 Three details are deliberate:
 
 - **Undo leads, and is hidden when there is nothing to undo.** It is the
