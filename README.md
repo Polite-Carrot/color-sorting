@@ -92,9 +92,9 @@ the par past 43 comes from.
 Each level unlocks the next. See **Keeping progress** below for how stars and
 best scores are stored.
 
-**Merge Colors** — one hundred and fifty levels, and a rule the ordinary game
-does not have. Built the same way as Sort Colors: five taught levels, then
-seeded deals along a ladder that widens the shelf three jars to ten.
+**Merge Colors** — two hundred levels, and a rule the ordinary game does not
+have. Built the same way as Sort Colors: five taught levels, then seeded deals
+along a ladder that widens the shelf three jars to ten.
 
 | Levels | | Par |
 |--------|--|-----|
@@ -107,6 +107,11 @@ seeded deals along a ladder that widens the shelf three jars to ten.
 | 74–97 | Eight jars | 12–25 |
 | 98–121 | Nine jars | 13–27 |
 | 122–150 | Ten jars | 13–28 |
+| 151–200 | Ten jars again, on fresh seeds | 11–31 |
+
+From 151 the shelf has nowhere left to go — ten jars is the widest merge can
+be, and its depth is too expensive to search — so those levels are more boards
+in the same band rather than harder ones.
 
 Past seven jars a merge board is wider than the hint's live search can settle.
 A merge level carries its solution, so a hint costs nothing while the player
@@ -760,13 +765,15 @@ add them as `LADDER` rows. Two things to hold to:
 - **Every seed must be unique across the table.** Two rows carrying the same
   seed at the same shape are the same board twice. The builder does not check
   this, so it is on whoever adds them. `LADDER` currently holds 195 unique
-  seeds for Sort Colors and 145 for Merge, with no repeats in either.
+  seeds for Sort Colors and 195 for Merge, with no repeats in either.
 - **Start above the blocks already in use.** Each existing slot owns a distinct
   hundred thousand — Easy at four jars is `100000+`, Normal at four is
   `200000+` — purely so a seed says at a glance which slot it came from. Sort
-  Colors runs up to `502400000` and Merge to `3200000`, so begin a new block
-  above those: `600000000+` and `4000000+` respectively. Reaching for a round
+  Colors runs up to `502400000` and Merge to `4400000`, so begin a new block
+  above those: `600000000+` and `5000000+` respectively. Reaching for a round
   number like `900001` picks a block that is already taken in both modes.
+  Levels 151-200 of Merge were added at `4100000`-`4400000`, which is why the
+  figure to clear moved — check the table rather than trusting this line.
 
 There is no shortage. A seed is a 32-bit integer, so every slot has
 4,294,967,296 of them, and they do not collapse onto each other: 1,500 seeds
@@ -775,7 +782,7 @@ other slot tried gave a different board for every single seed.
 
 What does run out is par. Both ladders are already at their widest shelf, so a
 new level appended at the top is another board in the same band, not a harder
-one — around par 43–50 for Sort Colors and 28 for Merge. Going beyond that
+one — around par 43–50 for Sort Colors and 31 for Merge. Going beyond that
 needs depth, which for Sort Colors means the sixth column and for Merge means
 boards too expensive to search.
 
@@ -798,7 +805,7 @@ js/colour.js      the palette, and how far apart two colors look
 js/levels.js      generated — the 200 Sort Colors levels
 js/merge.js       Merge Colors: the recipes, and its own search  (no DOM)
 js/merge-generator.js  seeded random Merge Colors puzzles  (no DOM)
-js/merge-levels.js  generated — the 150 Merge Colors levels
+js/merge-levels.js  generated — the 200 Merge Colors levels
 js/daily.js       the daily schedule, seeds, calendar grid and streak  (no DOM)
 js/engine.js      stacked jars, pouring, undo, win check  (no DOM)
 js/solver.js      best-first search: par, hints, solvability  (no DOM)
@@ -1133,7 +1140,7 @@ Two things follow from that, and both are worth knowing:
 - With the letters off by default, there is nothing else distinguishing that
   pair unless the player finds the setting.
 
-This is a palette matter, not a puzzle one: every one of the 350 campaign
+This is a palette matter, not a puzzle one: every one of the 400 campaign
 levels solves at exactly the stored figure. A cyan at least 150 from teal, or
 letters back on by default, would settle it for random and daily puzzles too.
 
@@ -1153,5 +1160,6 @@ any lookalike it found — including one on a board already shipped. Adding the
 fifth ramp was blocked outright by it: the build died on level 8, a board dealt
 long before the palette moved under it. A level being dealt is still refused
 for a lookalike pair; a level already on disk is reported and the build carries
-on. 80 of the 150 Sort Colors levels and 2 of the 150 Merge Colors levels are
-reported every run.
+on. That mattered when 80 of the 150 Sort Colors levels and 2 of the 150 Merge
+Colors levels carried the pair. Both campaigns have since been rebuilt from
+seeds, with the 150 rule applied at deal time, and neither reports anything.
