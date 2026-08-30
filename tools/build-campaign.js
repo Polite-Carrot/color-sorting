@@ -31,10 +31,18 @@ require(J + 'merge.js'); require(J + 'merge-generator.js');
 const C = globalThis.Colour, S = globalThis.Solver, { Game } = globalThis.Engine;
 const G = globalThis.Generator;
 
-const TOTAL = 150, TAUGHT = 5;
+const TOTAL = 200, TAUGHT = 5;
 const LABEL = { easy: 'Easy', normal: 'Normal', hard: 'Hard', extraHard: 'Extra Hard' };
 
-/* [level, setting, jars, seed, par-it-was-chosen-for] */
+/* [level, setting, jars, seed, par-it-was-chosen-for, jar depth (optional)]
+ *
+ * Depth is absent for levels 6-150, which take the jar height their setting
+ * ships with. From 151 it is given, because depth is the axis the width ladder
+ * never uses and the one that lifts par once the shelf cannot get any wider:
+ * measured at fourteen jars, going from six deep to seven takes par from 29 to
+ * 49, and the solver does not notice -- a deal is still under ten milliseconds.
+ * Nine deep is the ceiling, and not for the search but for the screen: at ten
+ * the fitter can no longer show a whole shelf on a 390px phone. */
 const LADDER = [
   [6, 'easy', 4, 100005, 7],
   [7, 'normal', 4, 200011, 8],
@@ -180,7 +188,59 @@ const LADDER = [
   [147, 'extraHard', 14, 4400078, 37],
   [148, 'extraHard', 14, 4400048, 43],
   [149, 'extraHard', 14, 4400023, 36],
-  [150, 'extraHard', 14, 4400024, 36]
+  [150, 'extraHard', 14, 4400024, 36],
+
+  /* Levels 151-200: the depth-7 block. */
+  [151, 'easy', 9, 500100004, 26, 7],
+  [152, 'normal', 9, 500200027, 27, 7],
+  [153, 'hard', 9, 500300018, 28, 7],
+  [154, 'extraHard', 9, 500400012, 29, 7],
+  [155, 'easy', 10, 500500005, 29, 7],
+  [156, 'normal', 10, 500600008, 30, 7],
+  [157, 'hard', 10, 500700002, 31, 7],
+  [158, 'extraHard', 10, 500800004, 32, 7],
+  [159, 'easy', 11, 500900011, 29, 7],
+  [160, 'normal', 11, 501000004, 30, 7],
+  [161, 'hard', 11, 501100002, 32, 7],
+  [162, 'extraHard', 11, 501200023, 33, 7],
+  [163, 'easy', 11, 500900006, 33, 7],
+  [164, 'normal', 11, 501000006, 35, 7],
+  [165, 'hard', 11, 501100004, 36, 7],
+  [166, 'extraHard', 11, 501200001, 37, 7],
+  [167, 'easy', 12, 501300011, 32, 7],
+  [168, 'normal', 12, 501400005, 33, 7],
+  [169, 'hard', 12, 501500009, 34, 7],
+  [170, 'extraHard', 12, 501600002, 35, 7],
+  [171, 'easy', 12, 501300014, 35, 7],
+  [172, 'normal', 12, 501400013, 36, 7],
+  [173, 'hard', 12, 501500001, 39, 7],
+  [174, 'extraHard', 12, 501600001, 40, 7],
+  [175, 'easy', 13, 501700004, 34, 7],
+  [176, 'normal', 13, 501800004, 35, 7],
+  [177, 'hard', 13, 501900011, 36, 7],
+  [178, 'extraHard', 13, 502000002, 37, 7],
+  [179, 'easy', 13, 501700001, 38, 7],
+  [180, 'normal', 13, 501800080, 39, 7],
+  [181, 'hard', 13, 501900015, 40, 7],
+  [182, 'extraHard', 13, 502000034, 41, 7],
+  [183, 'easy', 13, 501700014, 41, 7],
+  [184, 'normal', 13, 501800006, 42, 7],
+  [185, 'hard', 13, 501900003, 43, 7],
+  [186, 'extraHard', 13, 502000012, 44, 7],
+  [187, 'easy', 14, 502100014, 36, 7],
+  [188, 'normal', 14, 502200004, 37, 7],
+  [189, 'hard', 14, 502300005, 40, 7],
+  [190, 'extraHard', 14, 502400003, 41, 7],
+  [191, 'easy', 14, 502100001, 38, 7],
+  [192, 'normal', 14, 502200005, 39, 7],
+  [193, 'hard', 14, 502300001, 44, 7],
+  [194, 'extraHard', 14, 502400017, 45, 7],
+  [195, 'easy', 14, 502100002, 42, 7],
+  [196, 'normal', 14, 502200016, 43, 7],
+  [197, 'hard', 14, 502300003, 48, 7],
+  [198, 'extraHard', 14, 502400043, 49, 7],
+  [199, 'extraHard', 14, 502400006, 50, 7],
+  [200, 'extraHard', 14, 502400024, 50, 7]
 ];
 
 /* The shape a slot deals at is derived exactly as the Random Puzzle screen
@@ -204,17 +264,36 @@ function liftShapeFor() {
 }
 const shapeFor = liftShapeFor();
 
-function shapeOf(tier, jars) {
+function shapeOf(tier, jars, depth) {
+  if (depth) return deepShape(tier, jars, depth);
   const derived = shapeFor(tier, jars);
   if (derived) return derived;
   return Object.assign({}, G.DIFFICULTY[tier], { par: [1, 999] });
+}
+
+/* Depth is not something shapeFor can express: the Random Puzzle screen has no
+   depth control, so its rule derives everything from width alone. This is that
+   same arithmetic with the jar height given rather than read off the setting.
+   Kept separate rather than folded into shapeFor, so the screen's behaviour is
+   never changed by a campaign requirement. */
+function deepShape(tier, jars, depth) {
+  const base = G.DIFFICULTY[tier];
+  const cells = jars * depth, slack = Math.round(cells * 0.33);
+  const mainCap = Math.max(2, Math.round(cells * (base.mainCap / (base.sideJars * base.sideCap))));
+  const fillers = Math.max(1, Math.min(7, jars - 1,
+    Math.max(base.fillers, Math.round(jars * (base.fillers / base.sideJars)))));
+  const fillerUnits = cells - slack - mainCap;
+  if (fillerUnits < fillers)
+    throw new Error(tier + '@' + jars + 'x' + depth + ': no room for obstacle colours');
+  return Object.assign({}, base, { sideJars: jars, sideCap: depth, mainCap,
+    fillers, fillerUnits, par: [1, 999], sizeUp: 250000 });
 }
 
 /* ── the checks every dealt level has to pass ──────────────────────────── */
 
 function inspect(lvl) {
   const g = new Game(lvl);
-  const solved = S.solve(g.position(), 400000, 8000);
+  const solved = S.solve(g.position(), 500000, 15000);
   if (solved.budgetExceeded) return { bad: 'solver ran out of room' };
   if (solved.par == null) return { bad: 'cannot be finished' };
   for (const mv of solved.path)
@@ -313,7 +392,18 @@ const ADJECTIVES = ['Stacked', 'Buried', 'Layered', 'Sunken', 'Packed', 'Tangled
   'Whirlpooled', 'Maelstromed', 'Vortexed', 'Spiralled', 'Helixed',
   'Coiled', 'Serpentine', 'Byzantine', 'Convoluted', 'Bewildering',
   'Confounded', 'Inextricable', 'Unfathomed', 'Uncharted', 'Terminal',
-  'Sheer'];
+  'Sheer',
+  /* Levels 151-200, the deep-jar block. */
+  'Deepened', 'Steepened', 'Trenched', 'Underlaid', 'Subsided',
+  'Compressed', 'Condensed', 'Crammed', 'Stuffed', 'Freighted',
+  'Laden', 'Weighted', 'Anchored', 'Moored', 'Berthed',
+  'Keeled', 'Hulled', 'Ribbed', 'Planked', 'Caulked',
+  'Tarred', 'Lashed', 'Rigged', 'Furled', 'Belayed',
+  'Cleated', 'Winched', 'Hauled', 'Heaved', 'Stratified',
+  'Bedded', 'Terraced', 'Tiered', 'Storeyed', 'Shelved',
+  'Stepped', 'Graded', 'Banked', 'Ledged', 'Pillared',
+  'Buttressed', 'Girdered', 'Trussed', 'Scaffolded', 'Bricked',
+  'Mortared', 'Cemented', 'Grouted', 'Slabbed', 'Flagged'];
 if (ADJECTIVES.length < TOTAL - TAUGHT)
   throw new Error('ADJECTIVES has ' + ADJECTIVES.length + ' names, ' +
     (TOTAL - TAUGHT) + ' dealt levels need naming');
@@ -337,7 +427,10 @@ function taughtSource() {
     }
   }
   if (out.length !== TAUGHT) throw new Error('found ' + out.length + ' taught levels, want ' + TAUGHT);
-  return out.map(s => '    ' + s.trim());
+  /* Their boards carry over untouched, but the subtitle counts the campaign and
+     the campaign has grown, so that one line is rewritten. */
+  return out.map(s => '    ' + s.trim().replace(/subtitle: 'Level (\d+) of \d+'/,
+    (m, n) => "subtitle: 'Level " + n + " of " + TOTAL + "'"));
 }
 
 /* ── build ─────────────────────────────────────────────────────────────── */
@@ -346,12 +439,16 @@ const CHECK = process.argv.includes('--check');
 const built = [], problems = [], warns = [];
 let lastPar = 0;
 
-for (const [level, tier, jars, seed, wantPar] of LADDER) {
-  G.DIFFICULTY.__slot = shapeOf(tier, jars);
+for (const [level, tier, jars, seed, wantPar, depth] of LADDER) {
+  G.DIFFICULTY.__slot = shapeOf(tier, jars, depth);
   const board = G.generate('__slot', seed);
 
   if (board.jars.length !== jars) {
     problems.push('level ' + level + ': dealt ' + board.jars.length + ' jars, ladder says ' + jars);
+    continue;
+  }
+  if (depth && board.jars.some(j => j.cap !== depth)) {
+    problems.push('level ' + level + ': jars are not all ' + depth + ' deep');
     continue;
   }
   const seen = inspect(board);
