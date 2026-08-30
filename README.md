@@ -61,38 +61,59 @@ and Random Puzzle — and each opens its own screen. Sort Colors' icon is a jar
 that fills with how far through you are; the daily's is a calendar page whose
 squares light up as the week is played.
 
-**Sort Colors** — one hundred and fifty levels, in order. The first five are
-written by hand and teach one rule each; the rest widen steadily from six jars
-to twenty-two, and then deepen.
+**Sort Colors** — two hundred levels, in order. The first five are written by
+hand and teach one rule each. The rest are seeded deals from the same generator
+the Random Puzzle screen uses, laid along a ladder: the shelf widens a jar at a
+time, and at each width the four settings are swept in order, several times
+over as it grows. par saws gently up inside a block and each block peaks above
+the one before it.
 
 | Levels | | Par |
 |--------|--|-----|
 | 1–5 | Taught: pouring, collecting, uncovering, how much fits, the empty jar | 2–5 |
-| 6–12 | Six to eight jars, three or four colors in the way | 7–15 |
-| 13–19 | Eight to nine jars, deeper stacks | 16–26 |
-| 20–25 | Ten to eleven deep jars, up to seven colors | 29–41 |
-| 26–31 | Twelve to thirteen jars, eight colors | 41–48 |
-| 32–37 | Jars eight deep, and the whole palette bar one | 49–51 |
-| 38–43 | A big jar taking twenty-odd, colors split across the shelf | 54–59 |
-| 44–50 | Fourteen jars eight deep, nine colors, nowhere spare to park | 59–62 |
-| 51–56 | Sixteen to eighteen jars, a big jar taking thirty | 62–67 |
-| 57–62 | The same shelf again, holding more | 67–69 |
-| 63–69 | Up to nineteen jars, ninety-odd units to move | 70–73 |
-| 70–75 | Nineteen jars, a hundred units to move | 74–83 |
-| 76–81 | Twenty jars, and colors scattered far thinner | 87–91 |
-| 82–88 | Twenty-one jars, a big jar taking forty | 93–101 |
-| 89–94 | Over a hundred moves at their shortest | 102–105 |
-| 95–100 | Twenty-two jars — the widest shelf that still shows whole | 107–114 |
-| 101–115 | The same shelf, jars **ten** deep instead of eight | 115–123 |
-| 116–130 | Up to 153 units to move, a big jar taking fifty | 123–132 |
-| 131–142 | Every color split thin across twenty-two jars | 132–138 |
-| 143–150 | 162 units — the most the shelf holds and stays winnable | 139–145 |
+| 6–9 | Four jars | 7–11 |
+| 10–13 | Five jars | 8–14 |
+| 14–21 | Six jars | 8–17 |
+| 22–29 | Seven jars | 9–19 |
+| 30–37 | Eight jars | 11–23 |
+| 38–49 | Nine jars | 11–25 |
+| 50–61 | Ten jars | 12–29 |
+| 62–73 | Eleven jars | 14–32 |
+| 74–89 | Twelve jars | 14–34 |
+| 90–105 | Thirteen jars | 16–39 |
+| 106–150 | Fourteen jars — the widest shelf a phone shows whole | 15–43 |
+| 151–200 | Fourteen jars again, but **seven** deep instead of four to six | 26–50 |
+
+Levels 6–150 vary the shelf's width and take the jar height their setting
+ships with, four to six. From 151 the shelf has nowhere left to widen, so the
+jars deepen instead and the walk up the widths starts again — which is where
+the par past 43 comes from.
 
 Each level unlocks the next. See **Keeping progress** below for how stars and
 best scores are stored.
 
 **Merge Colors** — one hundred and fifty levels, and a rule the ordinary game
-does not have.
+does not have. Built the same way as Sort Colors: five taught levels, then
+seeded deals along a ladder that widens the shelf three jars to ten.
+
+| Levels | | Par |
+|--------|--|-----|
+| 1–5 | Taught: mixing, one for one, clearing, gathering, nothing to spare | 2–4 |
+| 6–13 | Three jars | 6–10 |
+| 14–25 | Four jars | 8–15 |
+| 26–37 | Five jars | 9–18 |
+| 38–53 | Six jars | 10–22 |
+| 54–73 | Seven jars | 12–27 |
+| 74–97 | Eight jars | 12–25 |
+| 98–121 | Nine jars | 13–27 |
+| 122–150 | Ten jars | 13–28 |
+
+Past seven jars a merge board is wider than the hint's live search can settle.
+A merge level carries its solution, so a hint costs nothing while the player
+follows it; off that path, on levels 62 onwards, they are told the board is too
+tangled rather than given a move. Thirty-nine of the dealt levels can also be
+played into a position that cannot be finished, which undo or restart recovers.
+Both are the price of the ladder reaching ten jars.
 Pour a color onto one it mixes with and the two become a third, so the color
 the big jar wants is usually not on the shelf at all — it has to be made.
 
@@ -471,8 +492,11 @@ replaced, which had no estimate to get wrong — over 200 dealt boards, every pa
 identical, and with the bound itself never once claiming more moves were needed
 than the remaining solution actually took.
 
-`tools/make-merge-levels.js` builds the mode's levels and `tools/check-merge.js`
-checks them, the way `make-levels.js` does both for the Sort Colors campaign.
+`tools/build-merge-campaign.js` builds the mode's levels and `tools/check-merge.js`
+checks them, the way `tools/build-campaign.js` does for the Sort Colors campaign.
+The older `tools/make-merge-levels.js` and `make-levels.js` dealt the campaigns
+along hand-tuned ramps before the seed method replaced them; both are kept and
+marked superseded.
 The builder deals only the levels that do not yet exist: everything already in
 `js/merge-levels.js` is read back and re-verified, so adding a ramp cannot
 redeal boards people have progress against, and each dealt ramp keeps its own
@@ -528,8 +552,10 @@ ran out of budget and *not one* because it was unwinnable. That split is what
 pointed at the bound rather than at the boards. With it corrected, the first
 deal of every shape is accepted in under a second, generating a Hard random
 puzzle went from 14 seconds to 3 and an Extra Hard one from 5 seconds to under
-half of one, and a hint on the largest board in the game — twenty-two jars, 114
-moves — takes 73ms.
+half of one, and a hint on the largest board the campaign held at the time —
+twenty-two jars, 114 moves — takes 73ms. The campaign has since been rebuilt
+from seeds and its widest shelf is fourteen jars, so nothing that large ships
+any more; the measurement stands as the ceiling the solver was proved against.
 
 All of this is a claim about optimality, so it is checked rather than assumed.
 See **Checking** below.
@@ -625,95 +651,133 @@ intends — they carry the icons, splash screens and signing configuration.
 ## Building
 
 ```
-node build.js               # artifact fragment, no <!doctype> wrapper
-node build.js --standalone  # complete document, opens from disk
-node make-levels.js         # rebuild the Sort Colors campaign into js/levels.js
+node build.js                        # artifact fragment, no <!doctype> wrapper
+node build.js --standalone           # complete document, opens from disk
+node tools/build-campaign.js         # rebuild Sort Colors into js/levels.js
+node tools/build-merge-campaign.js   # rebuild Merge Colors into js/merge-levels.js
 ```
 
-`make-levels.js` writes the Sort Colors campaign. The five taught levels are written by
-hand — each exists to teach one rule, which is not something a generator can be
-asked for. The rest are dealt by the ordinary puzzle generator along a widening
-curve and kept only if the solver can finish them, their par is no lower than
-the level before, and playing them badly still leaves them winnable. Boards are
-baked into the file rather than dealt on load, so the campaign is the same for
-everyone and par is known to be the true minimum.
+Both campaigns are built the same way. The five taught levels of each are
+written by hand — each exists to teach one rule, which is not something a
+generator can be asked for — and are read back out of the file being replaced
+rather than restated in the builder, so they cannot drift. Everything after
+them is a seeded deal.
 
-Difficulty is left to the board shapes; par is used only as a ratchet. Chasing
-a separate par curve fights the shapes and stalls the moment the two disagree,
-and picking the gentlest board that merely beats the level before leaves the
-middle of the campaign flat while the boards visibly grow. Each level takes a
-board from the harder end of what its shape produces.
+A level is three numbers: a **setting**, a **jar count**, and a **seed**.
+`Generator.generate(setting, seed)` deals the same board every time from those,
+which is the same call the Random Puzzle screen and the Daily Puzzle already
+make. The setting fixes the shape — how deep the jars are, how big the target
+jar is, how many colours are in the way — and the seed only shuffles the
+colours within it.
 
-The curve is in two parts, and the second is built differently, because the
-first ran out of the room it was using. Measuring it settled what par actually
-follows: not the number of jars, and not the size of the big jar, but the
-number of units on the shelf, at roughly par = units − 10. Widening the shelf
-while raising the room to work in alongside it cancels out — an early attempt
-at levels 26–50 did exactly that, held the unit count still at 50, and left par
-flat at 41–45 for twenty-five levels. So the second ramp sets units directly,
-one more per level, and takes the leftover capacity as slack, which stays
-between 30% and 38% of the shelf throughout. Colors split further apart as it
-goes, which is what fills the gap between the unit count and par.
+Boards are baked into the file in full rather than dealt on load. Shipping bare
+seeds would be smaller, but a later tweak to the generator would silently
+rewrite levels people had already played.
 
-The second ramp is also dealt as a whole set and then put in order of the par
-the solver measured, rather than each board being ratcheted past the one dealt
-before it. Ratcheting in order does not survive here: one lucky board early
-sets a bar the shape cannot clear again, and every level after it settles for
-less, so the ramp decays instead of climbing. Ordering afterwards makes the
-progression a fact about the boards rather than a hope about the dealing.
+### Choosing the seeds
 
-The third ramp is dealt and ordered the same way, but what limits it is neither
-the shelf nor the palette — it is the solver. Every level's par has to be
-*proven* minimal, and that search grows steeply with the board. Churn is what
-makes a board expensive to search, because scattering each color into thin
-layers is exactly what denies the search anything to home in on. At fifteen
-jars with the second ramp's churn of 0.75, not one deal in two hundred seconds
-could be settled at all; lowering churn to 0.45 on the same shape produced
-boards of par 58–67 that the solver settled in ten milliseconds. So the third
-ramp winds that lever back and lets the unit count do the work instead — which
-it could not do in the second ramp, where the shelf had nowhere left to grow.
+A seed says nothing about the board it makes, so the ladder cannot be written
+down in advance. Each slot is filled by dealing a pool of boards at that
+(setting, jar count), measuring the true par of each, and keeping the one
+nearest the par the ladder wants there. Sort Colors used eighty deals a slot,
+Merge forty-eight.
 
-The fourth ramp could not be dealt at all until the solver's estimate was
-fixed — see **Searching** below. With that corrected it needed nothing new of
-its own, and it could afford to wind churn back up, since churn is the
-strongest lever on par there is and only the search cost had been holding it
-down.
+The chosen seeds are then written into the builder **with the par each was
+chosen for**. That pairing is the safety catch: on every build the board is
+re-dealt and its par compared, so a change to the generator fails the build
+loudly instead of quietly shipping a different campaign. It has already caught
+two real mistakes — a builder that used a preset shape where the search script
+derived one, and a builder that re-solved wide Merge boards unweighted when the
+generator had solved them weighted.
 
-Each ramp is pinned to the end point it was built against rather than to the
-campaign total. Every one of those numbers appears in a curve that would
-quietly redeal every earlier level if it moved, and people have progress
-against those boards. Levels that already exist are read back from
-`js/levels.js` and re-verified rather than dealt again, which is both far
-faster and the stronger check: it proves the boards that actually ship are
-sound, rather than proving a fresh deal would have been. `node make-levels.js
---rebuild-all` deals everything from scratch.
+### What the ladder is
 
-### Going deeper instead of wider
+Width first, depth second. Width is what a player sees and costs the solver
+almost nothing: a fourteen-jar Sort Colors board deals in about eleven
+milliseconds. Depth is what actually lengthens the solution, since par tracks
+the number of units on the shelf, but it thins the colour bands.
 
-Levels 101-150 keep the shelf at twenty-two jars and take the jars from eight
-deep to ten. The reason is the screen, not the search.
+At each width the four settings are swept in order, and each sweep draws a
+board of higher par than the last. So par dips at every new width and then
+climbs past the previous peak — the shelf visibly grows, and the difficulty
+saws upward rather than crawling.
 
-Twenty-two is where the fourth ramp stopped, because it is the widest shelf a
-desktop still shows whole. Depth is nearly free there, and measuring said why:
-the shelf wraps into rows and scrolls, so jars past twenty-two only add rows,
-while a band's height is set by how deep a jar is and how tall the window is.
-Across five screen sizes, going from eight deep to ten takes a band on a phone
-from 33.4px to 26.7px, and on the smallest phone from 12.4px to 12.4px — the
-floor the campaign's last levels already sat on. Nothing is clipped and nothing
-runs off the side at any size tried.
+### Where each mode stops
 
-Ten more cells per jar is 44 more places to put units, and par follows the unit
-count here as everywhere else: 128 units measured par 117, 160 gave 148. What
-stops it going further is slack rather than par. At nine deep, 160 units leaves
-38 free cells of 198 — 19%, against the 30% earlier ramps kept — and a shelf
-that tight deadlocks under careless play. Ten deep puts the same units in 220
-cells and leaves 27%.
+**Sort Colors stops at fourteen jars because of the screen.** The solver is
+happy far past it. Fourteen is where the shelf still reads as a shelf on a
+phone rather than becoming rows.
 
-The search is not the constraint at all here, which was the surprise. On these
-boards the estimate is near-exact — it spends about one state per move of par —
-so the solver settles a 162-unit board in under a fifth of a second, and a hint
-on a six-times-throttled phone comes back in about half a second against a
-1.2-second budget, cold or after straying.
+**Depth stops at nine, also because of the screen.** Measured at fourteen jars,
+deepening the jars takes par from 29 at six deep to 49 at seven, 53 at eight
+and 61 at nine, and a deal stays under fifteen milliseconds throughout. On a
+390px phone the fitter shows a whole shelf at nine deep with 10.9px bands; at
+ten it gives up and scrolls. The campaign currently uses seven.
+
+**Merge Colors stops at ten jars, and that one is a real cost.** Merge has no
+tight lower bound, so its search grows with the branching factor. Seven jars
+settles inside the hint's budget at about 23,000 states; eight and beyond do
+not settle at all. Levels are dealt to ten anyway — see the note under **What's
+in it** for what that means for hints — but nothing wider is possible, and
+merge's own depth is expensive enough to search that the ladder does not use
+it.
+
+### Adding more levels
+
+The point of the seed method is that adding levels is now cheap. To extend
+either campaign:
+
+1. Open the builder — `tools/build-campaign.js` for Sort Colors,
+   `tools/build-merge-campaign.js` for Merge.
+2. Raise `TOTAL` to the new level count.
+3. Append rows to `LADDER`, one per new level:
+   `[level, setting, jars, seed, par]`. For levels beyond the widest shelf,
+   Sort Colors takes a sixth entry — the jar depth.
+4. Extend `ADJECTIVES` if it is now shorter than the number of dealt levels.
+   The builder refuses to run rather than reusing a name, and says so.
+5. Run the builder. It re-deals every seed, checks the board, and writes the
+   file; if anything does not match it exits without writing.
+
+To find seeds for the new rows, deal candidates at the shape you want and keep
+the ones whose par lands where you want them. At the top of a campaign that
+means the hardest setting at the widest shelf — `extraHard` at fourteen jars
+for Sort Colors, at ten for Merge:
+
+```js
+const G = globalThis.Generator;              // MergeGenerator for the other mode
+G.DIFFICULTY.__slot = shapeOf('extraHard', 14);   // shapeOf is in the builder
+for (let seed = 600000001; seed <= 600000200; seed++) {
+  const board = G.generate('__slot', seed);
+  if (board.jars.length !== 14) continue;         // fell back to the preset
+  console.log(seed, board.par);
+}
+```
+
+Sixty deals of that gives par 21–45 for Sort Colors at fourteen jars, and
+16–29 for Merge at ten. Pick the seeds whose par lands where you want them and
+add them as `LADDER` rows. Two things to hold to:
+
+- **Every seed must be unique across the table.** Two rows carrying the same
+  seed at the same shape are the same board twice. The builder does not check
+  this, so it is on whoever adds them. `LADDER` currently holds 195 unique
+  seeds for Sort Colors and 145 for Merge, with no repeats in either.
+- **Start above the blocks already in use.** Each existing slot owns a distinct
+  hundred thousand — Easy at four jars is `100000+`, Normal at four is
+  `200000+` — purely so a seed says at a glance which slot it came from. Sort
+  Colors runs up to `502400000` and Merge to `3200000`, so begin a new block
+  above those: `600000000+` and `4000000+` respectively. Reaching for a round
+  number like `900001` picks a block that is already taken in both modes.
+
+There is no shortage. A seed is a 32-bit integer, so every slot has
+4,294,967,296 of them, and they do not collapse onto each other: 1,500 seeds
+through the smallest board in the game gave 1,499 different boards, and every
+other slot tried gave a different board for every single seed.
+
+What does run out is par. Both ladders are already at their widest shelf, so a
+new level appended at the top is another board in the same band, not a harder
+one — around par 43–50 for Sort Colors and 28 for Merge. Going beyond that
+needs depth, which for Sort Colors means the sixth column and for Merge means
+boards too expensive to search.
 
 ## Layout
 
@@ -723,16 +787,18 @@ styles.css        all styling
 fonts.css         generated — inlined webfont subsets
 build.js          bundles everything into one file
 fetch-fonts.js    regenerates fonts.css from Google Fonts
-make-levels.js    builds and verifies the 100-level Sort Colors campaign
-tools/make-merge-levels.js  builds the Merge Colors levels
-tools/check-merge.js  checks the Merge Colors levels the same way
+tools/build-campaign.js  builds the Sort Colors campaign from seeds
+tools/build-merge-campaign.js  builds the Merge Colors campaign from seeds
+make-levels.js    superseded — the older ramp-dealt Sort Colors builder
+tools/make-merge-levels.js  superseded — the older Merge Colors builder
+tools/check-merge.js  checks the Merge Colors levels
 tools/check-merge-random.js  checks random Merge Colors puzzles
 js/store.js       progress storage, and whether it can be trusted
 js/colour.js      the palette, and how far apart two colors look
-js/levels.js      generated — the 100 Sort Colors levels
+js/levels.js      generated — the 200 Sort Colors levels
 js/merge.js       Merge Colors: the recipes, and its own search  (no DOM)
 js/merge-generator.js  seeded random Merge Colors puzzles  (no DOM)
-js/merge-levels.js  generated — the 100 Merge Colors levels
+js/merge-levels.js  generated — the 150 Merge Colors levels
 js/daily.js       the daily schedule, seeds, calendar grid and streak  (no DOM)
 js/engine.js      stacked jars, pouring, undo, win check  (no DOM)
 js/solver.js      best-first search: par, hints, solvability  (no DOM)
@@ -913,8 +979,8 @@ expressed in jar widths, and jar width is the very thing the search is
 bisecting, so the cap moved underneath the search and it settled somewhere
 absurd — eleven rows of two on a phone.
 
-The cap is also offered rather than imposed, because on the campaign's widest
-levels it is not affordable: twenty-two jars in rows of eight is three rows,
+The cap is also offered rather than imposed, because on a wide enough shelf it
+is not affordable: twenty-two jars in rows of eight is three rows,
 which no readable size can show all of, so the fitter falls through to letting
 the shelf scroll and picks the largest jars it can — worse than the uneven rows
 the cap set out to fix. So the board is settled uncapped first; if no row is
@@ -1053,17 +1119,23 @@ Two things follow from that, and both are worth knowing:
 
 - The palette used to guarantee that no two colors could be confused: every
   pair sits at least 150 apart on the distance measure in `js/colour.js`, and
-  `make-levels.js` and `tools/check-merge.js` both refuse a board that breaks
-  it. **That guarantee is currently broken.** `slate` was recoloured to a
-  bright cyan (`#6b7c9c` → `#22c8ff`), which sits 103 from `teal` — and 80 of
-  the 100 Sort Colors levels, plus merge levels 24 and 25, put the two on the same
-  shelf. Re-running either builder would now reject those boards.
+  the builders refuse a board that breaks it. **That guarantee is still broken
+  in the palette**: `slate` was recoloured to a bright cyan (`#6b7c9c` →
+  `#22c8ff`), which sits 103 from `teal`, so the two remain too close to tell
+  apart wherever they meet.
+
+  No shipped level puts them together any more, though. When both campaigns
+  were rebuilt from seeds the generator applied the 150 rule at deal time, so
+  the pair cannot be dealt onto one shelf: 80 of the 150 Sort Colors levels and
+  merge levels 24 and 25 used to carry it, and both campaigns now measure zero.
+  It can still surface on a random or daily puzzle, and the fix is the same one
+  as before — give `slate` a colour at least 150 from `teal`.
 - With the letters off by default, there is nothing else distinguishing that
   pair unless the player finds the setting.
 
-Neither the boards nor their pars changed — all 300 levels still solve at
-exactly the stored figure — so this is a palette matter, not a puzzle one. A
-cyan at least 150 from teal, or letters back on by default, would settle it.
+This is a palette matter, not a puzzle one: every one of the 350 campaign
+levels solves at exactly the stored figure. A cyan at least 150 from teal, or
+letters back on by default, would settle it for random and daily puzzles too.
 
 It is no longer only a legibility matter, though. The merge builder draws its
 obstacle colors from the palette minus the three primaries and the target,
