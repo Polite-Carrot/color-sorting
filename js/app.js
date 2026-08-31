@@ -747,10 +747,15 @@
     }
 
     /* Next resort: let the shelf scroll inside itself. Seeing every jar at
-       once is worth more than big jars, so this is only reached when no
-       readable size shows them all. */
+       once is worth more than big jars — which is why, once the shelf HAS to
+       scroll, this takes the smallest readable size rather than the largest
+       that fits. Taking the largest was the same instinct applied backwards:
+       on a fourteen-jar nine-deep board it chose 258px jars and a 423px big
+       jar, and left a 28px strip of shelf with none of the fourteen in it. The
+       floor is already the smallest size whose bands are still readable, so
+       there is nothing to lose below it and a great deal of board to gain. */
     var loose = largestThatFits(floor, ceiling, false);
-    if (loose > 0) { setJarHeight(loose); tagShelfRows(); return; }
+    if (loose > 0) { setJarHeight(floor); tagShelfRows(); return; }
 
     /* Only now give up the recipe list. In merge mode that list is the rules
        of the mode, so it goes last of everything — after the keyboard legend,
@@ -759,7 +764,10 @@
       recipes.hidden = true;
       loose = largestThatFits(floor, ceiling, false);
     }
-    setJarHeight(loose > 0 ? loose : floor);
+    /* Nothing settled even at the floor, so the floor is what it gets: the
+       smallest size whose bands are still readable, and the most of the board
+       that can be on screen at once. */
+    setJarHeight(floor);
     tagShelfRows();
   }
 
@@ -777,11 +785,29 @@
   function layoutSettles(wholeShelfVisible) {
     var screen = $('screen-game');
     if (screen.scrollHeight > screen.clientHeight) return false;
-    if (!wholeShelfVisible) return true;
     var wrap = document.querySelector('.shelf-wrap');
+    if (!wrap) return true;
+
+    if (!wholeShelfVisible) {
+      /* The shelf scrolls inside itself, which means page overflow says
+         nothing here: at ANY jar size the page still fits, because the shelf
+         quietly absorbs the excess. So this used to return true for every
+         candidate and the search climbed to the ceiling — measured on a
+         fourteen-jar nine-deep board at 390px, it settled on 258px jars, a
+         423px big jar, and a shelf strip 28px tall holding 2070px of jars.
+         None of the fourteen were on screen.
+
+         A row of the shelf has to survive, then. That is the least that makes
+         the mode playable without scrolling before the first move, and it
+         bounds the search from above the way page overflow does elsewhere. */
+      var row = document.querySelector('.shelf .slot') || document.querySelector('#shelf .jar');
+      if (!row) return true;
+      return wrap.clientHeight >= row.getBoundingClientRect().height - 1;
+    }
+
     /* The shelf can shrink and scroll, so the page fitting is not enough on
        its own — check the shelf is not hiding jars inside itself. */
-    return !wrap || wrap.scrollHeight <= wrap.clientHeight + 1;
+    return wrap.scrollHeight <= wrap.clientHeight + 1;
   }
 
   function setJarHeight(px) {
