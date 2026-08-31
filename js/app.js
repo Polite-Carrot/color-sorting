@@ -144,13 +144,21 @@
     var base = randomGen().DIFFICULTY[key];
     if (!base || jars === base.sideJars) return null;
     var cap = base.sideCap;
-    /* A wide merge shelf has to stay shallow, and its big jar small. Scaling
-       both up with the width the way Sort Colors does produced boards that took
-       the best part of a minute to deal: at ten jars a big jar of ten measured
-       55s, where the same width with a jar of four or five is 6-97ms. Grid
-       measured over 8, 9 and 10 jars at depths 4-5 and jars 4-6 — every one of
-       those dealt inside a second and a half, worst case three. */
-    if (state.randomMerge && jars > MERGE_PROVABLE_JARS) cap = Math.min(cap, 5);
+    /* A wide merge shelf has to keep its big jar small. Scaling the target up
+       with the width the way Sort Colors does produced boards that took the
+       best part of a minute to deal: at ten jars a big jar of ten measured 55s,
+       where the same width with a jar of four or five is 6-97ms. Merge has no
+       tight lower bound, so its cost follows the branching factor, and the
+       target size is the lever that actually bites.
+
+       The depth was capped here too, and it turns out it did not need to be.
+       That cap never took effect: it was applied to the arithmetic below but
+       never written into the shape, so every wide merge board ever dealt came
+       out at the setting's own depth against a unit budget sized for five.
+       Three hundred and sixty campaign levels shipped that way, all of them
+       sound and none of them slow. Seven deep at ten jars demonstrably works,
+       so the cap is gone rather than fixed, and the arithmetic now matches the
+       board it describes. */
     var cells = jars * cap;
     var mainCap = Math.max(2, Math.round(cells * (base.mainCap / (base.sideJars * base.sideCap))));
     if (state.randomMerge && jars > MERGE_PROVABLE_JARS) mainCap = Math.min(mainCap, 5);
@@ -181,6 +189,9 @@
     var out = {};
     for (var k in base) if (Object.prototype.hasOwnProperty.call(base, k)) out[k] = base[k];
     out.sideJars = jars;
+    /* Written back, which it was not — the omission is what let the cap above
+       be computed and then quietly ignored. */
+    out.sideCap = cap;
     out.mainCap = mainCap;
     out.fillers = fillers;
     out.fillerUnits = fillerUnits;
@@ -476,20 +487,21 @@
   /* Rebuilt whenever the game changes, because the two do not offer the same
      settings and the labels come from whichever generator is in play. */
   function renderDifficulties() {
-    var diffs = $('difficulty');
+    var slider = $('difficulty');
     var keys = randomKeys();
     var table = randomGen().DIFFICULTY;
-    diffs.innerHTML = '';
+
+    /* The slider spans whatever settings the chosen game offers, so a game with
+       a different number of them needs no other change here. */
+    slider.max = String(keys.length - 1);
+    var ticks = $('difficulty-ticks');
+    ticks.innerHTML = '';
     keys.forEach(function (key) {
-      var b = UI.el('button', 'diff', diffs);
-      b.type = 'button';
-      b.textContent = table[key].label;
-      b.setAttribute('role', 'radio');
-      b.dataset.key = key;
-      b.addEventListener('click', function () {
-        setDifficulty(key);
-        window.Store.write(PREF_KEY, key);
-      });
+      var t = UI.el('span', null, ticks);
+      /* The short word only: five full labels across a phone would collide, and
+         the setting's real name is already spelled out above the track. */
+      t.textContent = table[key].label.replace('Extra ', 'X-');
+      t.dataset.key = key;
     });
 
     Array.prototype.forEach.call($('random-mode').children, function (b) {
@@ -530,10 +542,18 @@
 
   function setDifficulty(key) {
     state.difficulty = key;
-    Array.prototype.forEach.call($('difficulty').children, function (b) {
-      var on = b.dataset.key === key;
-      b.classList.toggle('is-on', on);
-      b.setAttribute('aria-checked', on ? 'true' : 'false');
+    var keys = randomKeys();
+    var at = keys.indexOf(key);
+    var slider = $('difficulty');
+    if (at >= 0) slider.value = String(at);
+    var label = randomGen().DIFFICULTY[key].label;
+    $('difficulty-name').textContent = label;
+    /* The thumb's position is the only thing a sighted player reads; a screen
+       reader is told the name instead of the number, which on its own says
+       nothing. */
+    slider.setAttribute('aria-valuetext', label);
+    Array.prototype.forEach.call($('difficulty-ticks').children, function (t) {
+      t.classList.toggle('is-on', t.dataset.key === key);
     });
     $('difficulty-blurb').textContent = randomGen().DIFFICULTY[key].blurb;
     /* Picking a difficulty resets the width, so the presets stay meaningful and
@@ -1318,6 +1338,16 @@
     renderSettingsToggles();
 
     $('play-random').addEventListener('click', startRandom);
+    /* 'input' rather than 'change', so the blurb and the jar count follow the
+       thumb as it is dragged rather than snapping over once it is let go. */
+    $('difficulty').addEventListener('input', function () {
+      var keys = randomKeys();
+      var key = keys[Number($('difficulty').value)];
+      if (!key || key === state.difficulty) return;
+      setDifficulty(key);
+      window.Store.write(PREF_KEY, key);
+    });
+
     $('jars-down').addEventListener('click', function () { stepJars(-1); });
     $('jars-up').addEventListener('click', function () { stepJars(1); });
     $('seed-input').addEventListener('keydown', function (e) {

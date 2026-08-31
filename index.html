@@ -105,7 +105,16 @@
 
     <div class="card card--single">
       <div id="random-mode" class="difficulty difficulty--modes" role="radiogroup" aria-label="Game"></div>
-      <div id="difficulty" class="difficulty" role="radiogroup" aria-label="Difficulty"></div>
+      <div class="setting">
+        <div class="setting__head">
+          <span class="setting__label">Difficulty</span>
+          <b id="difficulty-name" class="setting__name">Easy</b>
+        </div>
+        <input id="difficulty" class="setting__slider" type="range"
+               min="0" max="4" step="1" value="0"
+               aria-label="Difficulty" aria-valuetext="Easy">
+        <div id="difficulty-ticks" class="setting__ticks" aria-hidden="true"></div>
+      </div>
       <p id="difficulty-blurb" class="difficulty__blurb"></p>
       <div class="jarpick">
         <button id="jars-down" class="btn jarpick__step" type="button" aria-label="Fewer jars">&minus;</button>

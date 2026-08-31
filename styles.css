@@ -676,6 +676,97 @@ input:focus-visible {
   transform: translateY(var(--lift));
   box-shadow: 0 0 0 var(--ink);
 }
+/* ───────── the difficulty slider ─────────
+   Five settings in a two-column grid left an empty cell and three rows of
+   buttons — the odd one out is always visible as a gap. Five across in a row
+   is not the answer either: at 390px that is 70px a segment and "Extra Hard"
+   does not fit. A slider is one row whatever the count, names the setting at
+   full size, and is the one control here whose meaning IS an ordering. */
+.setting { margin-bottom: 4px; }
+.setting__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.setting__label {
+  font-size: 13px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.setting__name {
+  font-family: "Baloo 2", sans-serif;
+  font-size: 20px;
+  color: var(--ink);
+}
+.setting__slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 26px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.setting__slider::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: 999px;
+  border: var(--stroke) solid var(--ink);
+  background: var(--paper-warm);
+}
+.setting__slider::-moz-range-track {
+  height: 10px;
+  border-radius: 999px;
+  border: var(--stroke) solid var(--ink);
+  background: var(--paper-warm);
+}
+/* The thumb carries the same gold and the same hard shadow as a selected
+   button did, so the control still reads as part of the same set of pieces. */
+.setting__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  margin-top: -10px;
+  border-radius: 50%;
+  border: var(--stroke) solid var(--ink);
+  background: var(--gold);
+  box-shadow: 0 2px 0 var(--ink);
+  transition: transform .09s ease;
+}
+.setting__slider::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 2px 0 var(--ink);
+}
+.setting__slider:active::-webkit-slider-thumb { transform: scale(1.08); }
+.setting__slider:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+/* One label per stop, the ends pulled inward so they sit under the thumb's
+   travel rather than under the track's corners. */
+.setting__ticks {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px;
+  margin-top: 2px;
+}
+.setting__ticks span {
+  font-size: 11px;
+  color: var(--ink-soft);
+  flex: 1;
+  text-align: center;
+}
+.setting__ticks span:first-child { text-align: left; }
+.setting__ticks span:last-child { text-align: right; }
+.setting__ticks span.is-on { color: var(--ink); font-weight: 700; }
+
 .difficulty__blurb {
   margin: 12px 0 14px;
   color: var(--ink-soft);
