@@ -836,7 +836,7 @@ add them as `LADDER` rows. Two things to hold to:
 - **Start above the blocks already in use.** Each existing slot owns a distinct
   hundred thousand — Easy at four jars is `100000+`, Normal at four is
   `200000+` — purely so a seed says at a glance which slot it came from. Sort
-  Colors runs up to `703500000` and Merge to `10000000`, so begin a new block
+  Colors runs up to `705500000` and Merge to `10000016`, so begin a new block
   above those: `800000000+` and `20000000+` respectively. Reaching for a round
   number like `900001` picks a block that is already taken in both modes.
   Merge levels 151-200 took `4100000`-`4400000` and 201-250 took
