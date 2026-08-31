@@ -610,7 +610,7 @@ Easy, Normal, Hard and Extra Hard are joined by **Expert**, and it exists
 because the campaign had run out of room. Every other setting takes the jar
 height it ships with — four to six deep — so once the shelf reached fourteen
 jars there was nothing left to turn. Expert turns depth instead: fourteen jars
-**nine** deep for Sort Colors, seven jars **seven** deep for Merge.
+**seven** deep for Sort Colors, seven jars **seven** deep for Merge.
 
 It is additive on purpose. The four existing settings are untouched, so all 450
 campaign levels still deal exactly the boards they were built from — checked by
@@ -619,26 +619,19 @@ puzzle moves.
 
 |  | Sort Colors | Merge Colors |
 |---|---|---|
-| Shape | 14 jars × 9 deep | 7 jars × 7 deep |
-| Big jar | 24 | 8 |
-| Par | 54–66 measured | 28–34 measured |
-| Deal | 9ms median, 25ms worst | 850ms median, 2.8s worst |
+| Shape | 14 jars × 7 deep | 7 jars × 7 deep |
+| Big jar | 19 | 8 |
+| Par | 40–53, median 46 | 28–34 |
+| Deal | 9ms median, 19ms worst | 850ms median, 2.8s worst |
 
-**Sort Colors Expert scrolls the shelf on a phone, and that is its whole cost.**
-Dealt through the Random screen at 390px and measured, the shapes the fitter
-can show whole at fourteen jars stop at seven deep (par 42); the only other
-whole-shelf shape worth having is ten jars eight deep (par 34). Eight and nine
-deep both fall through to the scrolling fallback, where the fitter picks large
-jars — 139px wide, 28px bands — and the shelf runs past the bottom of the
-screen.
-
-So there is no harder board that also fits: par past about 42 costs the
-whole-shelf view. The trade is a reasonable one here, since the bands come out
-twice as tall as a fitted board's and every jar is reachable by scrolling, but
-it is a trade, and it is why no other setting goes deeper. An earlier note in
-this file claimed nine deep fitted whole at 10.9px bands; that came from
-injecting a board into the campaign list rather than dealing one, and it did
-not survive being measured on the real path.
+**Seven deep and not nine, and the reason is the browser.** Dealing through the
+Random screen at 390px and measuring: with Safari's chrome taking 145px, six
+and seven deep show the whole shelf clear of the toolbar; eight and nine push a
+row under the buttons and make the shelf scroll. On the full 844px all four
+fit. Seven is what fits the phone people actually hold, and the jar comes out
+the same size Extra Hard gets — 78px with the chrome, 97px without — holding
+more lines rather than standing taller, which is the whole point of turning
+depth instead of width.
 
 **Merge Expert is a small step, and that is the ceiling rather than a choice.**
 Eight deep reaches par 36 but the hint answers on only five boards in ten — a
@@ -649,6 +642,31 @@ properly harder it needs a tighter bound, not a bigger board.
 
 The fifth button costs the Random Puzzle screen 62px — the settings row goes
 from three rows to four at 390px.
+
+### Fitting a deep board
+
+Two rules in the fitter had to change before a deep setting was usable at all,
+and both were wrong before Expert existed — they had simply never been provoked.
+
+The first is that the scrolling fallback was unbounded. `layoutSettles` asked
+only whether the PAGE overflowed, and the shelf scrolls inside itself, so it
+absorbed any excess and every candidate size "fitted". The search climbed to
+the ceiling every time: on a fourteen-jar nine-deep board at 390px it settled
+on 258px jars, a 423px big jar, and a strip of shelf 28px tall holding 2070px
+of jars, with none of the fourteen on screen. It now also requires a row of the
+shelf to survive.
+
+The second is that the fallback took the LARGEST size that fits, when its own
+comment says seeing every jar is worth more than big jars. Once the shelf has
+to scroll, big jars buy nothing and cost the board. It now takes the floor.
+
+And one rule was added: before falling back to scrolling at all, the fitter
+tries **squeezing the bands**. A deep jar is forced tall by the roomy minimum
+of 13px a band — nine deep needs 117px before the fitter may even try it —
+which on a wide shelf is what puts the whole shelf out of reach, not the shelf
+itself. Given the choice between bands a third thinner and a board that has to
+be scrolled before the first move, the thinner bands win: 10px is the tight
+minimum, and it is only ever reached when the roomy one cannot show everything.
 
 ## Running on a phone
 

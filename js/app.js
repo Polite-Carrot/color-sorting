@@ -45,6 +45,14 @@
      landscape, a desktop — shows big jars rather than sitting them small in a
      sea of sky. */
   var BAND_MIN = 13, JAR_FLOOR = 78, JAR_MAX = 122;
+  /* What a band may be squeezed to when the roomy minimum cannot show the
+     whole shelf. A deep jar is forced tall by BAND_MIN — nine deep needs 117px
+     before the fitter may even try it — which on a wide shelf means no size
+     shows every jar and the board falls to scrolling. Given the choice between
+     bands a third thinner and a board the player has to scroll before their
+     first move, the thinner bands win: the jar then comes out the same size as
+     a shallower setting's, holding more lines rather than standing taller. */
+  var BAND_MIN_TIGHT = 10;
 
   function jarCeiling() {
     var h = window.innerHeight || 800;
@@ -53,10 +61,10 @@
     return Math.max(JAR_MAX, Math.min(320, Math.floor(h * 0.34)));
   }
 
-  function smallestReadableJar() {
+  function smallestReadableJar(band) {
     if (!state.game) return JAR_FLOOR;
     var deepest = state.game.jars.reduce(function (n, j) { return Math.max(n, j.capacity); }, 0);
-    return Math.max(JAR_FLOOR, deepest * BAND_MIN);
+    return Math.max(JAR_FLOOR, deepest * (band || BAND_MIN));
   }
 
   var state = {
@@ -744,6 +752,19 @@
       var best = largestThatFits(floor, ceiling, true);
       if (best > 0) { setJarHeight(best); tagShelfRows(); return; }
       if (drop < optional.length && optional[drop]) optional[drop].hidden = true;
+    }
+
+    /* Still nothing. Before letting the shelf scroll, try squeezing the bands:
+       on a deep board the roomy minimum is what puts the whole shelf out of
+       reach, not the shelf itself. Fourteen jars nine deep needs 117px a jar at
+       thirteen pixels a band and cannot be shown whole at 390px; at ten it
+       needs 90px, which fits — the same jar a six-deep setting gets, with more
+       lines in it rather than a taller jar. */
+    var tight = smallestReadableJar(BAND_MIN_TIGHT);
+    if (tight < floor) {
+      var squeezed = largestThatFits(tight, ceiling, true);
+      if (squeezed > 0) { setJarHeight(squeezed); tagShelfRows(); return; }
+      floor = tight;
     }
 
     /* Next resort: let the shelf scroll inside itself. Seeing every jar at
