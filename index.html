@@ -241,6 +241,18 @@
     </div>
   </div>
 
+  <!-- ─────────────── consent ─────────────── -->
+  <div id="consent" class="consent" hidden>
+    <p class="consent__text">
+      Can we count how far people get? It helps work out which levels are too
+      hard. No ads, nothing sold, and the game plays exactly the same either way.
+    </p>
+    <div class="consent__actions">
+      <button id="consent-yes" class="btn btn--primary">Yes, that's fine</button>
+      <button id="consent-no" class="btn">No thanks</button>
+    </div>
+  </div>
+
   <!-- ─────────────── help ─────────────── -->
   <div id="howto" class="overlay" hidden>
     <div class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="howto-title">
@@ -270,6 +282,10 @@
         <div class="settings-row">
           <span>Color Blind Assist</span>
           <button id="settings-cb" class="btn" type="button" aria-pressed="false">Off</button>
+        </div>
+        <div class="settings-row" id="settings-analytics-row">
+          <span>Anonymous stats</span>
+          <button id="settings-analytics" class="btn" type="button" aria-pressed="false">Off</button>
         </div>
         <div class="settings-row settings-row--danger">
           <span>Reset progress</span>
@@ -347,6 +363,7 @@
 <script src="js/solver.js"></script>
 <script src="js/generator.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/track.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

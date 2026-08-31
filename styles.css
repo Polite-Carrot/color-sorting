@@ -1581,3 +1581,40 @@ body.is-native .keys { display: none; }
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+
+/* ───────── consent ─────────
+   A bar at the foot rather than a dialog over the board: the question is not
+   urgent enough to stop somebody playing, and the game opens straight into a
+   level. It sits above the safe-area inset so it clears the gesture bar. */
+.consent {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  background: var(--paper);
+  border-top: var(--stroke) solid var(--ink);
+  box-shadow: 0 -6px 18px rgba(43, 33, 66, .16);
+}
+.consent[hidden] { display: none; }
+.consent__text {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  max-width: 46ch;
+}
+.consent__actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.consent__actions .btn { flex: 1 1 auto; }
+@media (min-width: 620px) {
+  .consent {
+    left: 50%;
+    right: auto;
+    bottom: 18px;
+    transform: translateX(-50%);
+    width: min(560px, calc(100vw - 36px));
+    border: var(--stroke) solid var(--ink);
+    border-radius: 16px;
+  }
+}

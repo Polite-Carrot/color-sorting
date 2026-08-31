@@ -244,7 +244,10 @@
      rather than a key each so a future toggle does not have to touch storage.
      Colour blind assist prints the letter on every band — off by default so
      the game reads as its colours, on when someone asks for it. */
-  var prefs = { sound: true, cbAssist: false, randomMerge: false };
+  /* analytics: null until the question has been put, then true or false.
+     Three states matter — the banner shows only for null, so somebody who has
+     said no is not asked again on every visit. */
+  var prefs = { sound: true, cbAssist: false, randomMerge: false, analytics: null };
 
   function loadPrefs() {
     try {
@@ -254,6 +257,7 @@
         if (typeof p.sound === 'boolean') prefs.sound = p.sound;
         if (typeof p.cbAssist === 'boolean') prefs.cbAssist = p.cbAssist;
         if (typeof p.randomMerge === 'boolean') prefs.randomMerge = p.randomMerge;
+        if (typeof p.analytics === 'boolean') prefs.analytics = p.analytics;
       }
     } catch (e) { /* corrupt — stick with defaults */ }
   }
@@ -576,6 +580,12 @@
 
   function startLevel(level, mode) {
     closeStuck();
+    track('level_start', {
+      mode: mode,
+      level: level.id,
+      par: level.par,
+      jars: level.jars.length
+    });
     state.game = new window.Engine.Game(level);
     state.hintsLeft = hintAllowance(state.game.par);
     state.followed = level.path && level.path.length ? level.path : null;
@@ -619,6 +629,12 @@
           lvl.subtitle = randomGen().DIFFICULTY[state.difficulty].label +
                          ' · ' + state.jars + ' jars · seed ' + lvl.seed;
         }
+        track('random_deal', {
+          game: state.randomMerge ? 'merge' : 'classic',
+          setting: state.difficulty,
+          jars: state.jars,
+          par: lvl.par
+        });
         startLevel(lvl, 'random');
       } finally {
         btn.disabled = false;
@@ -1076,6 +1092,13 @@
     var another = $('stuck-another');
     another.hidden = state.mode !== 'random';
 
+    track('dead_end', {
+      mode: state.mode,
+      level: g.level.id,
+      moves_in: g.moves,
+      reason: why
+    });
+
     $('stuck').hidden = false;
     (undo.hidden ? $('stuck-retry') : undo).focus();
   }
@@ -1142,6 +1165,19 @@
   /* ───────── winning ───────── */
 
   function recordResult() {
+    /* Here rather than with the win card: the card is on a timer and somebody
+       who closes the game inside it would otherwise not be counted, which is
+       the same reason the score is written here. */
+    var g0 = state.game;
+    if (g0) track('level_complete', {
+      mode: state.mode,
+      level: g0.level.id,
+      par: g0.par,
+      moves: g0.moves,
+      over_par: g0.moves - g0.par,
+      stars: g0.stars(),
+      hints_used: g0.hintsUsed
+    });
     var g = state.game;
     var stars = g.stars();
     var lvl = g.level;
@@ -1286,6 +1322,12 @@
 
     g.hintsUsed++;
     state.hintsLeft--;
+    track('hint_used', {
+      mode: state.mode,
+      level: g.level.id,
+      moves_in: g.moves,
+      hint_number: g.hintsUsed
+    });
 
     /* Whatever the search just worked out is itself a shortest route from
        here, so keep it: following it costs no more searching, and somebody who
@@ -1331,6 +1373,10 @@
     loadPrefs();
     loadDifficulty();
     applyPrefs();
+    /* After prefs are read, so a returning player who already answered is not
+       asked again — and before anything is tracked, so nothing is sent by
+       somebody who has not said yes. */
+    maybeAskConsent();
     /* Capacitor puts the game inside a native shell, where the keyboard
        shortcut hint at the bottom of the game screen is noise. */
     if (window.Capacitor) document.body.classList.add('is-native');
@@ -1340,6 +1386,15 @@
     $('play-random').addEventListener('click', startRandom);
     /* 'input' rather than 'change', so the blurb and the jar count follow the
        thumb as it is dragged rather than snapping over once it is let go. */
+    $('consent-yes').addEventListener('click', function () { answerConsent(true); });
+    $('consent-no').addEventListener('click', function () { answerConsent(false); });
+    $('settings-analytics').addEventListener('click', function () {
+      prefs.analytics = !prefs.analytics;
+      savePrefs();
+      renderSettingsToggles();
+      applyConsent();
+    });
+
     $('difficulty').addEventListener('input', function () {
       var keys = randomKeys();
       var key = keys[Number($('difficulty').value)];
@@ -1601,6 +1656,43 @@
       c.textContent = prefs.cbAssist ? 'On' : 'Off';
       c.setAttribute('aria-pressed', prefs.cbAssist ? 'true' : 'false');
     }
+    var a = document.getElementById('settings-analytics');
+    var row = document.getElementById('settings-analytics-row');
+    /* With no measurement id there is nothing to consent to, so the row is not
+       offered rather than being offered and doing nothing. */
+    if (row) row.hidden = !(window.Track && window.Track.configured());
+    if (a) {
+      a.textContent = prefs.analytics ? 'On' : 'Off';
+      a.setAttribute('aria-pressed', prefs.analytics ? 'true' : 'false');
+    }
+  }
+
+  /* ───────── analytics, once asked for ───────── */
+
+  function applyConsent() {
+    if (!window.Track || !window.Track.configured()) return;
+    if (prefs.analytics) window.Track.load();
+    else window.Track.unload();
+  }
+
+  function answerConsent(yes) {
+    prefs.analytics = !!yes;
+    savePrefs();
+    $('consent').hidden = true;
+    applyConsent();
+  }
+
+  /* Asked once, on the first visit that has a measurement id to ask about. */
+  function maybeAskConsent() {
+    if (!window.Track || !window.Track.configured()) return;
+    if (prefs.analytics === null) $('consent').hidden = false;
+    else applyConsent();
+  }
+
+  /* Every call site is one line and none of them can fail: Track.event is a
+     no-op without consent. */
+  function track(name, params) {
+    if (window.Track) window.Track.event(name, params);
   }
 
   function onKey(e) {
