@@ -61,7 +61,7 @@ and Random Puzzle — and each opens its own screen. Sort Colors' icon is a jar
 that fills with how far through you are; the daily's is a calendar page whose
 squares light up as the week is played.
 
-**Sort Colors** — three hundred and fifty levels, in order. The first five are
+**Sort Colors** — five hundred levels, in order. The first five are
 written by hand and teach one rule each. The rest are seeded deals from the
 same generator the Random Puzzle screen uses: the shelf widens a jar at a time
 from four to fourteen, and at each width the **five** settings are swept in
@@ -82,6 +82,7 @@ each block peaks above the one before it.
 | 221–260 | Twelve jars | 12–40 |
 | 261–305 | Thirteen jars | 13–45 |
 | 306–350 | Fourteen jars — the widest shelf a phone shows whole | 14–49 |
+| 351–500 | Fourteen jars, Expert, on fresh seeds | 33–55 |
 
 Every one of them is a setting, a jar count and a seed, and nothing else — so
 any level can be dealt again on the Random Puzzle screen by picking the same
@@ -91,7 +92,7 @@ than a column of its own, which is what keeps that true.
 Each level unlocks the next. See **Keeping progress** below for how stars and
 best scores are stored.
 
-**Merge Colors** — two hundred and fifty levels, and a rule the ordinary game
+**Merge Colors** — five hundred levels, and a rule the ordinary game
 does not have. Built the same way: five taught levels, then seeded deals along
 a ladder that widens the shelf three jars to ten, sweeping the five settings at
 each width.
@@ -107,12 +108,19 @@ each width.
 | 141–175 | Eight jars | 11–29 |
 | 176–210 | Nine jars | 11–30 |
 | 211–250 | Ten jars | 12–32 |
+| 251–500 | Ten jars, Expert, on fresh seeds | 14–31 |
 
-Two hundred and fifty is the mode's cap rather than a round number. Measured
-across all forty (setting × width) cells, the lattice holds about 256 usable
-levels, and exactly one cell — Expert at seven jars, par 26–33 — produces
-anything above par 28. Getting harder than that needs a tighter search bound,
-not more levels.
+Levels past the ladder are the top setting at the widest shelf on fresh seeds,
+and they are more of the hardest board rather than harder boards. In Merge they
+are also slightly *easier* than the ladder's end: Expert at ten jars measures
+par 24 median against Expert at seven jars' 29, because a wide merge shelf has
+to stay shallow with a small target. Widest is not hardest here, and the
+campaign takes widest.
+
+Measured across all forty (setting × width) cells, the lattice distinguishes
+about 256 levels, and exactly one cell — Expert at seven jars, par 26–33 —
+produces anything above par 28. Past that, more levels are more boards, not
+harder ones; getting genuinely harder needs a tighter search bound.
 
 Past seven jars a merge board is wider than the hint's live search can settle.
 A merge level carries its solution, so a hint costs nothing while the player
@@ -831,13 +839,13 @@ add them as `LADDER` rows. Two things to hold to:
 
 - **Every seed must be unique across the table.** Two rows carrying the same
   seed at the same shape are the same board twice. The builder does not check
-  this, so it is on whoever adds them. `LADDER` currently holds 345 unique
-  seeds for Sort Colors and 245 for Merge, with no repeats in either.
+  this, so it is on whoever adds them. `LADDER` currently holds 495 unique
+  seeds for Sort Colors and 495 for Merge, with no repeats in either.
 - **Start above the blocks already in use.** Each existing slot owns a distinct
   hundred thousand — Easy at four jars is `100000+`, Normal at four is
   `200000+` — purely so a seed says at a glance which slot it came from. Sort
-  Colors runs up to `705500000` and Merge to `10000016`, so begin a new block
-  above those: `800000000+` and `20000000+` respectively. Reaching for a round
+  Colors runs up to `800000150` and Merge to `20000250`, so begin a new block
+  above those: `900000000+` and `30000000+` respectively. Reaching for a round
   number like `900001` picks a block that is already taken in both modes.
   Merge levels 151-200 took `4100000`-`4400000` and 201-250 took
   `5100000`-`5400000`, which is why the figure to clear keeps moving — check
@@ -870,10 +878,10 @@ tools/check-merge.js  checks the Merge Colors levels
 tools/check-merge-random.js  checks random Merge Colors puzzles
 js/store.js       progress storage, and whether it can be trusted
 js/colour.js      the palette, and how far apart two colors look
-js/levels.js      generated — the 350 Sort Colors levels
+js/levels.js      generated — the 500 Sort Colors levels
 js/merge.js       Merge Colors: the recipes, and its own search  (no DOM)
 js/merge-generator.js  seeded random Merge Colors puzzles  (no DOM)
-js/merge-levels.js  generated — the 250 Merge Colors levels
+js/merge-levels.js  generated — the 500 Merge Colors levels
 js/daily.js       the daily schedule, seeds, calendar grid and streak  (no DOM)
 js/engine.js      stacked jars, pouring, undo, win check  (no DOM)
 js/solver.js      best-first search: par, hints, solvability  (no DOM)
