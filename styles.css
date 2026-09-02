@@ -788,6 +788,9 @@ input:focus-visible {
   gap: 14px;
   margin: 2px 0 16px;
 }
+/* display:flex beats the browser's own [hidden] rule, the same way .recipes
+   does above, so the row has to be told to go away explicitly. */
+.jarpick[hidden] { display: none; }
 .jarpick__step {
   min-width: 46px;
   padding: 8px 0;

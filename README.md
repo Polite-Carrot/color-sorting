@@ -410,12 +410,20 @@ carried with the board so the first hint is instant. `tools/check-merge-random.j
 checks all of that, along with par landing inside its band and no two colors on
 a shelf being too close to tell apart.
 
-**The shelf width is also a dial.** Under the four settings is a stepper that
-takes the jar count anywhere from 3 to 14 in Sort Colors, or 3 to 10 in Merge
-Colors. Picking a difficulty resets it to that preset's own width, so the
-presets stay meaningful and the stepper reads as an adjustment from one.
+**The shelf width comes with the setting.** Each of the five names a width for
+the Random screen to open on — Sort Colors deals 3, 6, 9, 12 and 14 jars, Merge
+Colors 3, 5, 7, 9 and 10 — so picking a difficulty is one choice and not two.
+That width is `defaultJars` in the generator's `DIFFICULTY` table, and it is a
+separate thing from `sideJars`, which is the shape the setting describes at its
+own width and what the campaign asks for.
 
-Moving it off the preset builds a derived shape rather than just changing a
+The stepper that used to sit under the settings is still in the page, hidden
+behind `SHOW_JAR_PICKER` in `js/app.js`. Flip it to `true` and it comes back,
+taking the jar count from 3 to 14 in Sort Colors or 3 to 10 in Merge Colors —
+which is how a board is dealt at a width no setting offers on its own, and so
+how new campaign levels get built.
+
+Moving off the preset's width builds a derived shape rather than just changing a
 number, because everything that depends on the shelf has to move with it: the
 big jar and the obstacle count are taken as a share of the cells available, so
 three jars is never asked to hold a jarful of eighteen. The preset's par band

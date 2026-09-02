@@ -33,20 +33,28 @@
     },
     hard: {
       label: 'Hard',
-      blurb: 'Ten jars, five colors, and the target buried right down.',
+      blurb: 'Nine jars, five colors, and the target buried right down.',
       mainCap: 12, sideJars: 10, sideCap: 6, fillers: 5, fillerUnits: 28,
-      burial: 0.55, par: [21, 36]
+      burial: 0.55, par: [21, 36],
+      /* The width the shelf opens on, which is no longer the same thing as the
+         width the preset describes. sideJars is the shape dealt when a board is
+         asked for at exactly that width -- the campaign does that -- while this
+         is what the Random screen hands a player who picks the setting. */
+      defaultJars: 9
     },
-    /* The widest shelf the mode offers, and wide rather than deep on purpose:
+    /* Wide rather than deep on purpose:
        six deep keeps the bands legible on a phone, and the spare capacity is
        what stops an ordinary run of careless moves leaving the board
        unwinnable. Fourteen rather than sixteen: the search is happy either way,
        but fourteen is where the shelf still reads as a shelf on a phone. */
     extraHard: {
       label: 'Extra Hard',
-      blurb: 'Fourteen jars, seven colors, and a big jar that takes some filling.',
+      blurb: 'Twelve jars, seven colors, and a big jar that takes some filling.',
       mainCap: 16, sideJars: 14, sideCap: 6, fillers: 7, fillerUnits: 40,
-      burial: 0.6, sizeUp: 600, par: [32, 48]
+      burial: 0.6, sizeUp: 600, par: [32, 48],
+      /* Twelve on the Random screen, leaving the full fourteen to Expert so
+         the last step up is a step in something. */
+      defaultJars: 12
     },
     /* The same fourteen jars, a unit deeper. Depth rather than width, because
        width has run out: fourteen is where the shelf still reads as a shelf on

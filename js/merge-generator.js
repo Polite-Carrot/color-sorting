@@ -22,10 +22,11 @@
 
   var C = global.Colour, M = global.Merge;
 
-  /* Easy and Normal take the 3 and 6 jars the classic mode uses. Hard deals
-     at seven. Extra Hard opens at ten, stepping down to a seven-jar shape if
-     the player narrows the shelf — sideJars stays seven so that board is the
-     one they get.
+  /* The Random screen deals three, five, seven, nine and ten jars across the
+     five settings. Those widths are defaultJars below; sideJars is a separate
+     thing -- the shape a setting describes at its own width, which is what the
+     campaign asks for and what a board dealt at exactly that width comes out
+     as.
 
      Merge has no tight lower bound, so cost climbs with the branching factor
      and width drives it. A random puzzle is dealt while somebody waits, so
@@ -46,7 +47,8 @@
      Those numbers were taken before the search grew a heap and a weight, and
      the weight is what moved the ceiling: a wide board no longer has to have
      its par PROVEN, only found, so ten jars deals in 206ms median where it
-     used to be hopeless. Extra Hard therefore opens on ten rather than seven.
+     used to be hopeless. Extra Hard therefore opens on nine rather than seven,
+     and Expert on the full ten.
      What it buys is width, not difficulty — ten jars has to stay five deep
      with a small target, and measured over forty deals that is par 18-31
      (median 24) against seven jars' 21-29 (median 26). The wider board reads
@@ -70,9 +72,10 @@
     },
     normal: {
       label: 'Normal',
-      blurb: 'Six jars, the two colors spread about, and something in the way.',
+      blurb: 'Five jars, the two colors spread about, and something in the way.',
       mainCap: 5, sideJars: 6, sideCap: 5, fillers: 3, fillerUnits: 9,
-      burial: 0.3, churn: 0.35, par: [9, 20]
+      burial: 0.3, churn: 0.35, par: [9, 20],
+      defaultJars: 5
     },
     hard: {
       label: 'Hard',
@@ -82,13 +85,14 @@
     },
     extraHard: {
       label: 'Extra Hard',
-      blurb: 'Ten jars, five colors in the way, and nothing left in one piece.',
+      blurb: 'Nine jars, five colors in the way, and nothing left in one piece.',
       mainCap: 7, sideJars: 7, sideCap: 6, fillers: 5, fillerUnits: 14,
       burial: 0.6, churn: 0.65, par: [21, 30],
-      /* The width the stepper opens on. sideJars is the shape dealt when the
-         player picks that width exactly, so this is the only way to land them
-         somewhere other than the preset's own shelf. */
-      defaultJars: 10
+      /* The width the shelf opens on. sideJars is the shape dealt when a board
+         is asked for at exactly that width -- the campaign does that -- so this
+         is the only way to land a player somewhere other than the preset's own
+         shelf. Nine rather than ten, leaving ten to Expert. */
+      defaultJars: 9
     },
     /* Seven jars a unit deeper. Modest, and that is the ceiling rather than a
        choice: merge cannot widen past ten and cannot deepen much past this.
@@ -102,9 +106,16 @@
        a bigger board. */
     expert: {
       label: 'Expert',
-      blurb: 'Seven jars seven deep, and everything in the way of everything.',
+      blurb: 'Ten jars seven deep, and everything in the way of everything.',
       mainCap: 8, sideJars: 7, sideCap: 7, fillers: 5, fillerUnits: 17,
-      burial: 0.6, churn: 0.65, sizeUp: 250000, par: [28, 36]
+      burial: 0.6, churn: 0.65, sizeUp: 250000, par: [28, 36],
+      /* The mode's widest shelf at its deepest, which is only reachable
+         because the target stays small: past ten jars the derived shape holds
+         the big jar to five, and that is what keeps a ten-by-seven board
+         dealing in 80ms median. The tail is real -- one deal in thirty took
+         four and a half seconds -- and the button says "Dealing..." throughout.
+         Par 18-41, median 33, against Extra Hard's 28.6. */
+      defaultJars: 10
     }
   };
 

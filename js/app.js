@@ -121,6 +121,14 @@
      js/merge-generator.js. Below eight jars par is still the true shortest. */
   var JAR_RANGE = { classic: [3, 14], merge: [3, 10] };
 
+  /* The jar stepper. Off, so a setting is one choice and not two: picking a
+     difficulty on the Random screen now lands on a width chosen for it
+     (defaultJars in the generator's DIFFICULTY table) and that is the board.
+     The stepper itself is untouched behind this flag -- flip it to true and the
+     control comes back, which is how new campaign levels get built at widths
+     the settings do not offer on their own. */
+  var SHOW_JAR_PICKER = false;
+
   /* Most jars on one shelf row. Wider than this and a row stops reading as a
      row; the shelf wraps on its own below it. */
   var JARS_PER_ROW = 8;
@@ -626,8 +634,13 @@
           /* The level carries the preset's name, not the scratch key, so the
              board reads as "Hard · seed 1234" and a record still slots in. */
           lvl.difficulty = state.difficulty;
+          /* The width is only worth naming when the player chose it. With the
+             stepper off it comes with the setting, and printing it on three
+             boards out of five and not the other two reads as an inconsistency
+             rather than as information. */
           lvl.subtitle = randomGen().DIFFICULTY[state.difficulty].label +
-                         ' · ' + state.jars + ' jars · seed ' + lvl.seed;
+                         (SHOW_JAR_PICKER ? ' · ' + state.jars + ' jars' : '') +
+                         ' · seed ' + lvl.seed;
         }
         track('random_deal', {
           game: state.randomMerge ? 'merge' : 'classic',
@@ -1382,19 +1395,14 @@
     if (window.Capacitor) document.body.classList.add('is-native');
     renderHome();
     renderSettingsToggles();
+    $('jarpick').hidden = !SHOW_JAR_PICKER;
 
     $('play-random').addEventListener('click', startRandom);
-    /* 'input' rather than 'change', so the blurb and the jar count follow the
-       thumb as it is dragged rather than snapping over once it is let go. */
     $('consent-yes').addEventListener('click', function () { answerConsent(true); });
     $('consent-no').addEventListener('click', function () { answerConsent(false); });
-    $('settings-analytics').addEventListener('click', function () {
-      prefs.analytics = !prefs.analytics;
-      savePrefs();
-      renderSettingsToggles();
-      applyConsent();
-    });
 
+    /* 'input' rather than 'change', so the name and the blurb follow the thumb
+       as it is dragged rather than snapping over once it is let go. */
     $('difficulty').addEventListener('input', function () {
       var keys = randomKeys();
       var key = keys[Number($('difficulty').value)];
@@ -1656,15 +1664,11 @@
       c.textContent = prefs.cbAssist ? 'On' : 'Off';
       c.setAttribute('aria-pressed', prefs.cbAssist ? 'true' : 'false');
     }
-    var a = document.getElementById('settings-analytics');
-    var row = document.getElementById('settings-analytics-row');
-    /* With no measurement id there is nothing to consent to, so the row is not
-       offered rather than being offered and doing nothing. */
-    if (row) row.hidden = !(window.Track && window.Track.configured());
-    if (a) {
-      a.textContent = prefs.analytics ? 'On' : 'Off';
-      a.setAttribute('aria-pressed', prefs.analytics ? 'true' : 'false');
-    }
+    /* No analytics row: there is no measurement id set, so there is nothing to
+       consent to and a switch that changed nothing would only raise the
+       question. The answer is still kept in prefs and the consent banner is
+       still the thing that asks it -- both stay dormant until an id is pasted
+       into js/track.js, and a settings switch comes back with it. */
   }
 
   /* ───────── analytics, once asked for ───────── */
