@@ -1,4 +1,15 @@
-/* track.js — optional, consented analytics.
+/* track.js — optional, consented analytics. WEB ONLY.
+ *
+ * This is the GA4 *Web* data stream and nothing else. A GA4 property's iOS and
+ * Android streams cannot be fed from here at all — they are Firebase streams,
+ * configured by GoogleService-Info.plist and google-services.json in ios/ and
+ * android/, and they need the Firebase SDK rather than gtag.js.
+ *
+ * That distinction has to be enforced, not just described. sync-web.js copies
+ * every script the page names into www/, and Capacitor copies www/ into both
+ * native shells, so this file physically ships inside the apps. Without the
+ * Capacitor check in configured() below, setting a measurement id would tag
+ * app sessions into the web stream and count them twice.
  *
  * Nothing here runs until somebody has said yes. GA4 sets cookies, which are
  * not strictly necessary to play a puzzle, so under UK PECR they need consent
@@ -19,7 +30,15 @@
 
   var loaded = false;
 
-  function configured() { return !!MEASUREMENT_ID; }
+  /* The one gate everything else passes through: the consent banner is only
+     offered when this is true (app.js maybeAskConsent), load() refuses when it
+     is false, and event() cannot fire because nothing ever set loaded. So the
+     native build asks nothing, fetches nothing and stores nothing.
+
+     Checked here as a function rather than once at parse time, so it reads
+     window.Capacitor when init() runs — by which point the native bridge has
+     long been injected. */
+  function configured() { return !!MEASUREMENT_ID && !global.Capacitor; }
 
   /* Inject gtag.js. Called once, only after consent. */
   function load() {
