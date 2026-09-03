@@ -23,10 +23,15 @@
 (function (global) {
   'use strict';
 
-  /* Paste the GA4 measurement id here — the "G-" one from Admin → Data
-     Streams. Left empty the whole file is inert: the banner never appears,
-     no script is fetched, and every event() is a no-op. */
-  var MEASUREMENT_ID = '';
+  /* The GA4 measurement id — the "G-" one from Admin → Data Streams, and the
+     WEB stream's, since that is the only kind gtag.js can talk to. Set this
+     back to '' and the whole file goes inert again: the banner never appears,
+     no script is fetched, and every event() is a no-op.
+
+     Not a secret. A measurement id is readable in the source of every page
+     that uses it; what protects the property is the domain filter in GA4, not
+     the id being hidden. */
+  var MEASUREMENT_ID = 'G-M7W3D4267P';
 
   var loaded = false;
 
