@@ -1,8 +1,13 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.google.gms.google-services'
 
 android {
     namespace = "com.politecarrot.colorjars"
     compileSdk = rootProject.ext.compileSdkVersion
+    // Pin to a Build-Tools version already installed under ~/Library/Android/sdk
+    // — AGP 8.13's default is 35.0.0, which dl.google.com kept returning 503
+    // for on this network. 36.1.0 is complete and compatible with compileSdk 36.
+    buildToolsVersion "36.1.0"
     defaultConfig {
         applicationId "com.politecarrot.colorjars"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -31,6 +36,7 @@ repositories {
 }
 
 dependencies {
+    implementation 'com.google.firebase:firebase-analytics:17.4.1'
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
@@ -43,12 +49,3 @@ dependencies {
 }
 
 apply from: 'capacitor.build.gradle'
-
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
-}

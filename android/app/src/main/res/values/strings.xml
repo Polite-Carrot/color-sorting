@@ -4,6 +4,4 @@
     <string name="title_activity_main">Color Match</string>
     <string name="package_name">com.politecarrot.colorjars</string>
     <string name="custom_url_scheme">com.politecarrot.colorjars</string>
-    <!-- Phones lock to portrait; tablets override via res/values-sw600dp. -->
-    <string name="screen_orientation">portrait</string>
 </resources>
