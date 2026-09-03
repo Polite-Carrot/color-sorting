@@ -634,6 +634,12 @@
           /* The level carries the preset's name, not the scratch key, so the
              board reads as "Hard · seed 1234" and a record still slots in. */
           lvl.difficulty = state.difficulty;
+          /* The scratch key leaks into the id the generator stamps, so a board
+             dealt at a derived shape came out as random-__custom-1234 — which
+             is meaningless to a player reading it and worse as an analytics
+             dimension, where half the settings would collapse into one bucket
+             named after an implementation detail. */
+          lvl.id = lvl.id.replace('__custom', state.difficulty);
           /* The width is only worth naming when the player chose it. With the
              stepper off it comes with the setting, and printing it on three
              boards out of five and not the other two reads as an inconsistency
