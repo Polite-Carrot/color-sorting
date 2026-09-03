@@ -33,11 +33,16 @@
      the id being hidden. */
   var MEASUREMENT_ID = 'G-M7W3D4267P';
 
-  var loaded = false;
+  /* Two flags, not one, and the difference is the whole reason turning the
+     setting off and on again works. injected says the script tag has been
+     added, which can only happen once per page; enabled says events should be
+     sent, which flips as often as somebody likes. Collapsing them into one
+     flag meant a re-enable re-injected gtag.js. */
+  var injected = false, enabled = false;
 
   /* The one gate everything else passes through: the consent banner is only
      offered when this is true (app.js maybeAskConsent), load() refuses when it
-     is false, and event() cannot fire because nothing ever set loaded. So the
+     is false, and event() cannot fire because nothing ever enabled it. So the
      native build asks nothing, fetches nothing and stores nothing.
 
      Checked here as a function rather than once at parse time, so it reads
@@ -45,10 +50,17 @@
      long been injected. */
   function configured() { return !!MEASUREMENT_ID && !global.Capacitor; }
 
-  /* Inject gtag.js. Called once, only after consent. */
+  /* Turn collection on: after consent, or after somebody switches the setting
+     back on. Safe to call repeatedly. */
   function load() {
-    if (loaded || !configured()) return;
-    loaded = true;
+    if (!configured()) return;
+    enabled = true;
+    /* GA reads this flag on every hit, so an opt-out has to be lifted
+       explicitly. Leaving it set was why re-enabling used to look like it had
+       worked while sending nothing. */
+    global['ga-disable-' + MEASUREMENT_ID] = false;
+    if (injected) return;
+    injected = true;
 
     global.dataLayer = global.dataLayer || [];
     function gtag() { global.dataLayer.push(arguments); }
@@ -57,9 +69,10 @@
     var s = document.createElement('script');
     s.async = true;
     s.src = 'https://www.googletagmanager.com/gtag/js?id=' + MEASUREMENT_ID;
-    /* If it fails — offline, blocked, a native shell with no network — the
-       queue simply never drains. Nothing else notices. */
-    s.onerror = function () { loaded = false; };
+    /* If it fails — offline, or blocked, which an ad blocker will do as a
+       matter of course — stop queueing into an array that will never drain.
+       injected goes back to false so a later toggle may try again. */
+    s.onerror = function () { enabled = false; injected = false; };
     document.head.appendChild(s);
 
     gtag('js', new Date());
@@ -74,14 +87,14 @@
      holds. The script cannot be un-injected without a reload, so the flag is
      what actually stops the events. */
   function unload() {
-    if (configured() && global.gtag) {
+    if (configured()) {
       global['ga-disable-' + MEASUREMENT_ID] = true;
     }
-    loaded = false;
+    enabled = false;
   }
 
   function event(name, params) {
-    if (!loaded || !global.gtag) return;
+    if (!enabled || !global.gtag) return;
     try { global.gtag('event', name, params || {}); }
     catch (e) { /* analytics must never break play */ }
   }

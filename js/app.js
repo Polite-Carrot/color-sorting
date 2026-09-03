@@ -1400,6 +1400,16 @@
     $('play-random').addEventListener('click', startRandom);
     $('consent-yes').addEventListener('click', function () { answerConsent(true); });
     $('consent-no').addEventListener('click', function () { answerConsent(false); });
+    $('settings-analytics').addEventListener('click', function () {
+      /* prefs.analytics is null until the banner has been answered, and !null
+         is true — so somebody who opens Settings first and switches this on has
+         answered the question, and the banner must not go on asking it. */
+      prefs.analytics = !prefs.analytics;
+      savePrefs();
+      $('consent').hidden = true;
+      renderSettingsToggles();
+      applyConsent();
+    });
 
     /* 'input' rather than 'change', so the name and the blurb follow the thumb
        as it is dragged rather than snapping over once it is let go. */
@@ -1664,11 +1674,18 @@
       c.textContent = prefs.cbAssist ? 'On' : 'Off';
       c.setAttribute('aria-pressed', prefs.cbAssist ? 'true' : 'false');
     }
-    /* No analytics row: there is no measurement id set, so there is nothing to
-       consent to and a switch that changed nothing would only raise the
-       question. The answer is still kept in prefs and the consent banner is
-       still the thing that asks it -- both stay dormant until an id is pasted
-       into js/track.js, and a settings switch comes back with it. */
+    var a = document.getElementById('settings-analytics');
+    var row = document.getElementById('settings-analytics-row');
+    /* Web only, and only when there is something to consent to. Both halves
+       come free from Track.configured(): it wants a measurement id AND the
+       absence of Capacitor, so the row is absent in the iOS and Android builds
+       -- where this switch would be a lie, since those report through Firebase
+       to their own data streams and know nothing about it. */
+    if (row) row.hidden = !(window.Track && window.Track.configured());
+    if (a) {
+      a.textContent = prefs.analytics ? 'On' : 'Off';
+      a.setAttribute('aria-pressed', prefs.analytics ? 'true' : 'false');
+    }
   }
 
   /* ───────── analytics, once asked for ───────── */

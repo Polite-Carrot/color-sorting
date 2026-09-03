@@ -1455,6 +1455,10 @@ body.is-native .keys { display: none; }
   border-radius: 12px;
   background: var(--paper-warm);
 }
+/* display:flex beats the browser's own [hidden] rule, so a row told to go away
+   has to be told explicitly — as .recipes and .jarpick are. The analytics row
+   relies on this to stay out of the native builds. */
+.settings-row[hidden] { display: none; }
 .settings-row > span {
   font-family: "Baloo 2", sans-serif;
   font-weight: 800;
