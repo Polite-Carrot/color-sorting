@@ -24,7 +24,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
@@ -36,7 +36,13 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.google.firebase:firebase-analytics:17.4.1'
+    // Firebase Analytics via the BOM — the BOM pins every Firebase library
+    // to a compatible version, so app-level entries never carry version
+    // numbers themselves. 33.7.0 is pinned instead of the newest (34.x)
+    // because its firebase-analytics artifact is on the Aliyun mirror; 34's
+    // is not, and dl.google.com is unreliable from this network.
+    implementation platform('com.google.firebase:firebase-bom:33.7.0')
+    implementation 'com.google.firebase:firebase-analytics'
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
