@@ -241,15 +241,36 @@
     </div>
   </div>
 
-  <!-- ─────────────── consent ─────────────── -->
-  <div id="consent" class="consent" hidden>
-    <p class="consent__text">
-      Can we count how far people get? It helps work out which levels are too
-      hard. The game plays exactly the same either way.
-    </p>
-    <div class="consent__actions">
-      <button id="consent-yes" class="btn btn--primary">Yes, that's fine</button>
-      <button id="consent-no" class="btn">No thanks</button>
+  <!-- ─────────────── privacy ─────────────── -->
+  <div id="privacy" class="overlay" hidden>
+    <div class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="privacy-title">
+      <h2 id="privacy-title">Your choices</h2>
+      <p class="modal__line">
+        Two things to say yes or no to before you play. You can change either
+        at any time in Settings.
+      </p>
+
+      <div class="settings-list">
+        <div class="settings-row settings-row--stack" id="privacy-ads-row">
+          <div>
+            <b>Personalized ads</b>
+            <p class="settings-row__note">Ads matched to what you're likely to enjoy. If off, ads still appear but are generic.</p>
+          </div>
+          <button id="privacy-ads" class="btn" type="button" aria-label="Personalized ads" aria-pressed="true">On</button>
+        </div>
+
+        <div class="settings-row settings-row--stack">
+          <div>
+            <b>Send usage data</b>
+            <p class="settings-row__note">Anonymous stats about which levels are too hard. Helps us fix them.</p>
+          </div>
+          <button id="privacy-analytics" class="btn" type="button" aria-label="Send usage data" aria-pressed="true">On</button>
+        </div>
+      </div>
+
+      <div class="modal__actions">
+        <button id="privacy-save" class="btn btn--primary">Save</button>
+      </div>
     </div>
   </div>
 
@@ -283,9 +304,9 @@
           <span>Color Blind Assist</span>
           <button id="settings-cb" class="btn" type="button" aria-pressed="false">Off</button>
         </div>
-        <div class="settings-row" id="settings-analytics-row" hidden>
-          <span>Send usage data</span>
-          <button id="settings-analytics" class="btn" type="button" aria-pressed="false">Off</button>
+        <div class="settings-row">
+          <span>Manage privacy choices</span>
+          <button id="settings-privacy" class="btn" type="button">Open&hellip;</button>
         </div>
         <div class="settings-row settings-row--danger">
           <span>Reset progress</span>
@@ -364,6 +385,7 @@
 <script src="js/generator.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/track.js"></script>
+<script src="js/ads.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

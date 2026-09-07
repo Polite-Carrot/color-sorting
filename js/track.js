@@ -1,32 +1,30 @@
-/* track.js — optional, consented analytics. WEB ONLY.
+/* track.js — optional, consented analytics.
  *
- * This is the GA4 *Web* data stream and nothing else. A GA4 property's iOS and
- * Android streams cannot be fed from here at all — they are Firebase streams,
- * configured by GoogleService-Info.plist and google-services.json in ios/ and
- * android/, and they need the Firebase SDK rather than gtag.js.
+ * Two backends, one call surface. On the web build events go to a GA4 Web
+ * stream via gtag.js. On the iOS and Android builds they go through the
+ * Capacitor Firebase Analytics plugin to the same GA4 property's app streams
+ * (configured by GoogleService-Info.plist / google-services.json). configured()
+ * hides that split from every caller — Track.event(), Track.load(),
+ * Track.unload() do the right thing on either platform.
  *
- * That distinction has to be enforced, not just described. sync-web.js copies
- * every script the page names into www/, and Capacitor copies www/ into both
- * native shells, so this file physically ships inside the apps. Without the
- * Capacitor check in configured() below, setting a measurement id would tag
- * app sessions into the web stream and count them twice.
- *
- * Nothing here runs until somebody has said yes. GA4 sets cookies, which are
- * not strictly necessary to play a puzzle, so under UK PECR they need consent
- * BEFORE anything is stored — which is why the tag is injected on acceptance
- * rather than loaded on page load and told to stay quiet.
+ * Nothing runs until somebody has said yes. GA4 sets cookies and Firebase
+ * writes an install id, both of which UK PECR and GDPR require consent for
+ * BEFORE anything is stored — which is why native SDK collection defaults to
+ * OFF (see AndroidManifest.xml and Info.plist flags) and gtag.js is injected
+ * on acceptance rather than at page load.
  *
  * Every call is safe to make at any time. Before consent, or with no
- * measurement id set, or if the script is blocked, event() does nothing and
- * throws nothing: a tracking failure must never cost somebody their game.
+ * measurement id set / no Firebase plugin registered, or if the script is
+ * blocked, event() does nothing and throws nothing: a tracking failure must
+ * never cost somebody their game.
  */
 (function (global) {
   'use strict';
 
   /* The GA4 measurement id — the "G-" one from Admin → Data Streams, and the
      WEB stream's, since that is the only kind gtag.js can talk to. Set this
-     back to '' and the whole file goes inert again: the banner never appears,
-     no script is fetched, and every event() is a no-op.
+     back to '' and the web branch goes inert: no script is fetched and every
+     web event() is a no-op. Native events still flow through Firebase.
 
      Not a secret. A measurement id is readable in the source of every page
      that uses it; what protects the property is the domain filter in GA4, not
@@ -40,21 +38,69 @@
      flag meant a re-enable re-injected gtag.js. */
   var injected = false, enabled = false;
 
-  /* The one gate everything else passes through: the consent banner is only
-     offered when this is true (app.js maybeAskConsent), load() refuses when it
-     is false, and event() cannot fire because nothing ever enabled it. So the
-     native build asks nothing, fetches nothing and stores nothing.
-
-     Checked here as a function rather than once at parse time, so it reads
+  /* Checked as a function rather than once at parse time, so it reads
      window.Capacitor when init() runs — by which point the native bridge has
      long been injected. */
-  function configured() { return !!MEASUREMENT_ID && !global.Capacitor; }
+  function isNative() { return !!global.Capacitor; }
+
+  /* Configured means "there is a route for analytics on this platform".
+     On the web build we need a measurement id; on the native builds the
+     Capacitor Firebase Analytics plugin (bridged into JS via registerPlugin)
+     is what carries events to the app's Firebase project. */
+  function configured() {
+    if (isNative()) return !!firebasePlugin();
+    return !!MEASUREMENT_ID;
+  }
+
+  /* Cached proxy to @capacitor-firebase/analytics's native plugin.  In a
+     non-bundled project this is how you get at any Capacitor plugin. */
+  var _fb = null;
+  function firebasePlugin() {
+    if (_fb) return _fb;
+    if (!global.Capacitor) return null;
+    if (global.Capacitor.registerPlugin) {
+      _fb = global.Capacitor.registerPlugin('FirebaseAnalytics');
+    } else if (global.Capacitor.Plugins && global.Capacitor.Plugins.FirebaseAnalytics) {
+      _fb = global.Capacitor.Plugins.FirebaseAnalytics;
+    }
+    return _fb;
+  }
 
   /* Turn collection on: after consent, or after somebody switches the setting
-     back on. Safe to call repeatedly. */
-  function load() {
+     back on. Safe to call repeatedly.
+
+     adsAllowed: pass false when the user has said no to personalized ads, so
+     ad-related Consent Mode v2 grants are DENIED even while ANALYTICS_STORAGE
+     is GRANTED. Defaults to true when omitted, which keeps every existing
+     caller working. */
+  async function load(adsAllowed) {
     if (!configured()) return;
     enabled = true;
+
+    if (isNative()) {
+      /* Two flips: the SDK-wide switch, plus the Consent Mode v2 grants that
+         Google Analytics reads on every event. Both matter — the deactivation
+         flag stops the process from starting at boot, and the consent grants
+         tell Google Analytics the event is allowed once it does. */
+      var fb = firebasePlugin();
+      if (!fb) return;
+      var adStatus = adsAllowed === false ? 'DENIED' : 'GRANTED';
+      try {
+        await fb.setEnabled({ enabled: true });
+        if (fb.setConsent) {
+          await fb.setConsent({
+            consents: [
+              { type: 'ANALYTICS_STORAGE',   status: 'GRANTED' },
+              { type: 'AD_STORAGE',          status: adStatus },
+              { type: 'AD_USER_DATA',        status: adStatus },
+              { type: 'AD_PERSONALIZATION',  status: adStatus },
+            ],
+          });
+        }
+      } catch (e) { console.warn('Track: Firebase enable failed', e && e.message); }
+      return;
+    }
+
     /* GA reads this flag on every hit, so an opt-out has to be lifted
        explicitly. Leaving it set was why re-enabling used to look like it had
        worked while sending nothing. */
@@ -86,15 +132,50 @@
   /* Turned off after having been on: stop sending, and ask GA to drop what it
      holds. The script cannot be un-injected without a reload, so the flag is
      what actually stops the events. */
-  function unload() {
-    if (configured()) {
-      global['ga-disable-' + MEASUREMENT_ID] = true;
+  async function unload() {
+    if (isNative()) {
+      var fb = firebasePlugin();
+      if (fb) {
+        try {
+          await fb.setEnabled({ enabled: false });
+          if (fb.setConsent) {
+            await fb.setConsent({
+              consents: [
+                { type: 'ANALYTICS_STORAGE', status: 'DENIED' },
+                { type: 'AD_STORAGE', status: 'DENIED' },
+                { type: 'AD_USER_DATA', status: 'DENIED' },
+                { type: 'AD_PERSONALIZATION', status: 'DENIED' },
+              ],
+            });
+          }
+        } catch (e) { /* nothing to do */ }
+      }
+      enabled = false;
+      return;
     }
+    if (configured()) global['ga-disable-' + MEASUREMENT_ID] = true;
     enabled = false;
   }
 
   function event(name, params) {
-    if (!enabled || !global.gtag) return;
+    if (!enabled) return;
+    if (isNative()) {
+      var fb = firebasePlugin();
+      if (fb) {
+        /* Firebase Analytics parameter names are limited to 40 chars and
+           values to 100.  Trim quietly rather than reject. */
+        var safe = {};
+        if (params) for (var k in params) {
+          if (Object.prototype.hasOwnProperty.call(params, k)) {
+            safe[String(k).slice(0, 40)] = typeof params[k] === 'string'
+              ? params[k].slice(0, 100) : params[k];
+          }
+        }
+        fb.logEvent({ name: name, params: safe }).catch(function () {});
+      }
+      return;
+    }
+    if (!global.gtag) return;
     try { global.gtag('event', name, params || {}); }
     catch (e) { /* analytics must never break play */ }
   }
@@ -104,6 +185,6 @@
     load: load,
     unload: unload,
     event: event,
-    get id() { return MEASUREMENT_ID; }
+    get id() { return isNative() ? 'firebase' : MEASUREMENT_ID; }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

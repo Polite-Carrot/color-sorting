@@ -252,10 +252,10 @@
      rather than a key each so a future toggle does not have to touch storage.
      Colour blind assist prints the letter on every band — off by default so
      the game reads as its colours, on when someone asks for it. */
-  /* analytics: null until the question has been put, then true or false.
-     Three states matter — the banner shows only for null, so somebody who has
-     said no is not asked again on every visit. */
-  var prefs = { sound: true, cbAssist: false, randomMerge: false, analytics: null };
+  /* analytics and personalizedAds: null until the privacy modal has been
+     answered, then true or false.  Three states matter — the modal shows
+     for null, so somebody who has said no is not asked again on every visit. */
+  var prefs = { sound: true, cbAssist: false, randomMerge: false, analytics: null, personalizedAds: null };
 
   function loadPrefs() {
     try {
@@ -266,6 +266,7 @@
         if (typeof p.cbAssist === 'boolean') prefs.cbAssist = p.cbAssist;
         if (typeof p.randomMerge === 'boolean') prefs.randomMerge = p.randomMerge;
         if (typeof p.analytics === 'boolean') prefs.analytics = p.analytics;
+        if (typeof p.personalizedAds === 'boolean') prefs.personalizedAds = p.personalizedAds;
       }
     } catch (e) { /* corrupt — stick with defaults */ }
   }
@@ -1197,6 +1198,8 @@
       stars: g0.stars(),
       hints_used: g0.hintsUsed
     });
+    /* Same reasoning: the ad cadence counts real wins, not just cards seen. */
+    Ads.noteLevelComplete();
     var g = state.game;
     var stars = g.stars();
     var lvl = g.level;
@@ -1241,21 +1244,27 @@
     var next = $('win-next');
     if (state.mode === 'daily') {
       next.textContent = 'Back to the calendar';
-      next.onclick = function () { closeOverlay(); showScreen('daily'); };
+      next.onclick = async function () {
+        closeOverlay();
+        await Ads.maybeShowInterstitial();
+        showScreen('daily');
+      };
     } else if (state.mode !== 'random') {
       var book = listFor(state.mode);
       var i = book.indexOf(lvl.id);
       var hasNext = i >= 0 && i + 1 < book.list.length;
       next.textContent = hasNext ? 'Next level' : 'Try a random puzzle';
-      next.onclick = function () {
+      next.onclick = async function () {
         closeOverlay();
+        await Ads.maybeShowInterstitial();
         if (hasNext) startLevel(book.list[i + 1], state.mode);
         else { showScreen('random'); $('play-random').focus(); }
       };
     } else {
       next.textContent = 'Another one';
-      next.onclick = function () {
+      next.onclick = async function () {
         closeOverlay();
+        await Ads.maybeShowInterstitial();
         $('seed-input').value = '';
         startRandom();
       };
@@ -1404,17 +1413,28 @@
     $('jarpick').hidden = !SHOW_JAR_PICKER;
 
     $('play-random').addEventListener('click', startRandom);
-    $('consent-yes').addEventListener('click', function () { answerConsent(true); });
-    $('consent-no').addEventListener('click', function () { answerConsent(false); });
-    $('settings-analytics').addEventListener('click', function () {
-      /* prefs.analytics is null until the banner has been answered, and !null
-         is true — so somebody who opens Settings first and switches this on has
-         answered the question, and the banner must not go on asking it. */
-      prefs.analytics = !prefs.analytics;
+    /* Privacy modal: two toggles + Save. Toggles flip local state on tap;
+       Save persists prefs and calls applyConsent which routes to Track and
+       Ads. */
+    function bindToggle(id) {
+      $(id).addEventListener('click', function () {
+        var on = this.getAttribute('aria-pressed') !== 'true';
+        setToggleBtn(this, on);
+      });
+    }
+    bindToggle('privacy-ads');
+    bindToggle('privacy-analytics');
+    $('privacy-save').addEventListener('click', function () {
+      prefs.personalizedAds = $('privacy-ads').getAttribute('aria-pressed') === 'true';
+      prefs.analytics       = $('privacy-analytics').getAttribute('aria-pressed') === 'true';
       savePrefs();
-      $('consent').hidden = true;
-      renderSettingsToggles();
+      $('privacy').hidden = true;
       applyConsent();
+      renderSettingsToggles();
+    });
+    $('settings-privacy').addEventListener('click', function () {
+      $('settings-modal').hidden = true;
+      openPrivacyModal();
     });
 
     /* 'input' rather than 'change', so the name and the blurb follow the thumb
@@ -1680,40 +1700,57 @@
       c.textContent = prefs.cbAssist ? 'On' : 'Off';
       c.setAttribute('aria-pressed', prefs.cbAssist ? 'true' : 'false');
     }
-    var a = document.getElementById('settings-analytics');
-    var row = document.getElementById('settings-analytics-row');
-    /* Web only, and only when there is something to consent to. Both halves
-       come free from Track.configured(): it wants a measurement id AND the
-       absence of Capacitor, so the row is absent in the iOS and Android builds
-       -- where this switch would be a lie, since those report through Firebase
-       to their own data streams and know nothing about it. */
-    if (row) row.hidden = !(window.Track && window.Track.configured());
-    if (a) {
-      a.textContent = prefs.analytics ? 'On' : 'Off';
-      a.setAttribute('aria-pressed', prefs.analytics ? 'true' : 'false');
+  }
+
+  /* ───────── analytics + ads consent, once asked for ───────── */
+
+  function applyConsent() {
+    /* Analytics: on native this switches Firebase Analytics collection and
+       consent grants; on web it (un)loads gtag.js.  Track.configured() is
+       true on both platforms now provided the plugin/measurement id is
+       available.  personalizedAds is passed through so ad-consent grants
+       (AD_USER_DATA, AD_PERSONALIZATION, AD_STORAGE) follow the same choice
+       Ads.setPersonalized is about to apply to AdMob — otherwise a user who
+       said yes to analytics but no to personalized ads would still have
+       Google Signals attribution running against them. */
+    if (window.Track && window.Track.configured()) {
+      if (prefs.analytics) window.Track.load(prefs.personalizedAds !== false);
+      else window.Track.unload();
+    }
+    /* AdMob-side: npa flag on the next ad request. */
+    if (window.Ads && window.Ads.setPersonalized) {
+      window.Ads.setPersonalized(prefs.personalizedAds !== false);
     }
   }
 
-  /* ───────── analytics, once asked for ───────── */
-
-  function applyConsent() {
-    if (!window.Track || !window.Track.configured()) return;
-    if (prefs.analytics) window.Track.load();
-    else window.Track.unload();
+  function setToggleBtn(btn, on) {
+    if (!btn) return;
+    btn.textContent = on ? 'On' : 'Off';
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
   }
 
-  function answerConsent(yes) {
-    prefs.analytics = !!yes;
-    savePrefs();
-    $('consent').hidden = true;
-    applyConsent();
+  /* Open the privacy modal populated from the current preferences.  Called
+     both on first launch (via maybeAskConsent) and from Settings > Manage
+     privacy choices.  Defaults to On/On for a fresh install so the modal
+     reads as "turn things off if you want" rather than "opt in to each". */
+  function openPrivacyModal() {
+    var adsOn = prefs.personalizedAds !== false;
+    var anaOn = prefs.analytics !== false;
+    setToggleBtn($('privacy-ads'), adsOn);
+    setToggleBtn($('privacy-analytics'), anaOn);
+    openModal('privacy', 'privacy-save');
   }
 
-  /* Asked once, on the first visit that has a measurement id to ask about. */
+  /* Asked once, on the first visit that has any consent to gather.  On web
+     that means either analytics is available; on native there is always
+     Firebase to say yes/no to. */
   function maybeAskConsent() {
-    if (!window.Track || !window.Track.configured()) return;
-    if (prefs.analytics === null) $('consent').hidden = false;
-    else applyConsent();
+    if (prefs.analytics !== null && prefs.personalizedAds !== null) {
+      applyConsent();
+      return;
+    }
+    /* Give the boot lockup a moment before we cover the screen with a modal. */
+    setTimeout(openPrivacyModal, 300);
   }
 
   /* Every call site is one line and none of them can fail: Track.event is a
@@ -1732,6 +1769,18 @@
     if (!$('reset-modal').hidden) {
       if (e.key === 'Escape') {
         $('reset-modal').hidden = true;
+        openModal('settings-modal', 'settings-close');
+      }
+      return;
+    }
+    if (!$('privacy').hidden) {
+      /* Escape only closes it if BOTH prefs have been answered at least once
+         (i.e. this open came from Settings). An upgraded user with an old
+         prefs.analytics but no personalizedAds must not slip past. */
+      if (e.key === 'Escape'
+          && prefs.analytics !== null
+          && prefs.personalizedAds !== null) {
+        $('privacy').hidden = true;
         openModal('settings-modal', 'settings-close');
       }
       return;

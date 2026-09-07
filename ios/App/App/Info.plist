@@ -64,5 +64,36 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<!-- AdMob application ID. Currently Google's official TEST app ID; swap
+	     for the real ca-app-pub-... value from the AdMob console just before
+	     shipping. Missing/invalid values crash the app on startup. -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<!-- iOS 14.5+ requires an explicit prompt before AdMob can read IDFA.
+	     If the user declines, ads still show but non-personalised. -->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Allow tracking to see ads relevant to you. You can decline and see less personalised ads.</string>
+	<!-- SKAdNetwork identifier for Google (AdMob). Required so Apple's
+	     conversion API attributes installs from Google-served ads. -->
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>cstr6suwn9.skadnetwork</string>
+		</dict>
+	</array>
+	<!-- Firebase Analytics starts collecting on native SDK init unless these
+	     flags default it off. track.js re-enables it via the Capacitor
+	     Firebase Analytics plugin once the user consents. -->
+	<key>FIREBASE_ANALYTICS_COLLECTION_DEACTIVATED</key>
+	<true/>
+	<key>GOOGLE_ANALYTICS_DEFAULT_ALLOW_ANALYTICS_STORAGE</key>
+	<false/>
+	<key>GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_STORAGE</key>
+	<false/>
+	<key>GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_USER_DATA</key>
+	<false/>
+	<key>GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_PERSONALIZATION_SIGNALS</key>
+	<false/>
 </dict>
 </plist>

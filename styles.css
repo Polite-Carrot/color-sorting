@@ -53,6 +53,12 @@ html, body {
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: pan-x pan-y;
+  /* Without this, WebKit paints its own translucent grey box over whatever
+     was tapped for as long as the finger is down — on a jar that reads as a
+     dark flash appearing and vanishing on every tap. Every touch target here
+     already has its own pressed/selected styling, so the browser's is pure
+     noise on top of it. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -1031,6 +1037,12 @@ input:focus-visible {
   background: rgba(203, 233, 248, .72);
   overflow: hidden;
   box-shadow: 0 var(--lift) 0 var(--ink);
+  /* Selecting a jar changes this shadow's offset (4px -> 8px) at the same
+     moment .jar's transform starts lifting it. Without this, the shadow
+     jumped to its new depth instantly while the lift was still animating —
+     a flash of dark, disconnected shadow under a jar that had not moved yet.
+     Matching the timing keeps the two in step. */
+  transition: box-shadow .16s cubic-bezier(.2, .9, .3, 1.3);
 }
 /* etched unit marks */
 .jar__glass::after {
@@ -1389,6 +1401,22 @@ body.cb-assist .band span { visibility: visible; }
    entirely. Set by app.js when window.Capacitor is present. */
 body.is-native .keys { display: none; }
 
+/* A native app has no address bar to reassure anyone that copying text out
+   of it is even meaningful, so long-pressing a jar's colour-blind letter to
+   select or copy it reads as a bug rather than a feature. Scoped to native
+   only — the web build keeps ordinary text selection. The seed field is the
+   one exception: it is real text somebody is meant to edit. */
+body.is-native, body.is-native * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+body.is-native #seed-input {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 /* The game selector sits above the settings row and reads as its own choice,
    so the two rows are not mistaken for one long list of difficulties. */
 .difficulty--modes {
@@ -1455,9 +1483,8 @@ body.is-native .keys { display: none; }
   border-radius: 12px;
   background: var(--paper-warm);
 }
-/* display:flex beats the browser's own [hidden] rule, so a row told to go away
-   has to be told explicitly — as .recipes and .jarpick are. The analytics row
-   relies on this to stay out of the native builds. */
+/* display:flex beats the browser's own [hidden] rule; the same pattern
+   .recipes and .jarpick already rely on. */
 .settings-row[hidden] { display: none; }
 .settings-row > span {
   font-family: "Baloo 2", sans-serif;
@@ -1471,6 +1498,28 @@ body.is-native .keys { display: none; }
    would otherwise reset the colour set here. */
 .settings-row--danger { border-color: var(--danger); }
 .settings-row--danger > span { color: var(--danger); }
+
+/* Rows in the privacy modal stack a title, a small note, and a toggle. The
+   modifier lays them out as [text-block] [toggle] rather than the default
+   [label] [toggle] which would clip a two-line description. */
+.settings-row--stack { align-items: flex-start; }
+.settings-row--stack > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.settings-row--stack > div > b {
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--ink);
+  display: block;
+}
+.settings-row__note {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
 .settings-row .btn {
   padding: 8px 16px;
   min-width: 72px;
@@ -1587,41 +1636,4 @@ body.is-native .keys { display: none; }
   justify-content: flex-start;
   overflow-y: auto;
   overscroll-behavior: contain;
-}
-
-/* ───────── consent ─────────
-   A bar at the foot rather than a dialog over the board: the question is not
-   urgent enough to stop somebody playing, and the game opens straight into a
-   level. It sits above the safe-area inset so it clears the gesture bar. */
-.consent {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 40;
-  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
-  background: var(--paper);
-  border-top: var(--stroke) solid var(--ink);
-  box-shadow: 0 -6px 18px rgba(43, 33, 66, .16);
-}
-.consent[hidden] { display: none; }
-.consent__text {
-  margin: 0 0 10px;
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--ink-soft);
-  max-width: 46ch;
-}
-.consent__actions { display: flex; gap: 10px; flex-wrap: wrap; }
-.consent__actions .btn { flex: 1 1 auto; }
-@media (min-width: 620px) {
-  .consent {
-    left: 50%;
-    right: auto;
-    bottom: 18px;
-    transform: translateX(-50%);
-    width: min(560px, calc(100vw - 36px));
-    border: var(--stroke) solid var(--ink);
-    border-radius: 16px;
-  }
 }
