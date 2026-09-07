@@ -12,23 +12,43 @@
  * not fire yet; two minutes on the level-select screen also does not fire.
  * Only both together do.
  *
- * The ad unit ID below is Google's official TEST interstitial.  Real IDs
- * land in the same release that flips "Contains ads" to Yes in Play
- * Console App content and updates Data safety.  The module is a no-op on
- * the web build (no window.Capacitor), so `index.html` still opens
- * cleanly in a browser during development. */
+ * INTERSTITIAL_IDS below are production ad unit IDs. Google's official test
+ * IDs are kept commented-out immediately above so anyone bringing up a dev
+ * build can flip to them without hunting for the values. isTestAdId() below
+ * autodetects Google's test-publisher prefix and turns SDK-side test mode
+ * on/off from that alone, so either set Just Works.
+ *
+ * Testing on a device that is running the production build: register the
+ * device's AdMob test-device ID (printed to the native console the first
+ * time an ad request goes out) in the AdMob console under Settings > Test
+ * devices. That device then sees test creatives even with production IDs,
+ * which is what Google's own policy requires so testers don't rack up
+ * invalid clicks on the real account.
+ *
+ * The module is a no-op on the web build (no window.Capacitor), so
+ * index.html still opens cleanly in a browser during development. */
 
 (function () {
   var INTERSTITIAL_IDS = {
-    android: 'ca-app-pub-3940256099942544/1033173712',
-    ios:     'ca-app-pub-3940256099942544/4411468910',
+    // android: 'ca-app-pub-3940256099942544/1033173712',
+    // ios:     'ca-app-pub-3940256099942544/4411468910',
     // RELEASE BUILD PROD INTERSTITIAL IDS - COMMENTED OUT FOR TESTING
-    // android: 'ca-app-pub-2022992563510125/7376899853',
-    // ios:     'ca-app-pub-2022992563510125/2144614856',
+    android: 'ca-app-pub-2022992563510125/7376899853',
+    ios:     'ca-app-pub-2022992563510125/2144614856',
   };
 
   var MIN_MILLIS = 2 * 60 * 1000;   /* two minutes between ads */
   var MIN_LEVELS = 3;               /* three level completions between ads */
+
+  /* Google's official test-ad publisher prefix. If the interstitial ID sits
+   * under it, we send isTesting: true on every request so the AdMob SDK
+   * routes to test creatives and can't accidentally count self-clicks
+   * against the real account. Real ad unit IDs skip both test flags and
+   * get real ad fills. */
+  var TEST_PUBLISHER_PREFIX = 'ca-app-pub-3940256099942544';
+  function isTestAdId(id) {
+    return typeof id === 'string' && id.indexOf(TEST_PUBLISHER_PREFIX) === 0;
+  }
 
   /* Google's UMP normally decides whether the GDPR consent form is required
    * from the device's real geolocation.  For QA on a device not physically
@@ -98,9 +118,12 @@
        * personalised or non-personalised ads follow from that automatically. */
       await ensureConsent(AdMob);
       await ensureTrackingAuthorization(AdMob);
-      await AdMob.initialize({ initializeForTesting: true });
+      await AdMob.initialize({
+        initializeForTesting: isTestAdId(state.interstitialId),
+      });
       state.ready = true;
-      console.info('Ads: initialised on', state.platform);
+      console.info('Ads: initialised on', state.platform,
+        isTestAdId(state.interstitialId) ? '(test mode)' : '(production)');
       return true;
     })();
     return state.initializing;
@@ -150,7 +173,7 @@
       try {
         var opts = {
           adId:      state.interstitialId,
-          isTesting: true,
+          isTesting: isTestAdId(state.interstitialId),
         };
         if (!state.personalized) opts.npa = true;
         await state.plugin.prepareInterstitial(opts);
