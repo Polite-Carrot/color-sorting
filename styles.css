@@ -1366,6 +1366,122 @@ body.cb-assist .band span { visibility: visible; }
   .keys { display: none; }
 }
 
+/* Short-viewport home menu: on genuinely small phones the default sizes just
+   miss fitting once the tag or a subtitle wraps. Trim margins and padding
+   modestly so the footer always clears the bottom edge. */
+@media (max-height: 720px) {
+  #screen-home .masthead { margin: 4px 0 14px; }
+  #screen-home .masthead__mark { padding-top: 8px; margin-bottom: 8px; }
+  #screen-home .masthead h1 { font-size: clamp(36px, 8vw, 56px); -webkit-text-stroke: 5px var(--ink); text-shadow: 0 5px 0 var(--ink); }
+  #screen-home .masthead__tag { margin-top: 10px; font-size: 15px; }
+  #screen-home .choices { gap: 10px; }
+  #screen-home .choice { padding: 11px 15px; gap: 12px; }
+  #screen-home .choice__name { font-size: 20px; }
+  #screen-home .choice__sub { font-size: 13px; }
+  #screen-home .menu-foot { margin-top: 12px; padding-top: 8px; }
+}
+
+@media (max-height: 600px) {
+  #screen-home .masthead { margin: 0 0 8px; }
+  #screen-home .masthead__mark { padding-top: 4px; margin-bottom: 4px; }
+  #screen-home .masthead__mark span { width: 16px; height: 22px; }
+  #screen-home .masthead h1 { font-size: clamp(26px, 7vw, 40px); -webkit-text-stroke: 4px var(--ink); text-shadow: 0 4px 0 var(--ink); }
+  #screen-home .masthead__tag { margin-top: 4px; font-size: 13px; }
+  #screen-home .choices { gap: 6px; }
+  #screen-home .choice { padding: 8px 12px; }
+  #screen-home .choice__name { font-size: 17px; }
+  #screen-home .choice__sub { font-size: 12px; line-height: 1.25; }
+}
+
+/* Short-viewport GAME screen: reclaims ~200px of vertical overhead so the
+   fitter can settle 14-jar Extra Hard boards with their whole shelf on
+   screen — the shelf hitting the fitter's jar-height floor (78px) is what
+   used to force it to scroll on iPhone SE. The main jar's proportional
+   multiplier drops from 1.64x to 1.30x too, because at these viewport
+   sizes 60% bigger than a side jar is bigger than it needs to be to read
+   as the target. */
+@media (max-height: 720px) {
+  body.playing .app {
+    padding-top: calc(8px + env(safe-area-inset-top));
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+
+  /* Topbar: half the padding, smaller title/stats. */
+  .topbar { padding: 6px 11px; gap: 8px; box-shadow: 0 3px 0 var(--ink); }
+  .topbar__title h2 { font-size: 16px; }
+  .topbar__title span { font-size: 10px; }
+  .stat { min-width: 42px; padding: 2px 6px; border-radius: 9px; }
+  .stat b { font-size: 16px; }
+  .stat small { font-size: 9px; letter-spacing: .05em; }
+
+  .brief { margin: 6px auto 0; font-size: 12.5px; line-height: 1.35; }
+
+  /* Board: less margin, smaller main jar, shorter stand. Main jar's
+     proportional multiplier drops from 1.64x to 1.15x and its aspect from
+     .62 to .55 — 60% bigger than a side jar was overpowering at these
+     viewport sizes, and the narrower profile leaves the goal card room to
+     sit alongside it on a 375px screen without wrapping. */
+  .board { gap: 14px; margin: 8px 0 0; }
+  .board__main::after { width: calc(var(--jar-h, 122px) * 0.98); height: 12px; margin-top: -2px; box-shadow: 0 3px 0 var(--wood-under); }
+  .jar--main .jar__glass { --h: calc(var(--jar-h, 122px) * 1.15); --w: calc(var(--h) * .55); border-radius: 9px 9px 22px 22px; }
+
+  /* Goal card: tighter, more compact. */
+  .goal { padding: 10px 12px; border-radius: 13px; box-shadow: 0 3px 0 var(--ink); max-width: 220px; }
+  .goal__row { margin-bottom: 8px; gap: 10px; }
+  .goal__label { font-size: 10px; letter-spacing: .06em; }
+  .goal__name { font-size: 17px; }
+  .swatch { width: 36px; height: 36px; flex: 0 0 36px; border-radius: 10px; box-shadow: 0 2px 0 var(--ink); }
+  .swatch--target { font-size: 15px; }
+  .meter__bar { height: 11px; }
+  .meter__value { font-size: 13px; min-width: 36px; }
+
+  /* Shelf: tighter margins so the fitter has more vertical to give to jars,
+     AND a slimmer gap + jar aspect so a 12-jar shelf keeps 6 per row at a
+     ~30% larger jar size. Without this, jar-h could only grow to ~90px
+     before jars started wrapping to 5-per-row (3 rows) which blew the
+     vertical budget, leaving the fitter stuck at 90 with 100px of dead
+     space at the bottom of the screen. */
+  .shelf-wrap { margin-top: 4px; padding-bottom: 20px; }
+  .shelf { --shelf-gap: 4px; padding: 12px 6px 0; row-gap: 30px; }
+  .shelf .jar__glass { --w: calc(var(--h) * 0.46); }
+  .shelf .slot::after { bottom: -16px; height: 15px; }
+
+  /* Toolbar: pull it down close to the shelf, smaller buttons. */
+  .toolbar { margin-top: 10px; gap: 7px; }
+  .toolbar .btn { padding: 8px 10px; font-size: 13.5px; box-shadow: 0 3px 0 var(--ink); }
+  .toolbar .btn:active:not(:disabled) { transform: translateY(3px); }
+
+  /* Status line: enough room for a single hint sentence, no more. */
+  .status { margin: 6px auto 0; min-height: 1.7em; font-size: 13px; }
+}
+
+/* Even tighter — landscape phones and very short viewports. */
+@media (max-height: 560px) {
+  .topbar { padding: 4px 9px; }
+  .topbar__title h2 { font-size: 14px; }
+  .topbar__title span { font-size: 9px; }
+  .stat b { font-size: 14px; }
+
+  .brief { display: none; }
+
+  .board { gap: 10px; margin: 4px 0 0; }
+  .jar--main .jar__glass { --h: calc(var(--jar-h, 122px) * 1.10); }
+  .board__main::after { height: 10px; }
+
+  .goal { padding: 7px 10px; max-width: 200px; }
+  .goal__row { margin-bottom: 5px; }
+  .goal__name { font-size: 15px; }
+
+  .shelf-wrap { margin-top: 2px; padding-bottom: 16px; }
+  .shelf { --shelf-gap: 3px; padding: 8px 4px 0; row-gap: 24px; }
+  .shelf .jar__glass { --w: calc(var(--h) * 0.42); }
+
+  .toolbar { margin-top: 6px; }
+  .toolbar .btn { padding: 6px 9px; font-size: 12.5px; }
+
+  .status { margin: 4px auto 0; min-height: 1.4em; font-size: 12px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: .01ms !important;
@@ -1405,16 +1521,40 @@ body.is-native .keys { display: none; }
    of it is even meaningful, so long-pressing a jar's colour-blind letter to
    select or copy it reads as a bug rather than a feature. Scoped to native
    only — the web build keeps ordinary text selection. The seed field is the
-   one exception: it is real text somebody is meant to edit. */
-body.is-native, body.is-native * {
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
+   one exception: it is real text somebody is meant to edit.
+
+   !important throughout because Android WebView (particularly Samsung One UI
+   builds) ignores user-select: none on <button> elements without it, so a
+   long-press on a jar still raises the native selection UI and paints the
+   whole button blue. Every rule below is a lever those builds respect. */
+body.is-native,
+body.is-native *,
+body.is-native button,
+body.is-native .jar,
+body.is-native .jar * {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-user-drag: none;
 }
 body.is-native #seed-input {
-  -webkit-user-select: text;
-  user-select: text;
-  -webkit-touch-callout: default;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+}
+
+/* MainActivity.java applies the real WindowInsets as padding on the WebView
+   itself, so on Android env(safe-area-inset-*) now reports actual values and
+   the standard .app padding above already handles it. This override just
+   keeps a small predictable breathing space consistent with iOS. */
+body.is-android .app {
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+}
+body.is-android.playing .app {
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 
 /* The game selector sits above the settings row and reads as its own choice,

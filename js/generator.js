@@ -45,39 +45,37 @@
     /* Wide rather than deep on purpose:
        six deep keeps the bands legible on a phone, and the spare capacity is
        what stops an ordinary run of careless moves leaving the board
-       unwinnable. Fourteen rather than sixteen: the search is happy either way,
-       but fourteen is where the shelf still reads as a shelf on a phone. */
+       unwinnable. Twelve rather than fourteen: fourteen wrapped 8+6 on a
+       phone whose height still could not fit both rows without shrinking
+       everything else, and 6+6 reads as one board rather than two uneven
+       rows. */
     extraHard: {
       label: 'Extra Hard',
       blurb: 'Twelve jars, seven colors, and a big jar that takes some filling.',
-      mainCap: 16, sideJars: 14, sideCap: 6, fillers: 7, fillerUnits: 40,
+      mainCap: 16, sideJars: 12, sideCap: 6, fillers: 7, fillerUnits: 40,
       burial: 0.6, sizeUp: 600, par: [32, 48],
-      /* Twelve on the Random screen, leaving the full fourteen to Expert so
-         the last step up is a step in something. */
+      /* The stepper opens on the setting's own width, which is also the cap. */
       defaultJars: 12
     },
-    /* The same fourteen jars, a unit deeper. Depth rather than width, because
-       width has run out: fourteen is where the shelf still reads as a shelf on
-       a phone, while depth had never been used at all -- every other setting
+    /* The same twelve jars, a unit deeper. Depth rather than width, because
+       width has run out: twelve is where a phone still shows both rows
+       whole, while depth had never been used at all -- every other setting
        takes the jar height it ships with, four to six.
 
        Seven deep and not nine, and the reason is the browser rather than the
-       search or even the screen. Measured by dealing through the Random screen
-       at 390px: with Safari's chrome taking 145px, six and seven deep show the
-       whole shelf clear of the toolbar, while eight and nine push a row under
-       the buttons and make the shelf scroll. On the full 844px all four fit.
-       Seven is what fits the phone people actually hold.
+       search or even the screen. Measured by dealing through the Random
+       screen at 390px: with Safari's chrome taking 145px, six and seven deep
+       show the whole shelf clear of the toolbar, while eight and nine push a
+       row under the buttons and make the shelf scroll. Seven is what fits
+       the phone people actually hold.
 
-       98 cells against Extra Hard's 84, and par follows the unit count as it
-       always does: about 50 against 35, on a big jar of nineteen. The jar comes
-       out the same size Extra Hard gets -- around 78 to 97px depending on the
-       window -- holding more lines rather than standing taller, which is the
-       whole point of turning depth instead of width. */
+       84 cells against Extra Hard's 72, and par follows the unit count as
+       it always does: about 45 against 35, on a big jar of nineteen. */
     expert: {
       label: 'Expert',
-      blurb: 'Fourteen jars seven deep, and a big jar taking nineteen.',
-      mainCap: 19, sideJars: 14, sideCap: 7, fillers: 7, fillerUnits: 47,
-      burial: 0.6, sizeUp: 250000, par: [40, 58]
+      blurb: 'Twelve jars seven deep, and a big jar taking nineteen.',
+      mainCap: 19, sideJars: 12, sideCap: 7, fillers: 7, fillerUnits: 47,
+      burial: 0.6, sizeUp: 250000, par: [36, 52]
     }
   };
 

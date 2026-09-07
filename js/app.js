@@ -119,7 +119,7 @@
      Merge reaches ten, but only because the generator stops insisting on a
      proven-minimum par past seven jars — see PUSH_WEIGHT in
      js/merge-generator.js. Below eight jars par is still the true shortest. */
-  var JAR_RANGE = { classic: [3, 14], merge: [3, 10] };
+  var JAR_RANGE = { classic: [3, 12], merge: [3, 10] };
 
   /* The jar stepper. Off, so a setting is one choice and not two: picking a
      difficulty on the Random screen now lands on a width chosen for it
@@ -1406,8 +1406,54 @@
        somebody who has not said yes. */
     maybeAskConsent();
     /* Capacitor puts the game inside a native shell, where the keyboard
-       shortcut hint at the bottom of the game screen is noise. */
-    if (window.Capacitor) document.body.classList.add('is-native');
+       shortcut hint at the bottom of the game screen is noise. is-android
+       gates fixes for Android WebView quirks (env(safe-area-inset-bottom)
+       returning 0 despite a nav bar being present, buttons ignoring
+       user-select without !important) that must not fire on iOS. */
+    if (window.Capacitor) {
+      document.body.classList.add('is-native');
+      var plat = window.Capacitor.getPlatform && window.Capacitor.getPlatform();
+      if (plat === 'android') document.body.classList.add('is-android');
+      if (plat === 'ios') document.body.classList.add('is-ios');
+
+      /* Samsung's One UI WebView ignores CSS user-select: none on <button>
+         elements — the OS-level long-press selection UI fires below CSS.
+         Preventing selectstart/contextmenu at the document level is the only
+         reliable kill switch. Capture phase so a native handler further down
+         cannot re-enable it. */
+      ['selectstart', 'contextmenu', 'dragstart', 'copy', 'cut'].forEach(function (evt) {
+        document.addEventListener(evt, function (e) {
+          if (e.target && e.target.id === 'seed-input') return;
+          e.preventDefault();
+          return false;
+        }, true);
+      });
+
+      if (plat === 'android') {
+        /* Android WebView reports env(safe-area-inset-bottom) as 0 on most
+           builds even when a nav bar is drawn over the app. Measure the gap
+           between the layout viewport (window.innerHeight, the drawable
+           area) and the visual viewport (visualViewport.height, what the
+           user can actually see and reach) — that gap IS the nav bar area
+           on Android in edge-to-edge mode. Publish it as --nav-inset so CSS
+           can pad away from it without a hardcoded floor. */
+        var measureNavInset = function () {
+          if (!window.visualViewport) return;
+          var winH = window.innerHeight || 0;
+          var vvH = window.visualViewport.height || 0;
+          var gap = Math.max(0, Math.round(winH - vvH));
+          document.documentElement.style.setProperty('--nav-inset', gap + 'px');
+        };
+        measureNavInset();
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener('resize', measureNavInset);
+        }
+        window.addEventListener('resize', measureNavInset);
+        window.addEventListener('orientationchange', function () {
+          setTimeout(measureNavInset, 100);
+        });
+      }
+    }
     renderHome();
     renderSettingsToggles();
     $('jarpick').hidden = !SHOW_JAR_PICKER;
@@ -1749,8 +1795,16 @@
       applyConsent();
       return;
     }
-    /* Give the boot lockup a moment before we cover the screen with a modal. */
-    setTimeout(openPrivacyModal, 300);
+    /* Wait for the boot lockup to be gone from the DOM before covering the
+       screen. #boot sits at z-index 100 opaque for ~1.35s + a fade; the
+       modal at z-index 30 would otherwise open behind that curtain and read
+       as never appearing at all — which is exactly how it read on Android,
+       where reduced-motion is off and the boot runs its full length. */
+    (function waitForBoot(tries) {
+      if (!document.getElementById('boot')) { openPrivacyModal(); return; }
+      if (tries > 40) { openPrivacyModal(); return; }   /* boot stuck? open anyway */
+      setTimeout(function () { waitForBoot(tries + 1); }, 150);
+    })(0);
   }
 
   /* Every call site is one line and none of them can fail: Track.event is a
