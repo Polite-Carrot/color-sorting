@@ -64,11 +64,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-	<!-- AdMob application ID. Currently Google's official TEST app ID; swap
-	     for the real ca-app-pub-... value from the AdMob console just before
-	     shipping. Missing/invalid values crash the app on startup. -->
+	<!-- AdMob application ID for this app in the AdMob console. Distinct
+	     from the interstitial ad unit ID, which lives in js/ads.js. Missing
+	     or invalid values crash the app on startup. -->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>ca-app-pub-2022992563510125~2144614856</string>
 	<!-- iOS 14.5+ requires an explicit prompt before AdMob can read IDFA.
 	     If the user declines, ads still show but non-personalised. -->
 	<key>NSUserTrackingUsageDescription</key>

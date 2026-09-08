@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 /* AdMob wrapper for the game.  Only interstitial ads: the banner and
  * rewarded formats the plugin also supports are not called from anywhere.
  *
@@ -29,25 +29,31 @@
  * index.html still opens cleanly in a browser during development. */
 
 (function () {
+  /* Interstitial AD UNIT IDs — NOT app IDs. App IDs live in the native
+   * manifests (AndroidManifest.xml APPLICATION_ID, Info.plist
+   * GADApplicationIdentifier) and are distinct values from the AdMob
+   * console for each app; ad unit IDs are what you get when you create an
+   * ad unit UNDER an app in the AdMob console. Google's official test IDs
+   * are kept commented-out below — flip which pair is active for local dev. */
   var INTERSTITIAL_IDS = {
     // android: 'ca-app-pub-3940256099942544/1033173712',
     // ios:     'ca-app-pub-3940256099942544/4411468910',
     // RELEASE BUILD PROD INTERSTITIAL IDS - COMMENTED OUT FOR TESTING
-    android: 'ca-app-pub-2022992563510125/7376899853',
-    ios:     'ca-app-pub-2022992563510125/2144614856',
+    android: "ca-app-pub-2022992563510125/9178880771",
+    ios: "ca-app-pub-2022992563510125/8139856189",
   };
 
-  var MIN_MILLIS = 2 * 60 * 1000;   /* two minutes between ads */
-  var MIN_LEVELS = 3;               /* three level completions between ads */
+  var MIN_MILLIS = 2 * 60 * 1000; /* two minutes between ads */
+  var MIN_LEVELS = 3; /* three level completions between ads */
 
   /* Google's official test-ad publisher prefix. If the interstitial ID sits
    * under it, we send isTesting: true on every request so the AdMob SDK
    * routes to test creatives and can't accidentally count self-clicks
    * against the real account. Real ad unit IDs skip both test flags and
    * get real ad fills. */
-  var TEST_PUBLISHER_PREFIX = 'ca-app-pub-3940256099942544';
+  var TEST_PUBLISHER_PREFIX = "ca-app-pub-3940256099942544";
   function isTestAdId(id) {
-    return typeof id === 'string' && id.indexOf(TEST_PUBLISHER_PREFIX) === 0;
+    return typeof id === "string" && id.indexOf(TEST_PUBLISHER_PREFIX) === 0;
   }
 
   /* Google's UMP normally decides whether the GDPR consent form is required
@@ -58,8 +64,8 @@
 
   var state = {
     plugin: null,
-    ready: false,             /* AdMob SDK initialised */
-    initializing: null,       /* Promise while init is in flight */
+    ready: false /* AdMob SDK initialised */,
+    initializing: null /* Promise while init is in flight */,
     platform: null,
     interstitialId: null,
     /* Personalized ads by default; app.js flips this from the privacy modal.
@@ -75,21 +81,23 @@
      * install from being interrupted before the player has seen anything. */
     lastShownAt: Date.now(),
     levelsSinceLast: 0,
-    prepared: false,          /* an interstitial has been loaded and is ready */
-    preparing: null,          /* Promise while a prepare call is in flight */
+    prepared: false /* an interstitial has been loaded and is ready */,
+    preparing: null /* Promise while a prepare call is in flight */,
   };
 
   function isNative() {
-    return !!(window.Capacitor
-      && window.Capacitor.isNativePlatform
-      && window.Capacitor.isNativePlatform());
+    return !!(
+      window.Capacitor &&
+      window.Capacitor.isNativePlatform &&
+      window.Capacitor.isNativePlatform()
+    );
   }
 
   function getPlugin() {
     if (state.plugin) return state.plugin;
     if (!window.Capacitor) return null;
     if (window.Capacitor.registerPlugin) {
-      state.plugin = window.Capacitor.registerPlugin('AdMob');
+      state.plugin = window.Capacitor.registerPlugin("AdMob");
     } else if (window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
       state.plugin = window.Capacitor.Plugins.AdMob;
     }
@@ -103,12 +111,12 @@
 
     var AdMob = getPlugin();
     if (!AdMob) {
-      console.warn('Ads: AdMob plugin proxy unavailable');
+      console.warn("Ads: AdMob plugin proxy unavailable");
       return false;
     }
     state.platform = window.Capacitor.getPlatform();
-    state.interstitialId = INTERSTITIAL_IDS[state.platform]
-                        || INTERSTITIAL_IDS.android;
+    state.interstitialId =
+      INTERSTITIAL_IDS[state.platform] || INTERSTITIAL_IDS.android;
 
     state.initializing = (async function () {
       /* Order matters here.  UMP first: it works out whether the user is in
@@ -122,8 +130,11 @@
         initializeForTesting: isTestAdId(state.interstitialId),
       });
       state.ready = true;
-      console.info('Ads: initialised on', state.platform,
-        isTestAdId(state.interstitialId) ? '(test mode)' : '(production)');
+      console.info(
+        "Ads: initialised on",
+        state.platform,
+        isTestAdId(state.interstitialId) ? "(test mode)" : "(production)",
+      );
       return true;
     })();
     return state.initializing;
@@ -140,14 +151,16 @@
       var opts = {};
       if (DEBUG_GEOGRAPHY) opts.debugGeography = DEBUG_GEOGRAPHY;
       var info = await AdMob.requestConsentInfo(opts);
-      console.info('Ads: consent status', info && info.status);
-      if (info && info.status === 'REQUIRED' && info.isConsentFormAvailable) {
+      console.info("Ads: consent status", info && info.status);
+      if (info && info.status === "REQUIRED" && info.isConsentFormAvailable) {
         await AdMob.showConsentForm();
-        console.info('Ads: consent form dismissed');
+        console.info("Ads: consent form dismissed");
       }
     } catch (e) {
-      console.warn('Ads: UMP failed, continuing without consent form:',
-        e && e.message);
+      console.warn(
+        "Ads: UMP failed, continuing without consent form:",
+        e && e.message,
+      );
     }
   }
 
@@ -156,10 +169,12 @@
   async function ensureTrackingAuthorization(AdMob) {
     try {
       var tt = await AdMob.trackingAuthorizationStatus();
-      if (tt && tt.status === 'notDetermined') {
+      if (tt && tt.status === "notDetermined") {
         await AdMob.requestTrackingAuthorization();
       }
-    } catch (e) { /* not iOS, or old SDK — ignore */ }
+    } catch (e) {
+      /* not iOS, or old SDK — ignore */
+    }
   }
 
   /* Called once per prepared ad.  On success `freq.prepared` flips true;
@@ -172,7 +187,7 @@
     freq.preparing = (async function () {
       try {
         var opts = {
-          adId:      state.interstitialId,
+          adId: state.interstitialId,
           isTesting: isTestAdId(state.interstitialId),
         };
         if (!state.personalized) opts.npa = true;
@@ -180,7 +195,7 @@
         freq.prepared = true;
         return true;
       } catch (e) {
-        console.warn('Ads: prepareInterstitial failed', e && e.message);
+        console.warn("Ads: prepareInterstitial failed", e && e.message);
         freq.prepared = false;
         return false;
       } finally {
@@ -197,8 +212,11 @@
   function noteLevelComplete() {
     if (!isNative()) return;
     freq.levelsSinceLast += 1;
-    if (freq.levelsSinceLast >= MIN_LEVELS - 1
-        && !freq.prepared && !freq.preparing) {
+    if (
+      freq.levelsSinceLast >= MIN_LEVELS - 1 &&
+      !freq.prepared &&
+      !freq.preparing
+    ) {
       /* Fire-and-forget: preload the next ad. */
       prepareInterstitial();
     }
@@ -210,7 +228,7 @@
    * `await` it uniformly. */
   async function maybeShowInterstitial() {
     if (!isNative()) return false;
-    var enoughTime   = Date.now() - freq.lastShownAt >= MIN_MILLIS;
+    var enoughTime = Date.now() - freq.lastShownAt >= MIN_MILLIS;
     var enoughLevels = freq.levelsSinceLast >= MIN_LEVELS;
     if (!enoughTime || !enoughLevels) return false;
 
@@ -226,7 +244,7 @@
       prepareInterstitial();
       return true;
     } catch (e) {
-      console.warn('Ads: showInterstitial failed', e && e.message);
+      console.warn("Ads: showInterstitial failed", e && e.message);
       freq.prepared = false;
       return false;
     }
@@ -247,11 +265,11 @@
   }
 
   window.Ads = {
-    init:                 init,
-    isNative:             isNative,
-    noteLevelComplete:    noteLevelComplete,
+    init: init,
+    isNative: isNative,
+    noteLevelComplete: noteLevelComplete,
     maybeShowInterstitial: maybeShowInterstitial,
-    setPersonalized:      setPersonalized,
+    setPersonalized: setPersonalized,
   };
 
   /* On native, initialise AdMob once at boot so the ATT prompt happens
@@ -259,10 +277,12 @@
    * so the third level completion has one ready to show. */
   if (isNative()) {
     var warm = function () {
-      init().then(function (ok) { if (ok) prepareInterstitial(); });
+      init().then(function (ok) {
+        if (ok) prepareInterstitial();
+      });
     };
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', warm, { once: true });
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", warm, { once: true });
     } else {
       warm();
     }

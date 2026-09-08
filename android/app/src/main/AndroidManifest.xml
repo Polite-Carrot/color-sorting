@@ -35,13 +35,11 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
-        <!-- AdMob application ID. Currently Google's official TEST app ID.
-             Swap for the real ca-app-pub-... value from the AdMob console
-             just before shipping — real IDs must never appear in commits
-             the way test IDs can. -->
+        <!-- AdMob application ID for this app in the AdMob console. Distinct
+             from the interstitial ad unit ID, which lives in js/ads.js. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="ca-app-pub-2022992563510125~7376899853"/>
 
         <!-- Firebase Analytics starts collecting on native SDK init unless
              these flags default it off. track.js re-enables it via the
