@@ -13,5 +13,6 @@
     "search.exclude": {
         "**/node_modules": true
     },
-    "java.import.gradle.enabled": false
+    "java.import.gradle.enabled": false,
+    "java.errors.incompleteClasspath.severity": "ignore"
 }

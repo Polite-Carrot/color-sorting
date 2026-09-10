@@ -7,7 +7,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // @capacitor-firebase/analytics auto-configures FirebaseApp during its
+        // own plugin load, so an explicit FirebaseApp.configure() here is
+        // redundant and can cause double-init in some SDK builds.
         return true
     }
 

@@ -88,14 +88,12 @@
       try {
         await fb.setEnabled({ enabled: true });
         if (fb.setConsent) {
-          await fb.setConsent({
-            consents: [
-              { type: 'ANALYTICS_STORAGE',   status: 'GRANTED' },
-              { type: 'AD_STORAGE',          status: adStatus },
-              { type: 'AD_USER_DATA',        status: adStatus },
-              { type: 'AD_PERSONALIZATION',  status: adStatus },
-            ],
-          });
+          /* @capacitor-firebase/analytics 8.x takes { type, status } per call,
+             not an array — four separate awaits to grant/deny each type. */
+          await fb.setConsent({ type: 'ANALYTICS_STORAGE',  status: 'GRANTED' });
+          await fb.setConsent({ type: 'AD_STORAGE',         status: adStatus });
+          await fb.setConsent({ type: 'AD_USER_DATA',       status: adStatus });
+          await fb.setConsent({ type: 'AD_PERSONALIZATION', status: adStatus });
         }
       } catch (e) { console.warn('Track: Firebase enable failed', e && e.message); }
       return;
@@ -139,14 +137,10 @@
         try {
           await fb.setEnabled({ enabled: false });
           if (fb.setConsent) {
-            await fb.setConsent({
-              consents: [
-                { type: 'ANALYTICS_STORAGE', status: 'DENIED' },
-                { type: 'AD_STORAGE', status: 'DENIED' },
-                { type: 'AD_USER_DATA', status: 'DENIED' },
-                { type: 'AD_PERSONALIZATION', status: 'DENIED' },
-              ],
-            });
+            await fb.setConsent({ type: 'ANALYTICS_STORAGE',  status: 'DENIED' });
+            await fb.setConsent({ type: 'AD_STORAGE',         status: 'DENIED' });
+            await fb.setConsent({ type: 'AD_USER_DATA',       status: 'DENIED' });
+            await fb.setConsent({ type: 'AD_PERSONALIZATION', status: 'DENIED' });
           }
         } catch (e) { /* nothing to do */ }
       }
