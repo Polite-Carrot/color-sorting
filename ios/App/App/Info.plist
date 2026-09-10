@@ -67,6 +67,8 @@
 	<!-- AdMob application ID for this app in the AdMob console. Distinct
 	     from the interstitial ad unit ID, which lives in js/ads.js. Missing
 	     or invalid values crash the app on startup. -->
+	<key>GADIsAdManagerApp</key>
+	<false/>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-2022992563510125~2144614856</string>
 	<!-- iOS 14.5+ requires an explicit prompt before AdMob can read IDFA.
@@ -82,11 +84,13 @@
 			<string>cstr6suwn9.skadnetwork</string>
 		</dict>
 	</array>
-	<!-- Firebase Analytics starts collecting on native SDK init unless these
-	     flags default it off. track.js re-enables it via the Capacitor
-	     Firebase Analytics plugin once the user consents. -->
-	<key>FIREBASE_ANALYTICS_COLLECTION_DEACTIVATED</key>
-	<true/>
+	<!-- Firebase Analytics starts with collection off so nothing goes out
+	     before the user has answered the privacy modal. Track.load() calls
+	     setEnabled(true) after consent, which flips this on. Do NOT use
+	     FIREBASE_ANALYTICS_COLLECTION_DEACTIVATED here — that flag is
+	     permanent and Firebase silently ignores runtime setEnabled calls. -->
+	<key>FIREBASE_ANALYTICS_COLLECTION_ENABLED</key>
+	<false/>
 	<key>GOOGLE_ANALYTICS_DEFAULT_ALLOW_ANALYTICS_STORAGE</key>
 	<false/>
 	<key>GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_STORAGE</key>

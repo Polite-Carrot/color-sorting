@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "44021193480",
+    "project_id": "color-match-88b38",
+    "storage_bucket": "color-match-88b38.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:44021193480:android:2bb00d7c91621f96126abd",
+        "android_client_info": {
+          "package_name": "com.politecarrot.colorjars"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGGh2DF7mX02kZmMD3YK0iQjS1Miazl6U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
