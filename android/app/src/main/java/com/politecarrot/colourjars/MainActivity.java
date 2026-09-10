@@ -33,6 +33,17 @@ public class MainActivity extends BridgeActivity {
         WebView webView = getBridge().getWebView();
         if (webView == null) return;
 
+        // ── 0. Pin the text scale ────────────────────────────────────────
+        // Android WebView multiplies every computed font-size by the system
+        // "font size" accessibility setting, and does it below the level CSS
+        // can reach — text-size-adjust in styles.css stops the browser's own
+        // text inflation but not this. The game's layout is sized in px
+        // throughout and is meant to be laid out by the board fitter, so
+        // scaled text does not enlarge it, it deforms it: at 200% the topbar
+        // triples in height and the home menu's footer leaves the screen.
+        // Locking textZoom to 100 is the only layer that actually respects it.
+        webView.getSettings().setTextZoom(100);
+
         // ── 1. Kill Samsung's long-press text selection ──────────────────
         webView.setLongClickable(false);
         webView.setHapticFeedbackEnabled(false);

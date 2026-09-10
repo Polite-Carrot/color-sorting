@@ -53,6 +53,26 @@ html, body {
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: pan-x pan-y;
+  /* Pin the text scale. Every size in this file is in px on purpose — there is
+     not a single rem — so the layout is already immune to a changed root font
+     size. What it is NOT immune to is the browser scaling text on its own:
+     Chrome and Android WebView apply the system "font size" accessibility
+     setting to page text, which multiplies every computed font-size and
+     nothing else. That breaks this layout rather than growing it, because the
+     topbar and the toolbar are sized by their contents: measured at 390x700,
+     200% text takes the topbar from 64px to 212px, the toolbar from 37px to
+     110px, and pushes the home menu 465px past the bottom with the footer off
+     screen entirely.
+
+     100% rather than none: the two behave identically here, and `none` is
+     ignored by Chrome outside of legacy quirks while also disabling the
+     genuine text-inflation help on desktop.
+
+     This handles the browser's own inflation. It does NOT stop Android
+     WebView's textZoom, which is applied below the level CSS can see — see
+     setTextZoom in MainActivity.java for that half. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   /* Without this, WebKit paints its own translucent grey box over whatever
      was tapped for as long as the finger is down — on a jar that reads as a
      dark flash appearing and vanishing on every tap. Every touch target here
