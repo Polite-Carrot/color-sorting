@@ -26,6 +26,12 @@ import com.getcapacitor.BridgeActivity;
  */
 public class MainActivity extends BridgeActivity {
 
+    // One step above Android's smallest font-size accessibility setting
+    // (80%, just under the "Small" step most OEM sliders bottom out at
+    // before a separate "bigger accessibility text" mode). Hardcoded
+    // rather than reading the device's actual setting — see the note below.
+    private static final int TEXT_ZOOM_PERCENT = 80;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,8 +47,11 @@ public class MainActivity extends BridgeActivity {
         // throughout and is meant to be laid out by the board fitter, so
         // scaled text does not enlarge it, it deforms it: at 200% the topbar
         // triples in height and the home menu's footer leaves the screen.
-        // Locking textZoom to 100 is the only layer that actually respects it.
-        webView.getSettings().setTextZoom(100);
+        // Fixed at TEXT_ZOOM_PERCENT regardless of the device's own font
+        // size setting — this is deliberate: the board fitter's layout math
+        // assumes a known text size, so the app must never follow the
+        // system slider, in either direction.
+        webView.getSettings().setTextZoom(TEXT_ZOOM_PERCENT);
 
         // ── 1. Kill Samsung's long-press text selection ──────────────────
         webView.setLongClickable(false);
