@@ -1278,10 +1278,11 @@ body.cb-assist .band span { visibility: visible; }
 @keyframes fade { from { opacity: 0; } }
 
 .modal {
+  --modal-pad: 28px;
   background: var(--paper);
   border: var(--stroke) solid var(--ink);
   border-radius: 22px;
-  padding: 28px;
+  padding: var(--modal-pad);
   max-width: 390px;
   width: 100%;
   /* Fit within the overlay content area; scroll if the copy is taller than
@@ -1322,6 +1323,60 @@ body.cb-assist .band span { visibility: visible; }
 /* Two choices of equal weight, one above the other: side by side they read as
    a question and its dismissal, which buying and restoring are not. */
 .modal__actions--stack { flex-direction: column; align-items: stretch; }
+
+/* The consent dialog's footer: policy link above, Continue below. Stacked so
+   the single button stays the obvious thing to press, and so the link is not
+   mistaken for a second answer sitting beside it. */
+.modal__actions--consent {
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 18px;
+
+  /* Stuck to the bottom of the panel as the copy above it scrolls. A consent
+     dialog whose only button sits below the fold is a dialog a player — or a
+     reviewer on a small device — can fail to find: measured before this, at
+     375x520 and 320x568 the Continue button was off screen and reachable only
+     by scrolling a panel that does not look scrollable. The negative margins
+     and padding let the paper run to the panel's true edges so the text does
+     not show through beside it. */
+  position: sticky;
+  bottom: calc(-1 * var(--modal-pad, 28px));
+  margin-left: calc(-1 * var(--modal-pad, 28px));
+  margin-right: calc(-1 * var(--modal-pad, 28px));
+  padding: 10px var(--modal-pad, 28px) var(--modal-pad, 28px);
+  background: var(--paper);
+}
+
+/* Drawn in the app's own ink rather than left as browser blue, which on this
+   paper reads as a rendering fault rather than a link. Padded out to a 44px
+   tap target — the link is small text, and the finger is not. */
+.policy-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  color: var(--ink-soft);
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+}
+.policy-link:active { color: var(--ink); }
+.policy-link[hidden] { display: none; }
+
+/* A line of explanation under a switch, for when the switch is not showing
+   what the player asked for — the OS overruled it. No border: it belongs to
+   the row above rather than being a row of its own. */
+.settings-row--quiet {
+  border: none;
+  background: none;
+  padding: 0 14px 2px;
+  margin-top: -6px;
+}
+.settings-row--quiet[hidden] { display: none; }
 
 /* Says what just happened, under the buttons that did it. Empty until then, so
    it takes no room and cannot be read as a warning that was already there. */

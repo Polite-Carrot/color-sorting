@@ -68,11 +68,12 @@
     initializing: null /* Promise while init is in flight */,
     platform: null,
     interstitialId: null,
-    /* Personalized ads by default; app.js flips this from the privacy modal.
-     * When true, AdMob picks based on UMP/ATT; when false we set npa: 1 on
-     * every ad request so Google is told to serve non‑personalized ads even
-     * if UMP thinks consent was granted. */
-    personalized: true,
+    /* NON-personalized until the player says otherwise. GDPR Art.4(11) wants
+     * a clear affirmative action and Recital 32 rules out pre-ticked defaults,
+     * so "not yet answered" has to behave exactly like "no". When false we set
+     * npa: 1 on every ad request, so Google serves non-personalized ads even
+     * if UMP happens to think consent was granted. */
+    personalized: false,
   };
 
   var freq = {
@@ -119,13 +120,20 @@
       INTERSTITIAL_IDS[state.platform] || INTERSTITIAL_IDS.android;
 
     state.initializing = (async function () {
-      /* Order matters here.  UMP first: it works out whether the user is in
-       * a GDPR/CCPA jurisdiction and, if so, shows the consent form and
-       * records the choice.  ATT after: iOS-only tracking prompt.  Then
-       * initialize() so the SDK loads with whatever consent state is set —
-       * personalised or non-personalised ads follow from that automatically. */
+      /* UMP only. It works out whether the player is in a GDPR/CCPA
+       * jurisdiction and, if so, shows the consent form and records the
+       * choice. Then initialize() so the SDK loads with that consent state.
+       *
+       * ATT is deliberately NOT here. Apple 5.1.1(iv) forbids putting
+       * anything that encourages allowing tracking in front of their prompt,
+       * and firing it at cold launch is doubly wrong: the prompt cannot
+       * display before the app is active and the window is key, so an early
+       * call silently no-ops and leaves the status stuck at notDetermined
+       * with no prompt ever shown. It is now requested from exactly one
+       * place — the moment the player turns personalized ads ON, by their own
+       * tap, in the privacy dialog or in Settings. If they leave it off we
+       * never call it at all. */
       await ensureConsent(AdMob);
-      await ensureTrackingAuthorization(AdMob);
       await AdMob.initialize({
         initializeForTesting: isTestAdId(state.interstitialId),
       });
@@ -165,15 +173,48 @@
   }
 
   /* iOS 14.5+ needs an explicit ATT prompt before IDFA is available.
-   * Android silently no-ops the tracking calls. */
-  async function ensureTrackingAuthorization(AdMob) {
+   * Android has no equivalent and silently no-ops the tracking calls.
+   *
+   * Called from ONE place: app.js, when the player turns personalized ads on
+   * by their own tap. Never at boot, never speculatively, and never when the
+   * toggle is left off. Safe to call more than once — it asks only while the
+   * status is still notDetermined, so a second tap re-shows nothing. */
+  async function requestTracking() {
+    var AdMob = getPlugin();
+    if (!AdMob || !isNative()) return null;
     try {
       var tt = await AdMob.trackingAuthorizationStatus();
       if (tt && tt.status === "notDetermined") {
-        await AdMob.requestTrackingAuthorization();
+        tt = (await AdMob.requestTrackingAuthorization()) || tt;
       }
+      return (tt && tt.status) || null;
     } catch (e) {
-      /* not iOS, or old SDK — ignore */
+      /* not iOS, or old SDK — treat as "nothing to ask" */
+      return null;
+    }
+  }
+
+  /* What is ACTUALLY happening, as opposed to what was stored. The Settings
+   * toggle shows this: if iOS or the UMP form has denied tracking, a switch
+   * reading "On" would be a lie. Resolves to one of:
+   *   'off'        the player has not turned it on
+   *   'on'         stored on and nothing is blocking it
+   *   'att-denied' stored on, but the player refused Apple's prompt
+   *   'att-unasked' stored on, but the prompt has not been answered yet
+   *   'web'        not a native build, so there are no ads at all */
+  async function personalizedStatus() {
+    if (!isNative()) return "web";
+    if (!state.personalized) return "off";
+    var AdMob = getPlugin();
+    if (!AdMob) return "on";
+    try {
+      var tt = await AdMob.trackingAuthorizationStatus();
+      if (!tt || !tt.status) return "on";           /* Android: no ATT concept */
+      if (tt.status === "authorized") return "on";
+      if (tt.status === "notDetermined") return "att-unasked";
+      return "att-denied";                           /* denied | restricted */
+    } catch (e) {
+      return "on";
     }
   }
 
@@ -270,21 +311,25 @@
     noteLevelComplete: noteLevelComplete,
     maybeShowInterstitial: maybeShowInterstitial,
     setPersonalized: setPersonalized,
+    requestTracking: requestTracking,
+    personalizedStatus: personalizedStatus,
   };
 
-  /* On native, initialise AdMob once at boot so the ATT prompt happens
-   * upfront rather than mid-play, and start warming the first interstitial
-   * so the third level completion has one ready to show. */
-  if (isNative()) {
-    var warm = function () {
-      init().then(function (ok) {
-        if (ok) prepareInterstitial();
-      });
-    };
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", warm, { once: true });
-    } else {
-      warm();
-    }
+  /* Warming up the first interstitial is worth doing early, but NOT at boot.
+   * init() runs Google's UMP consent form, and at boot that form would land
+   * on top of — or just before — this game's own privacy dialog, which is
+   * both a confusing thing to hand a player and a bad thing to show a
+   * reviewer. The player answers ours first; app.js then calls Ads.warm(),
+   * and UMP follows.
+   *
+   * Nothing is lost by waiting: the first interstitial cannot show until two
+   * levels are done and two minutes have passed, which is a long time next to
+   * the moment it takes to prepare one. */
+  function warm() {
+    if (!isNative()) return;
+    init().then(function (ok) {
+      if (ok) prepareInterstitial();
+    });
   }
+  window.Ads.warm = warm;
 })();

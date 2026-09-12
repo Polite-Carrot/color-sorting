@@ -129,6 +129,13 @@
      the settings do not offer on their own. */
   var SHOW_JAR_PICKER = false;
 
+  /* RELEASE BLOCKER while this is empty. The privacy dialog links here, both
+     stores require the URL on the listing, and a consent dialog whose policy
+     link goes nowhere is a review rejection on its own. With it unset the link
+     is not rendered at all, which is the honest failure: better a dialog with
+     no link than one with a dead link. */
+  var PRIVACY_POLICY_URL = '';
+
   /* Most jars on one shelf row. Wider than this and a row stops reading as a
      row; the shelf wraps on its own below it. */
   var JARS_PER_ROW = 8;
@@ -1470,17 +1477,21 @@
     }
     bindToggle('privacy-ads');
     bindToggle('privacy-analytics');
-    $('privacy-save').addEventListener('click', function () {
-      prefs.personalizedAds = $('privacy-ads').getAttribute('aria-pressed') === 'true';
-      prefs.analytics       = $('privacy-analytics').getAttribute('aria-pressed') === 'true';
-      savePrefs();
+    $('privacy-continue').addEventListener('click', function () {
+      commitConsent(
+        $('privacy-analytics').getAttribute('aria-pressed') === 'true',
+        $('privacy-ads').getAttribute('aria-pressed') === 'true'
+      );
       $('privacy').hidden = true;
-      applyConsent();
-      renderSettingsToggles();
     });
-    $('settings-privacy').addEventListener('click', function () {
-      $('settings-modal').hidden = true;
-      openPrivacyModal();
+
+    /* The Settings mirrors. Same commit function as Continue, so there is one
+       description of what consent means and no second path to keep in step. */
+    $('settings-analytics').addEventListener('click', function () {
+      commitConsent(this.getAttribute('aria-pressed') !== 'true', prefs.personalizedAds === true);
+    });
+    $('settings-ads').addEventListener('click', function () {
+      commitConsent(prefs.analytics === true, this.getAttribute('aria-pressed') !== 'true');
     });
 
     /* 'input' rather than 'change', so the name and the blurb follow the thumb
@@ -1746,6 +1757,49 @@
       c.textContent = prefs.cbAssist ? 'On' : 'Off';
       c.setAttribute('aria-pressed', prefs.cbAssist ? 'true' : 'false');
     }
+
+    /* Analytics mirrors the stored answer directly — nothing outside the app
+       can override it. */
+    setToggleBtn(document.getElementById('settings-analytics'), prefs.analytics === true);
+
+    /* Ads are different, and this is the part worth being careful about. The
+       switch has to show what is ACTUALLY happening, not what was stored: if
+       iOS has denied tracking, a switch reading On is a lie. So render the
+       stored value first (synchronously, so the row is never blank), then ask
+       the ad layer what it is really doing and correct the row when it
+       answers. */
+    var ads = document.getElementById('settings-ads');
+    var adsRow = document.getElementById('settings-ads-row');
+    var noteRow = document.getElementById('settings-ads-note-row');
+    var note = document.getElementById('settings-ads-note');
+    if (!ads) return;
+    setToggleBtn(ads, prefs.personalizedAds === true);
+
+    /* No ads on the web build, so do not offer a switch that governs nothing. */
+    var native = !!(window.Ads && window.Ads.isNative && window.Ads.isNative());
+    if (adsRow) adsRow.hidden = !native;
+    if (noteRow) noteRow.hidden = true;
+    if (!native || !window.Ads.personalizedStatus) return;
+
+    window.Ads.personalizedStatus().then(function (status) {
+      if (status === 'att-denied') {
+        /* Stored on, but the system says no. Show off, and say why, or the
+           player is left thinking the switch is broken. */
+        setToggleBtn(ads, false);
+        if (note && noteRow) {
+          note.textContent = 'Turned off by your device. Allow tracking for ' +
+            'this app in iOS Settings > Privacy & Security > Tracking to use it.';
+          noteRow.hidden = false;
+        }
+      } else if (status === 'att-unasked') {
+        setToggleBtn(ads, false);
+        if (note && noteRow) {
+          note.textContent = 'Waiting on the tracking permission. Turn this ' +
+            'off and on again to be asked.';
+          noteRow.hidden = false;
+        }
+      }
+    }, function () { /* status unavailable: leave the stored value showing */ });
   }
 
   /* ───────── analytics + ads consent, once asked for ───────── */
@@ -1759,14 +1813,44 @@
        Ads.setPersonalized is about to apply to AdMob — otherwise a user who
        said yes to analytics but no to personalized ads would still have
        Google Signals attribution running against them. */
+    /* === true, never !== false. Undecided has to behave exactly like "no":
+       mapping null to true is the pre-ticked box GDPR Recital 32 rules out,
+       and it is what this code used to do. */
     if (window.Track && window.Track.configured()) {
-      if (prefs.analytics) window.Track.load(prefs.personalizedAds !== false);
+      if (prefs.analytics === true) window.Track.load(prefs.personalizedAds === true);
       else window.Track.unload();
     }
     /* AdMob-side: npa flag on the next ad request. */
     if (window.Ads && window.Ads.setPersonalized) {
-      window.Ads.setPersonalized(prefs.personalizedAds !== false);
+      window.Ads.setPersonalized(prefs.personalizedAds === true);
     }
+  }
+
+  /* The ONE place a consent decision is committed. The dialog's Continue and
+     both Settings toggles call this and nothing else, so there is a single
+     description of what saying yes means — persist, apply, ask for ATT if and
+     only if personalized ads just went on, and re-render.
+
+     ATT is requested here rather than anywhere else because here is the only
+     moment we know a human has just tapped something: the app is active and
+     the window is key, which is what Apple's prompt needs in order to appear
+     at all. */
+  function commitConsent(analyticsOn, adsOn) {
+    var adsWentOn = adsOn === true && prefs.personalizedAds !== true;
+    prefs.analytics = analyticsOn === true;
+    prefs.personalizedAds = adsOn === true;
+    savePrefs();
+    applyConsent();
+
+    if (adsWentOn && window.Ads && window.Ads.requestTracking) {
+      /* Fire and forget: whatever the player answers, the npa flag above has
+         already been set from their stated choice. ATT can only narrow it. */
+      window.Ads.requestTracking().then(renderSettingsToggles, function () {});
+    }
+    /* Ads warm-up (and with it Google's UMP form) waits until now, so our
+       dialog is never competing with Google's. */
+    if (window.Ads && window.Ads.warm) window.Ads.warm();
+    renderSettingsToggles();
   }
 
   function setToggleBtn(btn, on) {
@@ -1775,16 +1859,26 @@
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
   }
 
-  /* Open the privacy modal populated from the current preferences.  Called
-     both on first launch (via maybeAskConsent) and from Settings > Manage
-     privacy choices.  Defaults to On/On for a fresh install so the modal
-     reads as "turn things off if you want" rather than "opt in to each". */
+  /* Open the privacy dialog, populated from the current preferences.
+     === true, so an unanswered preference renders OFF. A fresh install shows
+     both switches off and one Continue button: someone who presses it without
+     touching anything has consented to nothing, which is the whole point.
+     There is deliberately no Accept and no Decline — Apple 5.1.1(iv) forbids
+     putting anything that encourages tracking in front of their prompt, and
+     names Continue as the acceptable word. */
   function openPrivacyModal() {
-    var adsOn = prefs.personalizedAds !== false;
-    var anaOn = prefs.analytics !== false;
-    setToggleBtn($('privacy-ads'), adsOn);
-    setToggleBtn($('privacy-analytics'), anaOn);
-    openModal('privacy', 'privacy-save');
+    setToggleBtn($('privacy-ads'), prefs.personalizedAds === true);
+    setToggleBtn($('privacy-analytics'), prefs.analytics === true);
+    /* No policy URL set: show no link rather than a dead one. */
+    var link = $('privacy-policy');
+    if (link) {
+      link.hidden = !PRIVACY_POLICY_URL;
+      if (PRIVACY_POLICY_URL) link.href = PRIVACY_POLICY_URL;
+    }
+    /* Focus the dialog's heading, not its button: focusing Continue would
+       make the fastest path through a consent dialog "press the key you are
+       already on", which is not a considered answer. */
+    openModal('privacy', 'privacy-title');
   }
 
   /* Asked once, on the first visit that has any consent to gather.  On web
