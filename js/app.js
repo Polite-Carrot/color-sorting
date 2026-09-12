@@ -129,12 +129,11 @@
      the settings do not offer on their own. */
   var SHOW_JAR_PICKER = false;
 
-  /* RELEASE BLOCKER while this is empty. The privacy dialog links here, both
-     stores require the URL on the listing, and a consent dialog whose policy
-     link goes nowhere is a review rejection on its own. With it unset the link
-     is not rendered at all, which is the honest failure: better a dialog with
-     no link than one with a dead link. */
-  var PRIVACY_POLICY_URL = '';
+  /* The privacy dialog links here, and the same URL goes on both store
+     listings. Set this back to '' and the link is not rendered at all rather
+     than rendered dead — better no link than a broken one, and the empty
+     state is meant to be loud. */
+  var PRIVACY_POLICY_URL = 'https://politecarrot.com/privacy';
 
   /* Most jars on one shelf row. Wider than this and a row stops reading as a
      row; the shelf wraps on its own below it. */
