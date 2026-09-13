@@ -74,7 +74,7 @@
 	<!-- iOS 14.5+ requires an explicit prompt before AdMob can read IDFA.
 	     If the user declines, ads still show but non-personalised. -->
 	<key>NSUserTrackingUsageDescription</key>
-	<string>Allow tracking to see ads relevant to you. You can decline and see less personalised ads.</string>
+	<string>This lets us show ads matched to your interests instead of generic ones. We do not collect your name, email, contacts, photos or location, and your puzzle progress never leaves your device. Decline and the game plays exactly the same, with generic ads.</string>
 	<!-- SKAdNetwork identifier for Google (AdMob). Required so Apple's
 	     conversion API attributes installs from Google-served ads. -->
 	<key>SKAdNetworkItems</key>

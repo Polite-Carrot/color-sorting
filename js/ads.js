@@ -120,23 +120,31 @@
       INTERSTITIAL_IDS[state.platform] || INTERSTITIAL_IDS.android;
 
     state.initializing = (async function () {
-      /* UMP only. It works out whether the player is in a GDPR/CCPA
-       * jurisdiction and, if so, shows the consent form and records the
-       * choice. Then initialize() so the SDK loads with that consent state.
+      /* SDK initialisation ONLY. Neither UMP nor ATT happens here, and that
+       * separation is the point rather than tidiness: on a review device the
+       * ad SDK often fails to start and the region may refuse ads, so
+       * anything sharing a try block with initialize() is at risk of never
+       * running. Apple's prompt must not be one of those things — a reviewer
+       * who never sees it files "unable to locate the App Tracking
+       * Transparency permission request" under Guideline 2.1.
        *
-       * ATT is deliberately NOT here. Apple 5.1.1(iv) forbids putting
-       * anything that encourages allowing tracking in front of their prompt,
-       * and firing it at cold launch is doubly wrong: the prompt cannot
-       * display before the app is active and the window is key, so an early
-       * call silently no-ops and leaves the status stuck at notDetermined
-       * with no prompt ever shown. It is now requested from exactly one
-       * place — the moment the player turns personalized ads ON, by their own
-       * tap, in the privacy dialog or in Settings. If they leave it off we
-       * never call it at all. */
-      await ensureConsent(AdMob);
-      await AdMob.initialize({
-        initializeForTesting: isTestAdId(state.interstitialId),
-      });
+       * app.js drives the three steps in order — UMP, then ATT, then this —
+       * each with its own error handler. See runConsentGates there. */
+      try {
+        await AdMob.initialize({
+          initializeForTesting: isTestAdId(state.interstitialId),
+        });
+      } catch (e) {
+        /* Resolve false rather than reject. A rejection here used to escape as
+         * an unhandled promise rejection — caught by the test that fails the
+         * SDK on purpose — because warm() does not return this promise to
+         * anyone. An ad SDK that will not start is an ordinary condition on a
+         * review device, not an exception for the game to raise. */
+        console.warn("Ads: initialize failed:", e && e.message);
+        state.ready = false;
+        state.initializing = null;   /* let a later attempt try again */
+        return false;
+      }
       state.ready = true;
       console.info(
         "Ads: initialised on",
@@ -154,7 +162,9 @@
    * published, requestConsentInfo returns NOT_REQUIRED and this becomes a
    * no-op.  Any error is swallowed so a broken consent flow can never keep
    * the game from booting. */
-  async function ensureConsent(AdMob) {
+  async function runUmp() {
+    var AdMob = getPlugin();
+    if (!AdMob || !isNative()) return null;
     try {
       var opts = {};
       if (DEBUG_GEOGRAPHY) opts.debugGeography = DEBUG_GEOGRAPHY;
@@ -164,24 +174,39 @@
         await AdMob.showConsentForm();
         console.info("Ads: consent form dismissed");
       }
+      return (info && info.status) || null;
     } catch (e) {
+      /* Swallowed on purpose. UMP failing must never stop the ATT prompt that
+       * runs after it, and must never keep the game from booting. */
       console.warn(
         "Ads: UMP failed, continuing without consent form:",
         e && e.message,
       );
+      return null;
     }
   }
 
-  /* iOS 14.5+ needs an explicit ATT prompt before IDFA is available.
-   * Android has no equivalent and silently no-ops the tracking calls.
+  /* Apple's App Tracking Transparency prompt.
    *
-   * Called from ONE place: app.js, when the player turns personalized ads on
-   * by their own tap. Never at boot, never speculatively, and never when the
-   * toggle is left off. Safe to call more than once — it asks only while the
-   * status is still notDetermined, so a second tap re-shows nothing. */
+   * Raised for EVERY iOS player, from Continue, whatever the toggles say.
+   * The logically clean design is to ask only when personalized ads are
+   * turned on — there is nothing to track for otherwise — and that design was
+   * rejected under Guideline 2.1: the reviewer left the toggles at their
+   * defaults, never saw the prompt, and reported being unable to locate it.
+   * The prompt has to be reachable without opting into anything.
+   *
+   * Fired from a tap, never at cold launch: the prompt cannot display until
+   * the app is active and the window is key, and an early call silently
+   * no-ops, leaving the status at notDetermined with no prompt ever shown and
+   * no second chance — it appears once per install, ever.
+   *
+   * Android returns before touching the plugin. There is no ATT there, and
+   * "never asked on Android" should be true by construction rather than by
+   * hoping the plugin no-ops. */
   async function requestTracking() {
     var AdMob = getPlugin();
     if (!AdMob || !isNative()) return null;
+    if (getPlatform() === "android") return null;
     try {
       var tt = await AdMob.trackingAuthorizationStatus();
       if (tt && tt.status === "notDetermined") {
@@ -202,6 +227,12 @@
    *   'att-denied' stored on, but the player refused Apple's prompt
    *   'att-unasked' stored on, but the prompt has not been answered yet
    *   'web'        not a native build, so there are no ads at all */
+  /* state.platform is only set by init(), which may not have run — or may
+     have failed. Read it live instead. */
+  function getPlatform() {
+    try { return window.Capacitor.getPlatform(); } catch (e) { return null; }
+  }
+
   async function personalizedStatus() {
     if (!isNative()) return "web";
     if (!state.personalized) return "off";
@@ -311,6 +342,7 @@
     noteLevelComplete: noteLevelComplete,
     maybeShowInterstitial: maybeShowInterstitial,
     setPersonalized: setPersonalized,
+    runUmp: runUmp,
     requestTracking: requestTracking,
     personalizedStatus: personalizedStatus,
   };
@@ -326,10 +358,10 @@
    * levels are done and two minutes have passed, which is a long time next to
    * the moment it takes to prepare one. */
   function warm() {
-    if (!isNative()) return;
-    init().then(function (ok) {
-      if (ok) prepareInterstitial();
-    });
+    if (!isNative()) return Promise.resolve(false);
+    return init().then(function (ok) {
+      return ok ? prepareInterstitial() : false;
+    }, function () { return false; });
   }
   window.Ads.warm = warm;
 })();

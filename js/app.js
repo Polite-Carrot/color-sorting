@@ -1835,21 +1835,66 @@
      the window is key, which is what Apple's prompt needs in order to appear
      at all. */
   function commitConsent(analyticsOn, adsOn) {
-    var adsWentOn = adsOn === true && prefs.personalizedAds !== true;
     prefs.analytics = analyticsOn === true;
     prefs.personalizedAds = adsOn === true;
     savePrefs();
     applyConsent();
-
-    if (adsWentOn && window.Ads && window.Ads.requestTracking) {
-      /* Fire and forget: whatever the player answers, the npa flag above has
-         already been set from their stated choice. ATT can only narrow it. */
-      window.Ads.requestTracking().then(renderSettingsToggles, function () {});
-    }
-    /* Ads warm-up (and with it Google's UMP form) waits until now, so our
-       dialog is never competing with Google's. */
-    if (window.Ads && window.Ads.warm) window.Ads.warm();
     renderSettingsToggles();
+    runConsentGates();
+  }
+
+  /* The two consent gates that are not ours, in order, after the player has
+     pressed Continue: Google's UMP form where the region requires it, then
+     Apple's tracking prompt. Then, and only then, the ad SDK starts.
+
+     Each step gets its own error handler, and that is the whole design rather
+     than defensive habit. On a review device the ad SDK frequently fails to
+     start and the region may refuse to serve ads; anything chained behind
+     those in a shared try block simply never runs. Apple's prompt must never
+     be one of those things.
+
+     ATT is requested for EVERY iOS player here, whatever the toggles say. The
+     clean-looking alternative — ask only when personalized ads are on — is
+     what drew a Guideline 2.1 rejection: a reviewer who leaves the defaults
+     alone never sees the prompt and reports it missing. */
+  function runConsentGates() {
+    var Ads = window.Ads;
+    if (!Ads || !Ads.isNative || !Ads.isNative()) return;
+
+    var step = function (fn) {
+      /* Each step resolves no matter what it does, so the next one runs. */
+      return new Promise(function (resolve) {
+        var out;
+        try { out = fn(); } catch (e) { resolve(null); return; }
+        if (out && typeof out.then === 'function') {
+          out.then(function (v) { resolve(v); }, function () { resolve(null); });
+        } else { resolve(out); }
+      });
+    };
+
+    step(function () { return Ads.runUmp && Ads.runUmp(); })
+      .then(function () {
+        return step(function () { return Ads.requestTracking && Ads.requestTracking(); });
+      })
+      .then(function (status) {
+        /* Allow: record it. Somebody who has just told the system yes should
+           not then be served un-personalized ads because a switch they never
+           touched was off — that throws away both their consent and the
+           revenue it was worth. */
+        if (status === 'authorized' && prefs.personalizedAds !== true) {
+          prefs.personalizedAds = true;
+          savePrefs();
+          applyConsent();
+        }
+        /* Ask App Not to Track: write NOTHING back. The system status already
+           gates everything, and storing an explicit no would strand anyone who
+           later turns tracking back on in iOS Settings — they would be denied
+           by a preference of ours that they cannot see. */
+        renderSettingsToggles();
+      })
+      .then(function () {
+        return step(function () { return Ads.warm && Ads.warm(); });
+      });
   }
 
   function setToggleBtn(btn, on) {
