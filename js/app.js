@@ -258,10 +258,9 @@
      rather than a key each so a future toggle does not have to touch storage.
      Colour blind assist prints the letter on every band — off by default so
      the game reads as its colours, on when someone asks for it. */
-  /* analytics and personalizedAds: null until the privacy modal has been
-     answered, then true or false.  Three states matter — the modal shows
-     for null, so somebody who has said no is not asked again on every visit. */
-  var prefs = { sound: true, cbAssist: false, randomMerge: false, analytics: null, personalizedAds: null };
+    /* Analytics is undecided only until the first-run question is answered.
+      Personalised ads is always a local intent, defaulting to off. */
+    var prefs = { sound: true, cbAssist: false, randomMerge: false, analytics: null, personalizedAds: false };
 
   function loadPrefs() {
     try {
@@ -924,104 +923,81 @@
     if (prev) prev.classList.add('slot--row-end');
   }
 
-  /* ───────── interaction ───────── */
-
-  function onJarClick(id) {
-    var g = state.game;
-    if (!g || g.won) return;
-    Sound.ensure();
-
-    if (state.selected === id) {          /* put it back down */
-      state.selected = null;
-      refresh();
-      return;
+  async function setAdsPersonalized(on) {
+    prefs.personalizedAds = on === true;
+    savePrefs();
+    applyConsent();
+    renderSettingsToggles();
+    if (!on) return;
+    var Ads = window.Ads;
+    if (!Ads || !Ads.isNative || !Ads.isNative()) return;
+    var attPromise = Ads.getPlatform() === 'ios' ? Ads.ensureAtt(true) : Promise.resolve();
+    try { await Ads.init(); } catch (e) {}
+    try { await Ads.runUmp(true); } catch (e) {}
+    try { await attPromise; } catch (e) {}
+    if (Ads.showPrivacyOptionsForm) {
+      try { await Ads.showPrivacyOptionsForm(); } catch (e) {}
     }
-
-    if (!state.selected) {
-      if (id === MAIN) {
-        setStatus('The big jar only collects — pick one of the jars below.', 'warn');
-        return;
-      }
-      var jar = g.get(id);
-      if (!jar || !jar.cells.length) {
-        setStatus('That jar is empty.', 'warn');
-        viewFor(id).flash('is-blocked');
-        Sound.nope();
-        return;
-      }
-      state.selected = id;
-      clearHintMarks();
-      Sound.pick();
-      setStatus('Now tap where it should go.', '');
-      refresh();
-      return;
-    }
-
-    /* Cannot pour there — read the tap as picking that jar up instead, which
-       is nearly always what was meant. */
-    if (!g.pourable(state.selected, id)) {
-      var candidate = g.get(id);
-      if (id !== MAIN && candidate && candidate.cells.length) {
-        state.selected = id;
-        Sound.pick();
-        setStatus('Now tap where it should go.', '');
-        refresh();
-        return;
-      }
-    }
-
-    doPour(state.selected, id);
+    applyConsent();
+    renderSettingsToggles();
   }
 
-  function doPour(fromId, toId) {
-    var g = state.game;
-    var result = g.pour(fromId, toId);
-
-    if (!result.ok) {
-      Sound.nope();
-      viewFor(toId).flash('is-blocked');
-      setStatus(
-        result.reason === 'full' ? 'That jar is full.' :
-        result.reason === 'empty' ? 'Nothing left to pour.' :
-        result.reason === 'wrong-colour' ? 'The big jar only takes ' + C.name(g.target) + '.' :
-        result.reason === 'mismatch' ? 'A color can only go onto the same color, or an empty jar.' :
-        result.reason === 'no-mix' ? 'Those two do not mix. Try a pair from the list above the shelf.' :
-        'You cannot pour that way.', 'warn');
-      return;
+  async function primeConsent() {
+    var Ads = window.Ads;
+    if (!Ads || !Ads.isNative || !Ads.isNative()) return;
+    var attPromise = Ads.getPlatform() === 'ios' ? Ads.ensureAtt(true) : Promise.resolve();
+    try { await Ads.init(); } catch (e) {}
+    try { await Ads.runUmp(); } catch (e) {}
+    var attStatus = null;
+    try { attStatus = await attPromise; } catch (e) {}
+    if (attStatus === 'authorized') {
+      prefs.personalizedAds = true;
+      savePrefs();
     }
-
-    trackPath(g, fromId, toId);
-
-    var dest = g.get(toId);
-    Sound.pour(dest.cells.length / dest.capacity);
-
-    var fromView = viewFor(fromId), toView = viewFor(toId);
-    var dir = toView.centreX() >= fromView.centreX() ? 1 : -1;
-    fromView.tilt(dir);
-    clearTimeout(state.hintTimer);
-    clearHintMarks();
-
-    state.selected = null;
-    setStatus('', '');
-    refresh();
-    toView.settle();
-
-    if (g.won) {
-      /* Written now rather than with the celebration. The card is on a timer
-         for the animation, and anyone who closes the game in that moment —
-         or whose phone puts it to sleep — would otherwise lose the level they
-         just finished. */
-      recordResult();
-      Sound.win();
-      setTimeout(showWinCard, 420);
-    } else {
-      watchForDeadEnd();
-    }
+    applyConsent();
+    renderSettingsToggles();
   }
 
-  /* The next move read straight off the level's stored solution, or null if
-     the player has left it. What is left of the path from here is itself a
-     shortest route, so the count of moves remaining is exact. */
+  function setToggleBtn(btn, on) {
+    if (!btn) return;
+    btn.textContent = on ? 'On' : 'Off';
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  function openPrivacyModal() {
+    setToggleBtn($('privacy-analytics'), prefs.analytics === true);
+    var link = $('privacy-policy');
+    if (link) {
+      link.hidden = !PRIVACY_POLICY_URL;
+      if (PRIVACY_POLICY_URL) link.href = PRIVACY_POLICY_URL;
+    }
+    openModal('privacy', 'privacy-title');
+  }
+
+  function openPrivacyDataModal() {
+    setToggleBtn($('privacy-data-analytics'), prefs.analytics === true);
+    setToggleBtn($('privacy-data-ads'), prefs.personalizedAds === true);
+    openModal('privacy-data', 'privacy-data-title');
+  }
+
+  function maybeAskConsent() {
+    if (prefs.analytics !== null) {
+      applyConsent();
+      var Ads = window.Ads;
+      if (Ads && Ads.isNative && Ads.isNative()) {
+        Ads.init().then(function () { return Ads.runUmp(); })
+          .then(function () { return Ads.ensureAtt(false); })
+          .then(function () { applyConsent(); renderSettingsToggles(); })
+          .catch(function () {});
+      }
+      return;
+    }
+    (function waitForBoot(tries) {
+      if (!document.getElementById('boot') || tries > 40) { openPrivacyModal(); return; }
+      setTimeout(function () { waitForBoot(tries + 1); }, 150);
+    })(0);
+    }
+
   function fromStoredPath(g) {
     var path = state.followed;
     if (state.onPath < 0 || !path || state.onPath >= path.length) return null;
@@ -1465,32 +1441,41 @@
     $('jarpick').hidden = !SHOW_JAR_PICKER;
 
     $('play-random').addEventListener('click', startRandom);
-    /* Privacy modal: two toggles + Save. Toggles flip local state on tap;
-       Save persists prefs and calls applyConsent which routes to Track and
-       Ads. */
+    /* First-run consent contains only the usage-data choice. */
     function bindToggle(id) {
       $(id).addEventListener('click', function () {
         var on = this.getAttribute('aria-pressed') !== 'true';
         setToggleBtn(this, on);
       });
     }
-    bindToggle('privacy-ads');
     bindToggle('privacy-analytics');
     $('privacy-continue').addEventListener('click', function () {
-      commitConsent(
-        $('privacy-analytics').getAttribute('aria-pressed') === 'true',
-        $('privacy-ads').getAttribute('aria-pressed') === 'true'
-      );
+      prefs.analytics = $('privacy-analytics').getAttribute('aria-pressed') === 'true';
+      savePrefs();
+      applyConsent();
       $('privacy').hidden = true;
+      primeConsent();
     });
 
-    /* The Settings mirrors. Same commit function as Continue, so there is one
-       description of what consent means and no second path to keep in step. */
-    $('settings-analytics').addEventListener('click', function () {
-      commitConsent(this.getAttribute('aria-pressed') !== 'true', prefs.personalizedAds === true);
+    function bindPrivacyDataToggle(id) {
+      $(id).addEventListener('click', function () {
+        var on = this.getAttribute('aria-pressed') !== 'true';
+        setToggleBtn(this, on);
+        if (id === 'privacy-data-analytics') prefs.analytics = on;
+        else setAdsPersonalized(on);
+        savePrefs();
+        applyConsent();
+      });
+    }
+    bindPrivacyDataToggle('privacy-data-analytics');
+    bindPrivacyDataToggle('privacy-data-ads');
+    $('privacy-data-close').addEventListener('click', function () {
+      $('privacy-data').hidden = true;
+      $('settings').focus();
     });
-    $('settings-ads').addEventListener('click', function () {
-      commitConsent(prefs.analytics === true, this.getAttribute('aria-pressed') !== 'true');
+    $('settings-privacy').addEventListener('click', function () {
+      $('settings-modal').hidden = true;
+      openPrivacyDataModal();
     });
 
     /* 'input' rather than 'change', so the name and the blurb follow the thumb
@@ -1757,199 +1742,24 @@
       c.setAttribute('aria-pressed', prefs.cbAssist ? 'true' : 'false');
     }
 
-    /* Analytics mirrors the stored answer directly — nothing outside the app
-       can override it. */
-    setToggleBtn(document.getElementById('settings-analytics'), prefs.analytics === true);
-
-    /* Ads are different, and this is the part worth being careful about. The
-       switch has to show what is ACTUALLY happening, not what was stored: if
-       iOS has denied tracking, a switch reading On is a lie. So render the
-       stored value first (synchronously, so the row is never blank), then ask
-       the ad layer what it is really doing and correct the row when it
-       answers. */
-    var ads = document.getElementById('settings-ads');
-    var adsRow = document.getElementById('settings-ads-row');
-    var noteRow = document.getElementById('settings-ads-note-row');
-    var note = document.getElementById('settings-ads-note');
-    if (!ads) return;
-    setToggleBtn(ads, prefs.personalizedAds === true);
-
-    /* No ads on the web build, so do not offer a switch that governs nothing. */
-    var native = !!(window.Ads && window.Ads.isNative && window.Ads.isNative());
-    if (adsRow) adsRow.hidden = !native;
-    if (noteRow) noteRow.hidden = true;
-    if (!native || !window.Ads.personalizedStatus) return;
-
-    window.Ads.personalizedStatus().then(function (status) {
-      if (status === 'att-denied') {
-        /* Stored on, but the system says no. Show off, and say why, or the
-           player is left thinking the switch is broken. */
-        setToggleBtn(ads, false);
-        if (note && noteRow) {
-          note.textContent = 'Turned off by your device. Allow tracking for ' +
-            'this app in iOS Settings > Privacy & Security > Tracking to use it.';
-          noteRow.hidden = false;
-        }
-      } else if (status === 'att-unasked') {
-        setToggleBtn(ads, false);
-        if (note && noteRow) {
-          note.textContent = 'Waiting on the tracking permission. Turn this ' +
-            'off and on again to be asked.';
-          noteRow.hidden = false;
-        }
-      }
-    }, function () { /* status unavailable: leave the stored value showing */ });
+    setToggleBtn(document.getElementById('privacy-data-analytics'), prefs.analytics === true);
+    setToggleBtn(document.getElementById('privacy-data-ads'), prefs.personalizedAds === true);
   }
 
   /* ───────── analytics + ads consent, once asked for ───────── */
 
   function applyConsent() {
-    /* Analytics: on native this switches Firebase Analytics collection and
-       consent grants; on web it (un)loads gtag.js.  Track.configured() is
-       true on both platforms now provided the plugin/measurement id is
-       available.  personalizedAds is passed through so ad-consent grants
-       (AD_USER_DATA, AD_PERSONALIZATION, AD_STORAGE) follow the same choice
-       Ads.setPersonalized is about to apply to AdMob — otherwise a user who
-       said yes to analytics but no to personalized ads would still have
-       Google Signals attribution running against them. */
-    /* === true, never !== false. Undecided has to behave exactly like "no":
-       mapping null to true is the pre-ticked box GDPR Recital 32 rules out,
-       and it is what this code used to do. */
-    if (window.Track && window.Track.configured()) {
-      if (prefs.analytics === true) window.Track.load(prefs.personalizedAds === true);
-      else window.Track.unload();
-    }
-    /* AdMob-side: npa flag on the next ad request. */
+    window.__consentState = {
+      analytics: prefs.analytics === true,
+      ads: !!(window.Ads && window.Ads.adsPersonalisedGranted && window.Ads.adsPersonalisedGranted())
+    };
+    if (window.Track && window.Track.sync) window.Track.sync();
     if (window.Ads && window.Ads.setPersonalized) {
       window.Ads.setPersonalized(prefs.personalizedAds === true);
     }
   }
 
-  /* The ONE place a consent decision is committed. The dialog's Continue and
-     both Settings toggles call this and nothing else, so there is a single
-     description of what saying yes means — persist, apply, ask for ATT if and
-     only if personalized ads just went on, and re-render.
-
-     ATT is requested here rather than anywhere else because here is the only
-     moment we know a human has just tapped something: the app is active and
-     the window is key, which is what Apple's prompt needs in order to appear
-     at all. */
-  function commitConsent(analyticsOn, adsOn) {
-    prefs.analytics = analyticsOn === true;
-    prefs.personalizedAds = adsOn === true;
-    savePrefs();
-    applyConsent();
-    renderSettingsToggles();
-    runConsentGates();
-  }
-
-  /* The two consent gates that are not ours, in order, after the player has
-     pressed Continue: Google's UMP form where the region requires it, then
-     Apple's tracking prompt. Then, and only then, the ad SDK starts.
-
-     Each step gets its own error handler, and that is the whole design rather
-     than defensive habit. On a review device the ad SDK frequently fails to
-     start and the region may refuse to serve ads; anything chained behind
-     those in a shared try block simply never runs. Apple's prompt must never
-     be one of those things.
-
-     ATT is requested for EVERY iOS player here, whatever the toggles say. The
-     clean-looking alternative — ask only when personalized ads are on — is
-     what drew a Guideline 2.1 rejection: a reviewer who leaves the defaults
-     alone never sees the prompt and reports it missing. */
-  function runConsentGates() {
-    var Ads = window.Ads;
-    if (!Ads || !Ads.isNative || !Ads.isNative()) return;
-
-    var step = function (fn) {
-      /* Each step resolves no matter what it does, so the next one runs. */
-      return new Promise(function (resolve) {
-        var out;
-        try { out = fn(); } catch (e) { resolve(null); return; }
-        if (out && typeof out.then === 'function') {
-          out.then(function (v) { resolve(v); }, function () { resolve(null); });
-        } else { resolve(out); }
-      });
-    };
-
-    step(function () { return Ads.runUmp && Ads.runUmp(); })
-      .then(function () {
-        return step(function () { return Ads.requestTracking && Ads.requestTracking(); });
-      })
-      .then(function (status) {
-        /* Allow: record it. Somebody who has just told the system yes should
-           not then be served un-personalized ads because a switch they never
-           touched was off — that throws away both their consent and the
-           revenue it was worth. */
-        if (status === 'authorized' && prefs.personalizedAds !== true) {
-          prefs.personalizedAds = true;
-          savePrefs();
-          applyConsent();
-        }
-        /* Ask App Not to Track: write NOTHING back. The system status already
-           gates everything, and storing an explicit no would strand anyone who
-           later turns tracking back on in iOS Settings — they would be denied
-           by a preference of ours that they cannot see. */
-        renderSettingsToggles();
-      })
-      .then(function () {
-        return step(function () { return Ads.warm && Ads.warm(); });
-      });
-  }
-
-  function setToggleBtn(btn, on) {
-    if (!btn) return;
-    btn.textContent = on ? 'On' : 'Off';
-    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-  }
-
-  /* Open the privacy dialog, populated from the current preferences.
-     === true, so an unanswered preference renders OFF. A fresh install shows
-     both switches off and one Continue button: someone who presses it without
-     touching anything has consented to nothing, which is the whole point.
-     There is deliberately no Accept and no Decline — Apple 5.1.1(iv) forbids
-     putting anything that encourages tracking in front of their prompt, and
-     names Continue as the acceptable word. */
-  function openPrivacyModal() {
-    setToggleBtn($('privacy-ads'), prefs.personalizedAds === true);
-    setToggleBtn($('privacy-analytics'), prefs.analytics === true);
-    /* No policy URL set: show no link rather than a dead one. */
-    var link = $('privacy-policy');
-    if (link) {
-      link.hidden = !PRIVACY_POLICY_URL;
-      if (PRIVACY_POLICY_URL) link.href = PRIVACY_POLICY_URL;
-    }
-    /* Focus the dialog's heading, not its button: focusing Continue would
-       make the fastest path through a consent dialog "press the key you are
-       already on", which is not a considered answer. */
-    openModal('privacy', 'privacy-title');
-  }
-
-  /* Asked once, on the first visit that has any consent to gather.  On web
-     that means either analytics is available; on native there is always
-     Firebase to say yes/no to. */
-  function maybeAskConsent() {
-    if (prefs.analytics !== null && prefs.personalizedAds !== null) {
-      applyConsent();
-      return;
-    }
-    /* Wait for the boot lockup to be gone from the DOM before covering the
-       screen. #boot sits at z-index 100 opaque for ~1.35s + a fade; the
-       modal at z-index 30 would otherwise open behind that curtain and read
-       as never appearing at all — which is exactly how it read on Android,
-       where reduced-motion is off and the boot runs its full length. */
-    (function waitForBoot(tries) {
-      if (!document.getElementById('boot')) { openPrivacyModal(); return; }
-      if (tries > 40) { openPrivacyModal(); return; }   /* boot stuck? open anyway */
-      setTimeout(function () { waitForBoot(tries + 1); }, 150);
-    })(0);
-  }
-
-  /* Every call site is one line and none of them can fail: Track.event is a
-     no-op without consent. */
-  function track(name, params) {
-    if (window.Track) window.Track.event(name, params);
-  }
+  /* Consent handlers live above with the other privacy helpers. */
 
   function onKey(e) {
     if (e.target.tagName === 'INPUT') return;
@@ -1966,13 +1776,15 @@
       return;
     }
     if (!$('privacy').hidden) {
-      /* Escape only closes it if BOTH prefs have been answered at least once
-         (i.e. this open came from Settings). An upgraded user with an old
-         prefs.analytics but no personalizedAds must not slip past. */
-      if (e.key === 'Escape'
-          && prefs.analytics !== null
-          && prefs.personalizedAds !== null) {
+      if (e.key === 'Escape' && prefs.analytics !== null) {
         $('privacy').hidden = true;
+        openModal('settings-modal', 'settings-close');
+      }
+      return;
+    }
+    if (!$('privacy-data').hidden) {
+      if (e.key === 'Escape') {
+        $('privacy-data').hidden = true;
         openModal('settings-modal', 'settings-close');
       }
       return;

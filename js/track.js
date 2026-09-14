@@ -29,7 +29,7 @@
      Not a secret. A measurement id is readable in the source of every page
      that uses it; what protects the property is the domain filter in GA4, not
      the id being hidden. */
-  var MEASUREMENT_ID = 'G-M7W3D4267P';
+  var MEASUREMENT_ID = '';
 
   /* Two flags, not one, and the difference is the whole reason turning the
      setting off and on again works. injected says the script tag has been
@@ -48,8 +48,7 @@
      Capacitor Firebase Analytics plugin (bridged into JS via registerPlugin)
      is what carries events to the app's Firebase project. */
   function configured() {
-    if (isNative()) return !!firebasePlugin();
-    return !!MEASUREMENT_ID;
+    return isNative() && !!firebasePlugin();
   }
 
   /* Cached proxy to @capacitor-firebase/analytics's native plugin.  In a
@@ -99,32 +98,12 @@
       return;
     }
 
-    /* GA reads this flag on every hit, so an opt-out has to be lifted
-       explicitly. Leaving it set was why re-enabling used to look like it had
-       worked while sending nothing. */
-    global['ga-disable-' + MEASUREMENT_ID] = false;
-    if (injected) return;
-    injected = true;
+  }
 
-    global.dataLayer = global.dataLayer || [];
-    function gtag() { global.dataLayer.push(arguments); }
-    global.gtag = gtag;
-
-    var s = document.createElement('script');
-    s.async = true;
-    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + MEASUREMENT_ID;
-    /* If it fails — offline, or blocked, which an ad blocker will do as a
-       matter of course — stop queueing into an array that will never drain.
-       injected goes back to false so a later toggle may try again. */
-    s.onerror = function () { enabled = false; injected = false; };
-    document.head.appendChild(s);
-
-    gtag('js', new Date());
-    gtag('config', MEASUREMENT_ID, {
-      /* The game is one page; screens are not URLs, so let the events say
-         where somebody is rather than inventing paths for them. */
-      send_page_view: true
-    });
+  function sync() {
+    var choice = global.__consentState || {};
+    if (choice.analytics === true) load(choice.ads === true);
+    else unload();
   }
 
   /* Turned off after having been on: stop sending, and ask GA to drop what it
@@ -153,6 +132,7 @@
 
   function event(name, params) {
     if (!enabled) return;
+    if (!isNative()) return;
     if (isNative()) {
       var fb = firebasePlugin();
       if (fb) {
@@ -177,6 +157,7 @@
   global.Track = {
     configured: configured,
     load: load,
+    sync: sync,
     unload: unload,
     event: event,
     get id() { return isNative() ? 'firebase' : MEASUREMENT_ID; }

@@ -68,12 +68,12 @@
     initializing: null /* Promise while init is in flight */,
     platform: null,
     interstitialId: null,
-    /* NON-personalized until the player says otherwise. GDPR Art.4(11) wants
-     * a clear affirmative action and Recital 32 rules out pre-ticked defaults,
-     * so "not yet answered" has to behave exactly like "no". When false we set
-     * npa: 1 on every ad request, so Google serves non-personalized ads even
-     * if UMP happens to think consent was granted. */
     personalized: false,
+    adConsentResolved: false,
+    adConsent: { canRequestAds: true, npa: false, canChange: false },
+    attStatus: null,
+    attPromise: null,
+    umpPromise: null,
   };
 
   var freq = {
@@ -162,28 +162,32 @@
    * published, requestConsentInfo returns NOT_REQUIRED and this becomes a
    * no-op.  Any error is swallowed so a broken consent flow can never keep
    * the game from booting. */
-  async function runUmp() {
+  async function runUmp(refresh) {
     var AdMob = getPlugin();
-    if (!AdMob || !isNative()) return null;
-    try {
-      var opts = {};
-      if (DEBUG_GEOGRAPHY) opts.debugGeography = DEBUG_GEOGRAPHY;
-      var info = await AdMob.requestConsentInfo(opts);
-      console.info("Ads: consent status", info && info.status);
-      if (info && info.status === "REQUIRED" && info.isConsentFormAvailable) {
-        await AdMob.showConsentForm();
-        console.info("Ads: consent form dismissed");
+    if (!AdMob || !isNative() || !AdMob.requestConsentInfo) return state.adConsent;
+    if (refresh) state.umpPromise = null;
+    if (state.umpPromise) return state.umpPromise;
+    state.umpPromise = (async function () {
+      try {
+        var opts = {};
+        if (DEBUG_GEOGRAPHY) opts.debugGeography = DEBUG_GEOGRAPHY;
+        var info = await AdMob.requestConsentInfo(opts);
+        if (info && info.status === "REQUIRED" && info.isConsentFormAvailable) {
+          try { info = (await AdMob.showConsentForm()) || info; } catch (e) {}
+        }
+        state.adConsent = {
+          canRequestAds: !info || info.canRequestAds !== false,
+          npa: !(info && (info.status === "OBTAINED" || info.status === "NOT_REQUIRED")),
+          canChange: !!(info && info.privacyOptionsRequirementStatus === "REQUIRED"),
+        };
+        state.adConsentResolved = true;
+      } catch (e) {
+        state.adConsent = { canRequestAds: true, npa: true, canChange: false };
+        state.adConsentResolved = true;
       }
-      return (info && info.status) || null;
-    } catch (e) {
-      /* Swallowed on purpose. UMP failing must never stop the ATT prompt that
-       * runs after it, and must never keep the game from booting. */
-      console.warn(
-        "Ads: UMP failed, continuing without consent form:",
-        e && e.message,
-      );
-      return null;
-    }
+      return state.adConsent;
+    })();
+    return state.umpPromise;
   }
 
   /* Apple's App Tracking Transparency prompt.
@@ -203,21 +207,29 @@
    * Android returns before touching the plugin. There is no ATT there, and
    * "never asked on Android" should be true by construction rather than by
    * hoping the plugin no-ops. */
-  async function requestTracking() {
+  async function ensureAtt(mayPrompt) {
     var AdMob = getPlugin();
     if (!AdMob || !isNative()) return null;
     if (getPlatform() === "android") return null;
-    try {
-      var tt = await AdMob.trackingAuthorizationStatus();
-      if (tt && tt.status === "notDetermined") {
-        tt = (await AdMob.requestTrackingAuthorization()) || tt;
+    if (state.attPromise) return state.attPromise;
+    state.attPromise = (async function () {
+      try {
+        var tt = await AdMob.trackingAuthorizationStatus();
+        state.attStatus = (tt && tt.status) || "notDetermined";
+        if (state.attStatus === "notDetermined" && mayPrompt) {
+          await AdMob.requestTrackingAuthorization();
+          tt = await AdMob.trackingAuthorizationStatus();
+          state.attStatus = (tt && tt.status) || state.attStatus;
+        }
+      } catch (e) {
+        state.attStatus = "denied";
       }
-      return (tt && tt.status) || null;
-    } catch (e) {
-      /* not iOS, or old SDK — treat as "nothing to ask" */
-      return null;
-    }
+      return state.attStatus;
+    })();
+    return state.attPromise;
   }
+
+  function requestTracking() { return ensureAtt(true); }
 
   /* What is ACTUALLY happening, as opposed to what was stored. The Settings
    * toggle shows this: if iOS or the UMP form has denied tracking, a switch
@@ -233,26 +245,22 @@
     try { return window.Capacitor.getPlatform(); } catch (e) { return null; }
   }
 
-  async function personalizedStatus() {
-    if (!isNative()) return "web";
-    if (!state.personalized) return "off";
-    var AdMob = getPlugin();
-    if (!AdMob) return "on";
-    try {
-      var tt = await AdMob.trackingAuthorizationStatus();
-      if (!tt || !tt.status) return "on";           /* Android: no ATT concept */
-      if (tt.status === "authorized") return "on";
-      if (tt.status === "notDetermined") return "att-unasked";
-      return "att-denied";                           /* denied | restricted */
-    } catch (e) {
-      return "on";
-    }
+  function adsPersonalisedGranted() {
+    if (!state.adConsentResolved || !state.personalized) return false;
+    if (getPlatform() === "ios" && state.attStatus !== "authorized") return false;
+    return !state.adConsent.npa;
+  }
+
+  function adNpa() {
+    return !state.adConsentResolved || !state.personalized || state.adConsent.npa ||
+      (getPlatform() === "ios" && state.attStatus !== "authorized");
   }
 
   /* Called once per prepared ad.  On success `freq.prepared` flips true;
    * after each show it flips false and prepare has to be called again. */
   async function prepareInterstitial() {
     if (!(await init())) return false;
+    if (state.adConsentResolved && !state.adConsent.canRequestAds) return false;
     if (freq.prepared) return true;
     if (freq.preparing) return freq.preparing;
 
@@ -262,7 +270,7 @@
           adId: state.interstitialId,
           isTesting: isTestAdId(state.interstitialId),
         };
-        if (!state.personalized) opts.npa = true;
+        opts.npa = adNpa();
         await state.plugin.prepareInterstitial(opts);
         freq.prepared = true;
         return true;
@@ -344,7 +352,27 @@
     setPersonalized: setPersonalized,
     runUmp: runUmp,
     requestTracking: requestTracking,
-    personalizedStatus: personalizedStatus,
+    ensureAtt: ensureAtt,
+    getPlatform: getPlatform,
+    showPrivacyOptionsForm: async function () {
+      var AdMob = getPlugin();
+      if (!AdMob || !AdMob.showPrivacyOptionsForm) return false;
+      await AdMob.showPrivacyOptionsForm();
+      await runUmp(true);
+      return true;
+    },
+    adsPersonalisedGranted: adsPersonalisedGranted,
+    adNpa: adNpa,
+  };
+
+  window.__consentDebug = function () {
+    return {
+      adConsentResolved: state.adConsentResolved,
+      adConsent: state.adConsent,
+      attStatus: state.attStatus,
+      personalizedAds: state.personalized,
+      granted: adsPersonalisedGranted(),
+    };
   };
 
   /* Warming up the first interstitial is worth doing early, but NOT at boot.

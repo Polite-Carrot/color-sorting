@@ -244,10 +244,10 @@
   <!-- ─────────────── privacy ─────────────── -->
   <div id="privacy" class="overlay" hidden>
     <div class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="privacy-title">
-      <h2 id="privacy-title">Your choices</h2>
+      <h2 id="privacy-title">Before you start</h2>
       <p class="modal__line">
-        Both are off. Turn on anything you're happy with &mdash; the game plays
-        the same either way, and you can change your mind in Settings.
+        One thing you can switch on if you want to. It stays off unless you
+        turn it on, and can be changed at any time in Privacy &amp; Data.
       </p>
 
       <div class="settings-list">
@@ -259,18 +259,36 @@
           <button id="privacy-analytics" class="btn" type="button" aria-label="Send usage data" aria-pressed="false">Off</button>
         </div>
 
-        <div class="settings-row settings-row--stack" id="privacy-ads-row">
-          <div>
-            <b>Personalized ads</b>
-            <p class="settings-row__note">Ads matched to your interests. Left off, ads still appear but are generic.</p>
-          </div>
-          <button id="privacy-ads" class="btn" type="button" aria-label="Personalized ads" aria-pressed="false">Off</button>
-        </div>
       </div>
 
       <div class="modal__actions modal__actions--consent">
         <a id="privacy-policy" class="policy-link" href="#" target="_blank" rel="noopener">Privacy policy</a>
         <button id="privacy-continue" class="btn btn--primary">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="privacy-data" class="overlay" hidden>
+    <div class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="privacy-data-title">
+      <h2 id="privacy-data-title">Privacy &amp; Data</h2>
+      <div class="settings-list">
+        <div class="settings-row settings-row--stack">
+          <div>
+            <b>Send usage data</b>
+            <p class="settings-row__note">Which levels people reach and where they get stuck, so we can fix the ones that are too hard.</p>
+          </div>
+          <button id="privacy-data-analytics" class="btn" type="button" aria-label="Send usage data" aria-pressed="false">Off</button>
+        </div>
+        <div class="settings-row settings-row--stack">
+          <div>
+            <b>Personalised ads</b>
+            <p class="settings-row__note">Ads matched to your interests. Left off, ads still appear but are generic.</p>
+          </div>
+          <button id="privacy-data-ads" class="btn" type="button" aria-label="Personalised ads" aria-pressed="false">Off</button>
+        </div>
+      </div>
+      <div class="modal__actions">
+        <button id="privacy-data-close" class="btn btn--primary">Done</button>
       </div>
     </div>
   </div>
@@ -306,15 +324,8 @@
           <button id="settings-cb" class="btn" type="button" aria-pressed="false">Off</button>
         </div>
         <div class="settings-row">
-          <span>Send usage data</span>
-          <button id="settings-analytics" class="btn" type="button" aria-pressed="false">Off</button>
-        </div>
-        <div class="settings-row" id="settings-ads-row">
-          <span>Personalized ads</span>
-          <button id="settings-ads" class="btn" type="button" aria-pressed="false">Off</button>
-        </div>
-        <div class="settings-row settings-row--quiet" id="settings-ads-note-row" hidden>
-          <span id="settings-ads-note" class="settings-row__note"></span>
+          <span>Privacy &amp; Data</span>
+          <button id="settings-privacy" class="btn" type="button">Open&hellip;</button>
         </div>
         <div class="settings-row settings-row--danger">
           <span>Reset progress</span>
