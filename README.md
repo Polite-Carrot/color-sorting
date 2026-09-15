@@ -61,7 +61,7 @@ and Random Puzzle — and each opens its own screen. Sort Colors' icon is a jar
 that fills with how far through you are; the daily's is a calendar page whose
 squares light up as the week is played.
 
-**Sort Colors** — five hundred levels, in order. The first five are
+**Sort Colors** — a thousand levels, in order. The first five are
 written by hand and teach one rule each. The rest are seeded deals from the
 same generator the Random Puzzle screen uses: the shelf widens a jar at a time
 from four to fourteen, and at each width the **five** settings are swept in
@@ -76,23 +76,29 @@ each block peaks above the one before it.
 | 36–55 | Six jars | 6–22 |
 | 56–80 | Seven jars | 8–25 |
 | 81–110 | Eight jars | 9–28 |
-| 111–145 | Nine jars | 9–30 |
-| 146–180 | Ten jars | 10–33 |
-| 181–220 | Eleven jars | 11–37 |
-| 221–260 | Twelve jars | 12–40 |
-| 261–305 | Thirteen jars | 13–45 |
-| 306–350 | Fourteen jars — the widest shelf a phone shows whole | 14–49 |
-| 351–500 | Fourteen jars, Expert, on fresh seeds | 33–55 |
+| 111–145 | Nine jars | 9–32 |
+| 146–180 | Ten jars | 11–35 |
+| 181–220 | Eleven jars | 13–40 |
+| 221–260 | Twelve jars | 13–42 |
+| 261–305 | Thirteen jars | 14–45 |
+| 306–1000 | Fourteen jars, sweeping the settings on fresh seeds | 16–59 |
 
-Every one of them is a setting, a jar count and a seed, and nothing else — so
-any level can be dealt again on the Random Puzzle screen by picking the same
-two and typing the seed. Depth is reached through the Expert setting rather
-than a column of its own, which is what keeps that true.
+Every one of them is a setting, a jar count and a seed, and nothing else.
+Depth is reached through the Expert setting rather than a column of its own,
+which is what lets a level be described that way at all.
+
+That used to mean any level could be dealt again on the Random Puzzle screen by
+picking the same setting and typing the seed, and for Merge it still does. Sort
+is now the exception: the Random screen's shelf stops at twelve jars, so the
+695 levels from 306 on — all fourteen wide — cannot be reproduced there. The
+boards themselves are baked into `js/levels.js` in full and are unaffected;
+what went is the ability to re-deal them, when fourteen was retired as a width
+the screen offers.
 
 Each level unlocks the next. See **Keeping progress** below for how stars and
 best scores are stored.
 
-**Merge Colors** — five hundred levels, and a rule the ordinary game
+**Merge Colors** — a thousand levels, and a rule the ordinary game
 does not have. Built the same way: five taught levels, then seeded deals along
 a ladder that widens the shelf three jars to ten, sweeping the five settings at
 each width.
@@ -105,10 +111,9 @@ each width.
 | 51–75 | Five jars | 8–20 |
 | 76–105 | Six jars | 9–24 |
 | 106–140 | Seven jars | 10–33 |
-| 141–175 | Eight jars | 11–29 |
-| 176–210 | Nine jars | 11–30 |
-| 211–250 | Ten jars | 12–32 |
-| 251–500 | Ten jars, Expert, on fresh seeds | 14–31 |
+| 141–175 | Eight jars | 12–27 |
+| 176–210 | Nine jars | 12–30 |
+| 211–1000 | Ten jars, sweeping the settings on fresh seeds | 11–45 |
 
 Levels past the ladder are the top setting at the widest shelf on fresh seeds,
 and they are more of the hardest board rather than harder boards. In Merge they
@@ -464,6 +469,51 @@ same file. It also means the whole back catalogue exists without anyone having
 built it: every day from **1 May 2026** onward can be played, and the calendar
 pages back to that month and stops.
 
+**How far it runs: indefinitely, and that is checked rather than assumed.**
+There is no end date in the code — `playable()` is only "on or after 1 May 2026
+and not in the future" — so the mode does not expire and no seed list has to be
+topped up. The seed is the date read as an eight-digit number, which never
+outgrows the 32 bits the generators hash it with, so there is no year at which
+the arithmetic quietly breaks either.
+
+What can go wrong is subtler: a particular date might deal badly, and nobody
+would find out until that morning, when everybody gets the bad board at once.
+So `tools/check-daily.js` sweeps forward day by day and checks each one deals
+at all, deals quickly, lands inside its setting's par band, and is not the
+generator's emergency board.
+
+    node tools/check-daily.js            today .. end of 2030
+    node tools/check-daily.js 2035       today .. end of 2035
+    node tools/check-daily.js 2030 full  also re-solves every board
+
+Swept to the end of **2035** — 3,395 days — every one deals a real board inside
+its band, and no day takes over two seconds:
+
+| | Game | Setting | Jars | Par (median) |
+|--|------|---------|------|--------------|
+| Monday | Sort | Normal | 6 | 9–17 (11) |
+| Tuesday | Merge | Easy | 3 | 4–11 (8) |
+| Wednesday | Sort | Hard | 10 | 21–36 (26) |
+| Thursday | Merge | Normal | 6 | 9–19 (15) |
+| Friday | Sort | Extra Hard | 12 | 32–48 (37) |
+| Saturday | Merge | Hard | 7 | 14–24 (19) |
+| Sunday | Merge | Extra Hard | 7 | 21–30 (26) |
+
+The pars are fixed — the same date always deals the same board — so those
+columns are a property of the mode rather than of one run. Deal times are wall
+clock and move a little run to run: the Sort days and Merge Easy land in single
+figures of milliseconds, Thursday and Saturday in the tens, and Sunday's Merge
+Extra Hard is the slowest at about 80ms typical with a worst case near a
+second. The button says "Dealing…" throughout.
+
+One trap is worth writing down, because it cost an investigation. Telling a
+real board from the generator's emergency one by its name and jar count does
+not work: Merge Easy legitimately deals exactly three jars, and "Make the
+purple" is one of its three real targets, so good boards match the fallback's
+signature and the check reports a catastrophe that is not happening. The big
+jar is the honest discriminator — the emergency boards take 2 (merge) and 4
+(sort), which no real board at any daily setting does.
+
 Days ahead of today are shown but cannot be opened. The board for tomorrow is
 perfectly derivable — the seed is just a number — so locking it is a rule of
 the mode rather than a secret being kept, and the calendar draws those days
@@ -743,6 +793,7 @@ node build.js                        # artifact fragment, no <!doctype> wrapper
 node build.js --standalone           # complete document, opens from disk
 node tools/build-campaign.js         # rebuild Sort Colors into js/levels.js
 node tools/build-merge-campaign.js   # rebuild Merge Colors into js/merge-levels.js
+node tools/check-daily.js 2035       # sweep the Daily Puzzle to the end of 2035
 ```
 
 Both campaigns are built the same way. The five taught levels of each are
@@ -884,12 +935,13 @@ make-levels.js    superseded — the older ramp-dealt Sort Colors builder
 tools/make-merge-levels.js  superseded — the older Merge Colors builder
 tools/check-merge.js  checks the Merge Colors levels
 tools/check-merge-random.js  checks random Merge Colors puzzles
+tools/check-daily.js  sweeps the Daily Puzzle forward, year by year
 js/store.js       progress storage, and whether it can be trusted
 js/colour.js      the palette, and how far apart two colors look
-js/levels.js      generated — the 500 Sort Colors levels
+js/levels.js      generated — the 1000 Sort Colors levels
 js/merge.js       Merge Colors: the recipes, and its own search  (no DOM)
 js/merge-generator.js  seeded random Merge Colors puzzles  (no DOM)
-js/merge-levels.js  generated — the 500 Merge Colors levels
+js/merge-levels.js  generated — the 1000 Merge Colors levels
 js/daily.js       the daily schedule, seeds, calendar grid and streak  (no DOM)
 js/engine.js      stacked jars, pouring, undo, win check  (no DOM)
 js/solver.js      best-first search: par, hints, solvability  (no DOM)
