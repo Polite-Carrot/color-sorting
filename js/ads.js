@@ -260,7 +260,24 @@
    * after each show it flips false and prepare has to be called again. */
   async function prepareInterstitial() {
     if (!(await init())) return false;
-    if (state.adConsentResolved && !state.adConsent.canRequestAds) return false;
+    if (state.adConsentResolved && !state.adConsent.canRequestAds) {
+      /* Google's UMP says we may not request ads. This is almost always one
+       * thing: consent is REQUIRED for this player's region and has not been
+       * obtained, because no consent message is published in the AdMob console
+       * under Privacy & messaging — so requestConsentInfo reports
+       * isConsentFormAvailable false, runUmp has no form to show, and consent
+       * can never be given.
+       *
+       * It used to return here silently, which made a completely dead
+       * integration look like a healthy one: the SDK initialises, the log says
+       * so, and then nothing is ever requested. Say it out loud instead. */
+      console.warn(
+        "Ads: UMP says ads cannot be requested (canRequestAds false). " +
+        "Publish a consent message in AdMob > Privacy & messaging, or set " +
+        "DEBUG_GEOGRAPHY = 'NOT_EEA' in js/ads.js to confirm that is the cause.",
+      );
+      return false;
+    }
     if (freq.prepared) return true;
     if (freq.preparing) return freq.preparing;
 
@@ -363,6 +380,17 @@
     },
     adsPersonalisedGranted: adsPersonalisedGranted,
     adNpa: adNpa,
+    /* Readable from Safari Web Inspector while the app runs, which is the
+       quickest way to find out whether UMP is blocking requests:
+         window.Ads.consentState()   ->  { canRequestAds: false, ... } */
+    consentState: function () {
+      return { resolved: state.adConsentResolved, adConsent: state.adConsent,
+               ready: state.ready, platform: getPlatform(),
+               interstitialId: state.interstitialId, prepared: freq.prepared };
+    },
+    /* init + a real ad request, on demand. Defined all along but never
+       exported, so there was no way to fire a request without playing. */
+    warm: warm,
   };
 
   window.__consentDebug = function () {
