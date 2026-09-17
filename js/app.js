@@ -1013,6 +1013,103 @@
 
   /* A move either follows the stored solution, which advances the marker, or
      leaves it, which ends it until the level is restarted. */
+  /* Restored verbatim. Deleted in ebd6345 with their four callers left in
+     place, so tapping any jar threw "onJarClick is not defined" and no move
+     could be made at all — the board opened and then did nothing. Same shape
+     of mistake as the track() deletion in the same commit. */
+  function onJarClick(id) {
+    var g = state.game;
+    if (!g || g.won) return;
+    Sound.ensure();
+
+    if (state.selected === id) {          /* put it back down */
+      state.selected = null;
+      refresh();
+      return;
+    }
+
+    if (!state.selected) {
+      if (id === MAIN) {
+        setStatus('The big jar only collects — pick one of the jars below.', 'warn');
+        return;
+      }
+      var jar = g.get(id);
+      if (!jar || !jar.cells.length) {
+        setStatus('That jar is empty.', 'warn');
+        viewFor(id).flash('is-blocked');
+        Sound.nope();
+        return;
+      }
+      state.selected = id;
+      clearHintMarks();
+      Sound.pick();
+      setStatus('Now tap where it should go.', '');
+      refresh();
+      return;
+    }
+
+    /* Cannot pour there — read the tap as picking that jar up instead, which
+       is nearly always what was meant. */
+    if (!g.pourable(state.selected, id)) {
+      var candidate = g.get(id);
+      if (id !== MAIN && candidate && candidate.cells.length) {
+        state.selected = id;
+        Sound.pick();
+        setStatus('Now tap where it should go.', '');
+        refresh();
+        return;
+      }
+    }
+
+    doPour(state.selected, id);
+  }
+
+  function doPour(fromId, toId) {
+    var g = state.game;
+    var result = g.pour(fromId, toId);
+
+    if (!result.ok) {
+      Sound.nope();
+      viewFor(toId).flash('is-blocked');
+      setStatus(
+        result.reason === 'full' ? 'That jar is full.' :
+        result.reason === 'empty' ? 'Nothing left to pour.' :
+        result.reason === 'wrong-colour' ? 'The big jar only takes ' + C.name(g.target) + '.' :
+        result.reason === 'mismatch' ? 'A color can only go onto the same color, or an empty jar.' :
+        result.reason === 'no-mix' ? 'Those two do not mix. Try a pair from the list above the shelf.' :
+        'You cannot pour that way.', 'warn');
+      return;
+    }
+
+    trackPath(g, fromId, toId);
+
+    var dest = g.get(toId);
+    Sound.pour(dest.cells.length / dest.capacity);
+
+    var fromView = viewFor(fromId), toView = viewFor(toId);
+    var dir = toView.centreX() >= fromView.centreX() ? 1 : -1;
+    fromView.tilt(dir);
+    clearTimeout(state.hintTimer);
+    clearHintMarks();
+
+    state.selected = null;
+    setStatus('', '');
+    refresh();
+    toView.settle();
+
+    if (g.won) {
+      /* Written now rather than with the celebration. The card is on a timer
+         for the animation, and anyone who closes the game in that moment —
+         or whose phone puts it to sleep — would otherwise lose the level they
+         just finished. */
+      recordResult();
+      Sound.win();
+      setTimeout(showWinCard, 420);
+    } else {
+      watchForDeadEnd();
+    }
+  }
+
   function trackPath(g, fromId, toId) {
     if (state.onPath < 0) return;
     var path = state.followed;
