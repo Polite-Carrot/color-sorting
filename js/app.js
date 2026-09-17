@@ -784,15 +784,37 @@
     var shelf = $('shelf');
     shelf.classList.remove('shelf--capped');
     settleBoard();
-    if (widestRow() <= JARS_PER_ROW) return;
-
-    var wasWhole = shelfWhollyVisible();
-    shelf.classList.add('shelf--capped');
-    settleBoard();
-    if (wasWhole && !shelfWhollyVisible()) {
-      shelf.classList.remove('shelf--capped');
+    if (widestRow() > JARS_PER_ROW) {
+      var wasWhole = shelfWhollyVisible();
+      shelf.classList.add('shelf--capped');
       settleBoard();
+      if (wasWhole && !shelfWhollyVisible()) {
+        shelf.classList.remove('shelf--capped');
+        settleBoard();
+      }
     }
+    markOverflow();
+  }
+
+  /* Scrolling the shelf is a last resort, not a layout. A scroll container
+     rubber-bands under a finger on iOS and drags the jars about while somebody
+     is trying to tap one — and it does that whether or not there is anything
+     to scroll, which is why the shelf is overflow-y: hidden by default.
+
+     But hidden means a jar that does not fit is unreachable rather than merely
+     out of view, and on a 320px-wide phone that is a real board: the fitter is
+     already at JAR_FLOOR and ten merge jars still do not go. The deployment
+     target is iOS 15, which an iPhone SE 1st generation runs, so those boards
+     have to stay playable.
+
+     So: scroll only where the alternative is an unplayable board. The fitter
+     has finished by the time this runs and has done everything it can, so if
+     the shelf still overflows, nothing else will fix it. Measured across
+     360x560 and up the class is never applied — which is the point. */
+  function markOverflow() {
+    var wrap = document.querySelector('.shelf-wrap');
+    if (!wrap) return;
+    wrap.classList.toggle('is-overflowing', wrap.scrollHeight > wrap.clientHeight + 1);
   }
 
   function settleBoard() {

@@ -205,19 +205,36 @@ body.playing #screen-game.is-active {
    Blanket `margin: 0` would also clear the `auto` side margins that centre
    the briefing and the hint line. */
 body.playing #screen-game.is-active > * { flex: none; margin-block: 0; }
-/* If a window is so short that even the smallest readable jars will not fit,
-   the shelf scrolls inside itself rather than the whole page scrolling — the
-   buttons and the hint line stay where they are.
-   
+/* The shelf is allowed to SHRINK so the toolbar and the hint line keep their
+   places on a short window, but it is not allowed to SCROLL.
+
+   It used to be overflow-y: auto — a safety valve for a window too short for
+   even the smallest readable jars. The valve is the wrong shape for this
+   board: a scroll container rubber-bands under a finger on iOS and drags the
+   jars about while somebody is trying to tap one, and it does that whether or
+   not there is anything to scroll. A shelf you can accidentally move is worse
+   than a shelf that is one jar too tall.
+
+   hidden rather than visible, and the difference matters: scrollHeight still
+   reports the true content height under hidden, which is what
+   shelfWhollyVisible() in app.js measures to decide whether a jar size is
+   acceptable. Under visible it would collapse to clientHeight and the fitter
+   would believe every size fits.
+
    Selected through the same `#screen-game.is-active >` path as the rule above,
    which would otherwise out-specify it and pin the shelf at `flex: none`. With
-   that, the shelf could not shrink, so the valve never opened and the toolbar
-   was clipped off the bottom instead. */
+   that, the shelf could not shrink and the toolbar was clipped off the bottom
+   instead. */
 body.playing #screen-game.is-active > .shelf-wrap {
   flex: 0 1 auto;
   min-height: 0;
-  overflow-y: auto;
+  overflow-y: hidden;
   overflow-x: hidden;
+}
+/* The last resort, set by markOverflow() in app.js only when the fitter has
+   run out of room — see the comment there. Never applied at 360px wide and up. */
+body.playing #screen-game.is-active > .shelf-wrap.is-overflowing {
+  overflow-y: auto;
 }
 body.playing .board { margin-block: 0; }
 body.playing .shelf-wrap { margin-block: 0; }
@@ -1555,6 +1572,33 @@ body.cb-assist .band span { visibility: visible; }
   .toolbar .btn { padding: 6px 9px; font-size: 12.5px; }
 
   .status { margin: 4px auto 0; min-height: 1.4em; font-size: 12px; }
+}
+
+/* Narrow phones, and deliberately the LAST word on this.
+   The blocks above are all about HEIGHT, and they re-set the toolbar's gap and
+   button sizing — so a narrow-width rule placed before them is simply
+   overridden. Height is only half the problem: below about 380px the toolbar's
+   four buttons and the topbar's title wrap onto extra rows, and the furniture
+   grows as the screen shrinks, starving the shelf of the room it most needs.
+
+   The toolbar misses by almost nothing. Measured at 320x568: four buttons
+   totalling 276px, three gaps of 7px, in a 296px row — 297px, one pixel over,
+   and that one pixel costs a whole second row and 44px of shelf. So the gap is
+   what gives, not the buttons: shrinking the type to claw back a pixel would
+   be a worse trade than closing the spaces between.
+
+   It matters more now the shelf no longer scrolls: starvation clips jars
+   rather than tucking them behind a scroll, so the fit has to be real. */
+@media (max-width: 380px) {
+  .toolbar { gap: 4px; }
+  .toolbar .btn { padding-left: 8px; padding-right: 8px; }
+
+  .topbar { padding: 7px 9px; gap: 6px; }
+  .topbar__title h2 { font-size: 15px; }
+  .topbar__title span { font-size: 10px; }
+  .stat { min-width: 38px; padding: 3px 4px; }
+  .stat b { font-size: 15px; }
+  .stat small { font-size: 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
