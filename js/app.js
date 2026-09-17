@@ -1761,6 +1761,21 @@
 
   /* Consent handlers live above with the other privacy helpers. */
 
+  /* Every call site is one line and none of them can fail: Track.event is a
+     no-op without consent, and this wrapper tolerates Track being absent
+     entirely.
+
+     It matters more than a convenience wrapper usually would. When this was
+     deleted while its five callers were left in place, the first of them sits
+     at the top of startLevel — so a ReferenceError fired before a single jar
+     was drawn and NO level could be opened, in any mode, on any platform. An
+     analytics helper took the whole game down with it. */
+  function track(name, params) {
+    try {
+      if (window.Track && window.Track.event) window.Track.event(name, params);
+    } catch (e) { /* analytics must never break play */ }
+  }
+
   function onKey(e) {
     if (e.target.tagName === 'INPUT') return;
 
