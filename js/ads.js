@@ -1,6 +1,15 @@
 "use strict";
-/* AdMob wrapper for the game.  Only interstitial ads: the banner and
- * rewarded formats the plugin also supports are not called from anywhere.
+/* Ads wrapper for the game.  Two backends behind one API:
+ *   - iOS:     Unity Ads, through the local plugin in plugins/capacitor-unity-ads
+ *              (the AdMob SDK is no longer built into the iOS app at all — see
+ *              ios.includePlugins in capacitor.config.js).
+ *   - Android: AdMob, unchanged.
+ * Everything app.js calls (init, runUmp, ensureAtt, noteLevelComplete,
+ * maybeShowInterstitial, setPersonalized, ...) behaves the same on both; the
+ * platform split is contained in this file.
+ *
+ * Only interstitial ads: the banner and rewarded formats the plugins also
+ * support are not called from anywhere.
  *
  * The frequency cap is deliberately gentle for a puzzle game — one
  * interstitial fires when BOTH conditions have been met since the last
@@ -35,6 +44,21 @@
    * console for each app; ad unit IDs are what you get when you create an
    * ad unit UNDER an app in the AdMob console. Google's official test IDs
    * are kept commented-out below — flip which pair is active for local dev. */
+  /* iOS: Unity Ads.  Game ID and placement come from the Unity dashboard
+   * (Monetization > Ad Units).  The game ID must be Color Match & Merge's iOS
+   * game ID, not another app's under the same organisation — a wrong one
+   * initialises fine and then serves nothing, or pays the wrong app.
+   *
+   * testMode true makes Unity serve test creatives only.  For testing the
+   * production build on your own phone, prefer registering the device under
+   * Unity dashboard > Settings > Test devices and leaving this false. */
+  var UNITY = {
+    gameId: "800379629",
+    placementId: "BP_Interstitial_iOS",
+    testMode: false,
+  };
+
+  /* Android: AdMob. */
   var INTERSTITIAL_IDS = {
     // android: 'ca-app-pub-3940256099942544/1033173712',
     // ios:     'ca-app-pub-3940256099942544/4411468910',
@@ -74,6 +98,7 @@
     attStatus: null,
     attPromise: null,
     umpPromise: null,
+    unityConsent: null /* last value sent to Unity's setUserConsent */,
   };
 
   var freq = {
@@ -94,15 +119,41 @@
     );
   }
 
+  /* Unity Ads on iOS, AdMob everywhere else. */
+  function useUnity() {
+    return getPlatform() === "ios";
+  }
+
   function getPlugin() {
     if (state.plugin) return state.plugin;
     if (!window.Capacitor) return null;
+    var name = useUnity() ? "UnityAds" : "AdMob";
     if (window.Capacitor.registerPlugin) {
-      state.plugin = window.Capacitor.registerPlugin("AdMob");
-    } else if (window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
-      state.plugin = window.Capacitor.Plugins.AdMob;
+      state.plugin = window.Capacitor.registerPlugin(name);
+    } else if (window.Capacitor.Plugins && window.Capacitor.Plugins[name]) {
+      state.plugin = window.Capacitor.Plugins[name];
     }
     return state.plugin;
+  }
+
+  /* Unity has no Google UMP: the consent it gets is this game's own choice
+   * (the personalised-ads toggle) combined with Apple's tracking answer —
+   * exactly what adsPersonalisedGranted() computes.  Sent before every ad
+   * load, so it can never lag behind a late ATT answer.  Returns true when
+   * the value changed, meaning any ad already loaded was requested under the
+   * old answer. */
+  async function syncUnityConsent() {
+    if (!useUnity() || !state.plugin) return false;
+    var granted = adsPersonalisedGranted();
+    if (state.unityConsent === granted) return false;
+    try {
+      await state.plugin.setConsent({ granted: granted });
+      state.unityConsent = granted;
+      return true;
+    } catch (e) {
+      console.warn("Ads: Unity setConsent failed:", e && e.message);
+      return false;
+    }
   }
 
   async function init() {
@@ -112,12 +163,13 @@
 
     var AdMob = getPlugin();
     if (!AdMob) {
-      console.warn("Ads: AdMob plugin proxy unavailable");
+      console.warn("Ads: ad plugin proxy unavailable");
       return false;
     }
     state.platform = window.Capacitor.getPlatform();
-    state.interstitialId =
-      INTERSTITIAL_IDS[state.platform] || INTERSTITIAL_IDS.android;
+    state.interstitialId = useUnity()
+      ? UNITY.placementId
+      : INTERSTITIAL_IDS[state.platform] || INTERSTITIAL_IDS.android;
 
     state.initializing = (async function () {
       /* SDK initialisation ONLY. Neither UMP nor ATT happens here, and that
@@ -131,9 +183,16 @@
        * app.js drives the three steps in order — UMP, then ATT, then this —
        * each with its own error handler. See runConsentGates there. */
       try {
-        await AdMob.initialize({
-          initializeForTesting: isTestAdId(state.interstitialId),
-        });
+        if (useUnity()) {
+          /* Consent goes in before the SDK starts, so not even Unity's own
+           * start-up traffic runs under a default "consented" state. */
+          await syncUnityConsent();
+          await AdMob.initialize({ gameId: UNITY.gameId, testMode: UNITY.testMode });
+        } else {
+          await AdMob.initialize({
+            initializeForTesting: isTestAdId(state.interstitialId),
+          });
+        }
       } catch (e) {
         /* Resolve false rather than reject. A rejection here used to escape as
          * an unhandled promise rejection — caught by the test that fails the
@@ -149,7 +208,9 @@
       console.info(
         "Ads: initialised on",
         state.platform,
-        isTestAdId(state.interstitialId) ? "(test mode)" : "(production)",
+        useUnity() ? "via Unity Ads" : "via AdMob",
+        (useUnity() ? UNITY.testMode : isTestAdId(state.interstitialId))
+          ? "(test mode)" : "(production)",
       );
       return true;
     })();
@@ -163,6 +224,13 @@
    * no-op.  Any error is swallowed so a broken consent flow can never keep
    * the game from booting. */
   async function runUmp(refresh) {
+    if (useUnity() && isNative()) {
+      /* No UMP with Unity.  Nothing blocks ad requests, and whether they are
+       * personalised is decided by the player's toggle plus Apple's prompt. */
+      state.adConsent = { canRequestAds: true, npa: false, canChange: false };
+      state.adConsentResolved = true;
+      return state.adConsent;
+    }
     var AdMob = getPlugin();
     if (!AdMob || !isNative() || !AdMob.requestConsentInfo) return state.adConsent;
     if (refresh) state.umpPromise = null;
@@ -260,6 +328,7 @@
    * after each show it flips false and prepare has to be called again. */
   async function prepareInterstitial() {
     if (!(await init())) return false;
+    if (useUnity()) return prepareUnity();
     if (state.adConsentResolved && !state.adConsent.canRequestAds) {
       /* Google's UMP says we may not request ads. This is almost always one
        * thing: consent is REQUIRED for this player's region and has not been
@@ -302,6 +371,34 @@
     return freq.preparing;
   }
 
+  /* Unity resolves {loaded:false} for no-fill rather than rejecting, so the
+   * result is read instead of relying on a throw. */
+  function prepareUnity() {
+    if (freq.preparing) return freq.preparing;
+    freq.preparing = (async function () {
+      try {
+        var changed = await syncUnityConsent();
+        if (freq.prepared && !changed) return true;
+        var res = await state.plugin.prepareInterstitial({
+          placementId: UNITY.placementId,
+          force: changed,
+        });
+        freq.prepared = !!(res && res.loaded);
+        if (!freq.prepared) {
+          console.warn("Ads: Unity load returned no ad:", res && res.reason);
+        }
+        return freq.prepared;
+      } catch (e) {
+        console.warn("Ads: Unity prepareInterstitial failed", e && e.message);
+        freq.prepared = false;
+        return false;
+      } finally {
+        freq.preparing = null;
+      }
+    })();
+    return freq.preparing;
+  }
+
   /* Called from the win-card handler once per level completed.  If the
    * player is one level short of the threshold, start preparing the next
    * ad in the background so `maybeShowInterstitial()` does not have to
@@ -332,7 +429,15 @@
     if (!freq.prepared && !(await prepareInterstitial())) return false;
 
     try {
-      await state.plugin.showInterstitial();
+      var res = await state.plugin.showInterstitial();
+      if (useUnity() && !(res && res.shown)) {
+        /* Not shown (expired, or failed to present).  Counters stay as they
+         * are so the next screen change tries again with a fresh ad. */
+        console.warn("Ads: Unity show did not play:", res && res.reason);
+        freq.prepared = false;
+        prepareInterstitial();
+        return false;
+      }
       freq.lastShownAt = Date.now();
       freq.levelsSinceLast = 0;
       freq.prepared = false;
@@ -353,7 +458,12 @@
    * maybeShowInterstitial reflects the choice. */
   function setPersonalized(on) {
     var next = !!on;
-    if (state.personalized === next) return;
+    if (state.personalized === next) {
+      /* The toggle did not move, but Apple's answer may have: re-send the
+       * combined value to Unity (a no-op when nothing changed). */
+      if (isNative() && state.ready && useUnity()) prepareInterstitial();
+      return;
+    }
     state.personalized = next;
     if (!isNative()) return;
     freq.prepared = false;
@@ -372,6 +482,7 @@
     ensureAtt: ensureAtt,
     getPlatform: getPlatform,
     showPrivacyOptionsForm: async function () {
+      if (useUnity()) return false; /* Google UMP form: AdMob only */
       var AdMob = getPlugin();
       if (!AdMob || !AdMob.showPrivacyOptionsForm) return false;
       await AdMob.showPrivacyOptionsForm();
@@ -386,6 +497,8 @@
     consentState: function () {
       return { resolved: state.adConsentResolved, adConsent: state.adConsent,
                ready: state.ready, platform: getPlatform(),
+               provider: useUnity() ? "unity" : "admob",
+               unityConsent: state.unityConsent,
                interstitialId: state.interstitialId, prepared: freq.prepared };
     },
     /* init + a real ad request, on demand. Defined all along but never

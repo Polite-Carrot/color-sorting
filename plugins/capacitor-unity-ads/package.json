@@ -1,0 +1,19 @@
+{
+  "name": "@politecarrot/capacitor-unity-ads",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Unity Ads interstitials, consent and App Tracking Transparency for Color Match & Merge on iOS. Local plugin; iOS only.",
+  "license": "UNLICENSED",
+  "files": [
+    "Package.swift",
+    "ios/Sources"
+  ],
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": "^8.0.0"
+  }
+}

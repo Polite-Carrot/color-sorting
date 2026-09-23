@@ -20,5 +20,15 @@ try {
 module.exports = {
   appId: 'com.politecarrot.colorjars',
   appName: 'Color Match & Merge',
-  webDir: 'www'
+  webDir: 'www',
+  /* iOS serves ads through Unity (local plugin in plugins/capacitor-unity-ads)
+   * and no longer ships the AdMob SDK. Listing plugins here replaces the
+   * automatic list for iOS only; Android still gets every installed plugin,
+   * AdMob included. Add any new plugin here too or iOS will not get it. */
+  ios: {
+    includePlugins: [
+      '@capacitor-firebase/analytics',
+      '@politecarrot/capacitor-unity-ads'
+    ]
+  }
 };
