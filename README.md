@@ -8,8 +8,17 @@ poured onto the same color or into an empty jar. Exactly one jarful of the
 target color is scattered across the shelf, usually buried — so the puzzle is
 working out where to park everything that is in the way.
 
-**To play:** open `index.html` in a browser. No install, no build step, no server.
+**Setup:** run `npm ci` and `npm run web:sync` to prepare the shared dependencies.
+Then open `index.html` in a browser; no server is required.
 Or run `node build.js --standalone` for the whole game as one shareable file.
+
+Unity Ads comes from `Polite-Carrot/polite-carrot-unity-ads` on GitHub, pinned
+to a commit in `package.json` and the lockfile. `js/ads.js` only holds this
+game's IDs, production setting, and two-minute/three-level frequency rule.
+The native plugin and SDK handling are maintained in the shared repository.
+Both web build scripts copy its JavaScript into ignored `vendor/unity-ads.js`;
+do not edit that generated file. Run `npm run sync` before native builds.
+Run `npm test` to verify the game adapter against the installed package.
 
 ## What it is called
 

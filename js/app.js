@@ -1862,13 +1862,19 @@
   /* ───────── analytics + ads consent, once asked for ───────── */
 
   function applyConsent() {
-    window.__consentState = {
-      analytics: prefs.analytics === true,
-      ads: !!(window.Ads && window.Ads.adsPersonalisedGranted && window.Ads.adsPersonalisedGranted())
-    };
-    if (window.Track && window.Track.sync) window.Track.sync();
+    function syncAnalytics() {
+      window.__consentState = {
+        analytics: prefs.analytics === true,
+        ads: prefs.personalizedAds === true && !!(window.Ads && window.Ads.adsPersonalisedGranted && window.Ads.adsPersonalisedGranted())
+      };
+      if (window.Track && window.Track.sync) window.Track.sync();
+    }
+    syncAnalytics();
     if (window.Ads && window.Ads.setPersonalized) {
-      window.Ads.setPersonalized(prefs.personalizedAds === true);
+      // The shared plugin applies consent asynchronously; refresh Firebase
+      // after it settles, reading the latest saved preferences again.
+      Promise.resolve(window.Ads.setPersonalized(prefs.personalizedAds === true))
+        .then(syncAnalytics).catch(syncAnalytics);
     }
   }
 

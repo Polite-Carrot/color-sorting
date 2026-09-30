@@ -13,7 +13,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.5.0"),
         .package(name: "CapacitorFirebaseAnalytics", path: "../../../node_modules/@capacitor-firebase/analytics"),
-        .package(name: "PolitecarrotCapacitorUnityAds", path: "../../../plugins/capacitor-unity-ads")
+        .package(name: "PolitecarrotCapacitorUnityAds", path: "../../../node_modules/@politecarrot/capacitor-unity-ads")
     ],
     targets: [
         .target(
