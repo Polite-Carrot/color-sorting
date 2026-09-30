@@ -955,11 +955,7 @@
     if (!Ads || !Ads.isNative || !Ads.isNative()) return;
     var attPromise = Ads.getPlatform() === 'ios' ? Ads.ensureAtt(true) : Promise.resolve();
     try { await Ads.init(); } catch (e) {}
-    try { await Ads.runUmp(true); } catch (e) {}
     try { await attPromise; } catch (e) {}
-    if (Ads.showPrivacyOptionsForm) {
-      try { await Ads.showPrivacyOptionsForm(); } catch (e) {}
-    }
     applyConsent();
     renderSettingsToggles();
   }
@@ -969,7 +965,6 @@
     if (!Ads || !Ads.isNative || !Ads.isNative()) return;
     var attPromise = Ads.getPlatform() === 'ios' ? Ads.ensureAtt(true) : Promise.resolve();
     try { await Ads.init(); } catch (e) {}
-    try { await Ads.runUmp(); } catch (e) {}
     var attStatus = null;
     try { attStatus = await attPromise; } catch (e) {}
     if (attStatus === 'authorized') {
@@ -1007,8 +1002,7 @@
       applyConsent();
       var Ads = window.Ads;
       if (Ads && Ads.isNative && Ads.isNative()) {
-        Ads.init().then(function () { return Ads.runUmp(); })
-          .then(function () { return Ads.ensureAtt(false); })
+        Ads.init().then(function () { return Ads.ensureAtt(false); })
           .then(function () { applyConsent(); renderSettingsToggles(); })
           .catch(function () {});
       }

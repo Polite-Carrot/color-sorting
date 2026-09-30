@@ -5,19 +5,14 @@
   "type": "commonjs",
   "scripts": {
     "web:sync": "node sync-web.js",
-    "sync": "node sync-web.js && cap sync",
-    "postinstall": "patch-package"
+    "sync": "node sync-web.js && cap sync"
   },
   "dependencies": {
-    "@capacitor-community/admob": "^8.1.0",
     "@capacitor-firebase/analytics": "^8.5.1",
     "@capacitor/android": "^8.5.0",
     "@capacitor/cli": "^8.5.0",
     "@capacitor/core": "^8.5.0",
     "@capacitor/ios": "^8.5.0",
     "@politecarrot/capacitor-unity-ads": "file:plugins/capacitor-unity-ads"
-  },
-  "devDependencies": {
-    "patch-package": "^8.0.1"
   }
 }

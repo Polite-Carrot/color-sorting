@@ -28,6 +28,9 @@ public class UnityAdsPlugin: CAPPlugin, CAPBridgedPlugin, UADSInterstitialShowDe
     ]
 
     private var interstitial: UADSInterstitialAd?
+    // Keep playback alive after showInterstitial's local scope returns.
+    // Loading the next ad must not release the one currently on screen.
+    private var showingAd: UADSInterstitialAd?
     private var loadedPlacement: String?
     private var loading = false
     private var showCall: CAPPluginCall?
@@ -95,8 +98,9 @@ public class UnityAdsPlugin: CAPPlugin, CAPBridgedPlugin, UADSInterstitialShowDe
                 DispatchQueue.main.async {
                     self.loading = false
                     if let ad = ad {
-                        ad.onAdExpired = { [weak self] _ in
+                        ad.onAdExpired = { [weak self] expiredAd in
                             DispatchQueue.main.async {
+                                guard self?.interstitial === expiredAd else { return }
                                 self?.interstitial = nil
                                 self?.loadedPlacement = nil
                             }
@@ -132,39 +136,56 @@ public class UnityAdsPlugin: CAPPlugin, CAPBridgedPlugin, UADSInterstitialShowDe
                 call.resolve(["shown": false, "reason": "already showing"])
                 return
             }
+            guard UIApplication.shared.applicationState == .active,
+                  vc.viewIfLoaded?.window != nil,
+                  vc.presentedViewController == nil,
+                  !vc.isBeingDismissed else {
+                call.resolve(["shown": false, "reason": "presenter not available"])
+                return
+            }
             // An interstitial can be shown once; drop it now so the next
             // prepareInterstitial loads a fresh one.
+            self.showingAd = ad
             self.interstitial = nil
             self.loadedPlacement = nil
             self.showCall = call
             let config = UADSShowConfigurationBuilder().with(viewController: vc).build()
+            NSLog("[ColorMatch Ads] Presenting interstitial")
             ad.show(config, delegate: self)
         }
     }
 
-    public func showDidStart(_ unityAd: UADSInterstitialAd) {}
+    public func showDidStart(_ unityAd: UADSInterstitialAd) {
+        NSLog("[ColorMatch Ads] Interstitial started")
+    }
 
     public func showDidClick(_ unityAd: UADSInterstitialAd) {}
 
     public func showDidComplete(_ unityAd: UADSInterstitialAd, with finishState: UADSShowFinishState) {
         DispatchQueue.main.async {
+            guard self.showingAd === unityAd else { return }
+            NSLog("[ColorMatch Ads] Interstitial completed: %@", String(describing: finishState))
             self.showCall?.resolve([
                 "shown": true,
                 "finishState": finishState == .completed ? "completed" : "skipped"
             ])
             self.showCall = nil
+            self.showingAd = nil
         }
     }
 
     public func showDidFail(_ unityAd: UADSInterstitialAd, error: UnityAdsError) {
         DispatchQueue.main.async {
+            guard self.showingAd === unityAd else { return }
+            NSLog("[ColorMatch Ads] Interstitial failed: %@", error.message)
             self.showCall?.resolve(["shown": false, "reason": error.message, "code": error.code])
             self.showCall = nil
+            self.showingAd = nil
         }
     }
 
     // MARK: - App Tracking Transparency
-    // Same result shape as the AdMob plugin's methods, so js/ads.js treats
+    // Same result shape as the Android plugin's methods, so js/ads.js treats
     // both platforms alike: { status: authorized | denied | notDetermined | restricted }.
 
     @objc func trackingAuthorizationStatus(_ call: CAPPluginCall) {

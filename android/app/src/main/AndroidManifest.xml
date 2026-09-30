@@ -35,12 +35,6 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
-        <!-- AdMob application ID for this app in the AdMob console. Distinct
-             from the interstitial ad unit ID, which lives in js/ads.js. -->
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-2022992563510125~7376899853"/>
-
         <!-- Firebase Analytics starts with collection off so nothing goes out
              before the user has answered the privacy modal. Track.load()
              calls setEnabled(true) after consent, which flips this on. Do
@@ -67,6 +61,6 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Required by targetSdk 33+ for AdMob to read the Advertising ID. -->
+    <!-- Required by targetSdk 33+ for Unity Ads to read the Advertising ID. -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 </manifest>

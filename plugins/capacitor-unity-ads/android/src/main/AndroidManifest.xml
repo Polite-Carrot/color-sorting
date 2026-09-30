@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The Unity Ads AAR contributes its own INTERNET / ACCESS_NETWORK_STATE
+         entries; the advertising-ID permission stays declared by the app. -->
+</manifest>
