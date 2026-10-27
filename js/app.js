@@ -1304,6 +1304,9 @@
       if (!was || stars > was.stars || (stars === was.stars && g.moves < was.moves)) {
         progress.daily[state.dailyKey] = { stars: stars, moves: g.moves };
       }
+      /* Today's reminder is dropped once today is solved, and the streak in
+         tomorrow's wording moves on by one. */
+      if (window.Reminders) window.Reminders.sync(progress.daily);
     } else if (state.mode !== 'random') {
       var book = recordFor(state.mode);
       var old = book[lvl.id];
@@ -1343,6 +1346,7 @@
         closeOverlay();
         await Ads.maybeShowInterstitial();
         showScreen('daily');
+        maybeOfferReminder();
       };
     } else if (state.mode !== 'random') {
       var book = listFor(state.mode);
@@ -1688,7 +1692,9 @@
     $('settings').addEventListener('click', function () {
       renderSettingsToggles();
       openModal('settings-modal', 'settings-close');
+      checkReminderPermission();
     });
+    bindStoreAndReminders();
     $('settings-close').addEventListener('click', function () {
       $('settings-modal').hidden = true;
       $('settings').focus();
@@ -1778,6 +1784,9 @@
     function eraseProgress() {
       progress = { levels: {}, random: {}, merge: {}, daily: {} };
       save();
+      /* Reminder settings and a bought Remove Ads are not progress and are
+         kept; only the reminder wording changes with the streak. */
+      if (window.Reminders) window.Reminders.sync(progress.daily);
       Sound.nope();
       renderHome();
       setTimeout(function () {
@@ -1857,6 +1866,192 @@
 
     setToggleBtn(document.getElementById('privacy-data-analytics'), prefs.analytics === true);
     setToggleBtn(document.getElementById('privacy-data-ads'), prefs.personalizedAds === true);
+    renderReminderRows();
+    renderPurchaseRows();
+  }
+
+  /* ───────── daily reminders (js/reminders.js) ───────── */
+
+  function hourLabel(h) {
+    var suffix = h < 12 ? 'am' : 'pm';
+    var n = h % 12 === 0 ? 12 : h % 12;
+    return n + suffix;
+  }
+
+  function renderReminderRows() {
+    var R = window.Reminders;
+    var row = $('settings-reminder-row');
+    if (!row) return;
+    var show = !!(R && R.available());
+    row.hidden = !show;
+    $('settings-reminder-time-row').hidden = !show || !R.state().on;
+    if (!show) return;
+    var st = R.state();
+    setToggleBtn($('settings-reminder'), st.on);
+    var sel = $('settings-reminder-time');
+    if (!sel.options.length) {
+      for (var h = 7; h <= 22; h++) {
+        var o = document.createElement('option');
+        o.value = String(h);
+        o.textContent = hourLabel(h);
+        sel.appendChild(o);
+      }
+    }
+    sel.value = String(st.hour);
+  }
+
+  var REMINDER_NOTE = 'One notification when the daily puzzle is ready. Skipped on days you have already solved it.';
+  var REMINDER_BLOCKED = 'Notifications are turned off for this game. Allow them in your phone\'s Settings app, then switch this on.';
+
+  /* The system setting can change while the game is closed. If it was turned
+     off there, say so next to the switch instead of showing "On" for
+     reminders that cannot arrive. */
+  function checkReminderPermission() {
+    var R = window.Reminders;
+    if (!R || !R.available()) return;
+    R.permission().then(function (p) {
+      $('settings-reminder-note').textContent =
+        p === 'denied' ? REMINDER_BLOCKED : REMINDER_NOTE;
+    });
+  }
+
+  async function toggleReminder() {
+    var R = window.Reminders;
+    if (!R) return;
+    var btn = $('settings-reminder');
+    btn.disabled = true;
+    try {
+      if (R.state().on) {
+        await R.disable();
+        track('daily_reminder', { on: false });
+      } else {
+        var result = await R.enable(progress.daily);
+        $('settings-reminder-note').textContent =
+          result === 'denied' ? REMINDER_BLOCKED : REMINDER_NOTE;
+        if (result === 'on') track('daily_reminder', { on: true, hour: R.state().hour });
+      }
+    } finally {
+      btn.disabled = false;
+      renderReminderRows();
+    }
+  }
+
+  /* Offered once, after the first solved daily: the moment the reminder
+     means something. Never at launch — the system prompt appears once per
+     install, and asking before the player has seen the daily wastes it. */
+  async function maybeOfferReminder() {
+    var R = window.Reminders;
+    if (!R || !(await R.shouldOffer())) return;
+    if (!$('settings-modal').hidden || !$('overlay').hidden) return;
+    R.markOffered();
+    $('reminder-offer-time').textContent = hourLabel(R.state().hour);
+    openModal('reminder-offer', 'reminder-offer-yes');
+  }
+
+  function closeReminderOffer() {
+    $('reminder-offer').hidden = true;
+  }
+
+  /* ───────── Remove Ads (js/purchases.js) ───────── */
+
+  var REMOVE_ADS_NOTE = 'Pay once, no more ads. Stays removed if you reinstall or change phone.';
+
+  function renderPurchaseRows(message) {
+    var P = window.Purchases;
+    var row = $('settings-remove-ads-row');
+    if (!row) return;
+    var show = !!(P && P.available());
+    row.hidden = !show;
+    $('settings-restore-row').hidden = !show;
+    var adsNote = $('privacy-data-ads-note');
+    var adsBtn = $('privacy-data-ads');
+    var removed = !!(P && P.adsRemoved());
+    if (adsNote) {
+      adsNote.textContent = removed
+        ? 'You removed ads, so there are none to personalise.'
+        : 'Ads matched to your interests. Left off, ads still appear but are generic.';
+    }
+    if (adsBtn) adsBtn.disabled = removed;
+    if (!show) return;
+    var st = P.status();
+    var btn = $('settings-remove-ads');
+    var note = $('settings-remove-ads-note');
+    if (st.owned) {
+      btn.textContent = 'Removed';
+      btn.disabled = true;
+      note.textContent = message || 'Thank you! Ads are gone for good.';
+    } else if (st.pending) {
+      btn.textContent = 'Pending';
+      btn.disabled = true;
+      note.textContent = message || 'Waiting for the payment to be approved. Ads switch off by themselves when it goes through.';
+    } else {
+      btn.textContent = st.busy ? '\u2026' : (st.price || 'Buy');
+      btn.disabled = st.busy;
+      note.textContent = message || REMOVE_ADS_NOTE;
+    }
+    $('settings-restore').disabled = st.busy || st.owned;
+  }
+
+  async function buyRemoveAds() {
+    var P = window.Purchases;
+    if (!P) return;
+    var result = await P.buy();
+    track('remove_ads', { result: result });
+    var msg = {
+      owned: 'Thank you! Ads are gone for good.',
+      pending: 'Waiting for the payment to be approved. Ads switch off by themselves when it goes through.',
+      cancelled: null,
+      failed: 'The purchase did not go through. Check your connection and try again.'
+    }[result];
+    renderPurchaseRows(msg || undefined);
+  }
+
+  async function restorePurchases() {
+    var P = window.Purchases;
+    if (!P) return;
+    var owned = await P.restore();
+    track('remove_ads_restore', { found: owned });
+    renderPurchaseRows(owned
+      ? 'Restored. Ads are gone for good.'
+      : 'No Remove Ads purchase found for this ' +
+        (window.Capacitor && window.Capacitor.getPlatform() === 'ios' ? 'Apple ID.' : 'Google account.'));
+  }
+
+  function bindStoreAndReminders() {
+    $('settings-reminder').addEventListener('click', toggleReminder);
+    $('settings-reminder-time').addEventListener('change', function () {
+      if (window.Reminders) window.Reminders.setHour(this.value, progress.daily);
+    });
+    $('reminder-offer-yes').addEventListener('click', async function () {
+      closeReminderOffer();
+      var result = await window.Reminders.enable(progress.daily);
+      if (result === 'on') track('daily_reminder', { on: true, hour: window.Reminders.state().hour, from: 'offer' });
+      renderReminderRows();
+    });
+    $('reminder-offer-no').addEventListener('click', closeReminderOffer);
+
+    $('settings-remove-ads').addEventListener('click', buyRemoveAds);
+    $('settings-restore').addEventListener('click', restorePurchases);
+
+    if (window.Purchases) {
+      window.Purchases.onChange(function () { renderPurchaseRows(); });
+    }
+    if (window.Reminders) {
+      /* A tapped reminder opens the daily calendar, unless a puzzle is in
+         progress: that is left alone rather than thrown away. */
+      window.Reminders.onOpen(function () {
+        if ($('screen-game').classList.contains('is-active')) return;
+        closeReminderOffer();
+        showScreen('daily');
+      });
+      window.Reminders.sync(progress.daily);
+      document.addEventListener('visibilitychange', function () {
+        /* A new day may have started while the game sat in the background. */
+        if (document.visibilityState === 'visible') window.Reminders.sync(progress.daily);
+      });
+    }
+    renderReminderRows();
+    renderPurchaseRows();
   }
 
   /* ───────── analytics + ads consent, once asked for ───────── */
@@ -1900,6 +2095,10 @@
 
     if (!$('howto').hidden) {
       if (e.key === 'Escape') { $('howto').hidden = true; $('how-to').focus(); }
+      return;
+    }
+    if (!$('reminder-offer').hidden) {
+      if (e.key === 'Escape') closeReminderOffer();
       return;
     }
     if (!$('reset-modal').hidden) {

@@ -282,7 +282,7 @@
         <div class="settings-row settings-row--stack">
           <div>
             <b>Personalised ads</b>
-            <p class="settings-row__note">Ads matched to your interests. Left off, ads still appear but are generic.</p>
+            <p id="privacy-data-ads-note" class="settings-row__note">Ads matched to your interests. Left off, ads still appear but are generic.</p>
           </div>
           <button id="privacy-data-ads" class="btn" type="button" aria-label="Personalised ads" aria-pressed="false">Off</button>
         </div>
@@ -323,9 +323,32 @@
           <span>Color Blind Assist</span>
           <button id="settings-cb" class="btn" type="button" aria-pressed="false">Off</button>
         </div>
+        <!-- Reminders and purchases exist only in the app; hidden on the web. -->
+        <div id="settings-reminder-row" class="settings-row settings-row--stack" hidden>
+          <div>
+            <b>Daily reminder</b>
+            <p id="settings-reminder-note" class="settings-row__note">One notification when the daily puzzle is ready. Skipped on days you have already solved it.</p>
+          </div>
+          <button id="settings-reminder" class="btn" type="button" aria-label="Daily reminder" aria-pressed="false">Off</button>
+        </div>
+        <div id="settings-reminder-time-row" class="settings-row" hidden>
+          <label for="settings-reminder-time">Remind me at</label>
+          <select id="settings-reminder-time" class="settings-select"></select>
+        </div>
         <div class="settings-row">
           <span>Privacy &amp; Data</span>
           <button id="settings-privacy" class="btn" type="button">Open&hellip;</button>
+        </div>
+        <div id="settings-remove-ads-row" class="settings-row settings-row--stack" hidden>
+          <div>
+            <b>Remove ads</b>
+            <p id="settings-remove-ads-note" class="settings-row__note" aria-live="polite">Pay once, no more ads. Stays removed if you reinstall or change phone.</p>
+          </div>
+          <button id="settings-remove-ads" class="btn btn--primary" type="button">Buy</button>
+        </div>
+        <div id="settings-restore-row" class="settings-row" hidden>
+          <span>Bought it already?</span>
+          <button id="settings-restore" class="btn" type="button">Restore</button>
         </div>
         <div class="settings-row settings-row--danger">
           <span>Reset progress</span>
@@ -334,6 +357,22 @@
       </div>
       <div class="modal__actions">
         <button id="settings-close" class="btn btn--primary">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── daily reminder offer (once, after the first daily) ─────────────── -->
+  <div id="reminder-offer" class="overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="reminder-offer-title">
+      <h2 id="reminder-offer-title">Daily reminder?</h2>
+      <p class="modal__line">
+        One notification a day when a new puzzle is ready, at
+        <span id="reminder-offer-time">6pm</span>. None on days you have
+        already solved it. Change it or turn it off any time in Settings.
+      </p>
+      <div class="modal__actions">
+        <button id="reminder-offer-yes" class="btn btn--primary" type="button">Remind me</button>
+        <button id="reminder-offer-no" class="btn btn--quiet" type="button">Not now</button>
       </div>
     </div>
   </div>
@@ -405,6 +444,8 @@
 <script src="js/ui.js"></script>
 <script src="js/track.js"></script>
 <script src="vendor/unity-ads.js"></script>
+<script src="js/purchases.js"></script>
+<script src="js/reminders.js"></script>
 <script src="js/ads.js"></script>
 <script src="js/app.js"></script>
 </body>

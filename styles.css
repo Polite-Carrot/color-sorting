@@ -1787,6 +1787,27 @@ body.is-android.playing .app {
 .settings-row .btn[aria-pressed="true"] {
   background: var(--gold);
 }
+/* The price button keeps its colour; pressed-state gold is for toggles. */
+.settings-row .btn--primary:disabled { opacity: .6; }
+
+/* Reminder time. Same type as the row labels so it reads as one list. */
+.settings-row > label {
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--ink);
+}
+.settings-select {
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  padding: 7px 10px;
+  min-width: 96px;
+}
 
 /* Home menu wants to stay in view without scrolling, so let it shrink on
    short windows rather than push the footer off screen. */

@@ -1101,7 +1101,7 @@ what previously made the hum impossible to turn off.
 
 ## Settings
 
-Sound, Color Blind Assist and Reset progress live in one dialog, reachable
+Sound, Color Blind Assist, daily reminders, Remove Ads and Reset progress live in one dialog, reachable
 from the home screen and from **Settings** on the game toolbar, so any of them
 can be reached without leaving a level. That toolbar button used to say "Menu",
 which collided with the two buttons that genuinely go back to the menu — "←
@@ -1125,6 +1125,57 @@ somewhere it never reached. Holding works by pointer or by keyboard — space or
 enter held down, with auto-repeat ignored, since a key repeating is not a key
 being held. The pointer is captured, so a finger sliding off the button still
 counts.
+
+Erasing progress does not touch reminder settings or a bought Remove Ads.
+
+### Daily reminders
+
+`js/reminders.js`, app only (the rows are hidden on the web). Local
+notifications through `@capacitor/local-notifications`: the daily puzzle is
+built on the phone from the date, so the phone schedules its own reminder. No
+push server, no APNs key, no Firebase Cloud Messaging, nothing sent anywhere.
+
+- **Asked once, at the right moment.** After the first solved daily, a small
+  dialog offers a reminder; the system permission prompt only appears if the
+  player taps *Remind me*. Never at launch, where it would queue behind the
+  privacy dialog and Apple's tracking prompt, and iOS only lets the prompt
+  appear once. Settings has the switch and the time (7am to 10pm, default 6pm).
+- **Seven separate reminders, not one repeating one.** Every launch, return to
+  the foreground and solved daily cancels them all and schedules the next seven
+  days again. Today's is dropped once today is solved, the next reminder can
+  quote a streak that is still true when it fires, and somebody who stops
+  playing hears from the game for a week and then never again.
+- **Inexact on Android.** A reminder a few minutes late is fine. Exact alarms
+  would send Android 12+ players to a system settings page, so they are not
+  requested, and `SCHEDULE_EXACT_ALARM` is removed in `AndroidManifest.xml`.
+  `res/drawable/ic_stat_daily.xml` is the white status-bar jar Android needs.
+- Tapping a reminder opens the daily calendar, unless a puzzle is in progress.
+- If notifications are blocked in the phone's Settings, the Settings row says so
+  and where to change it.
+
+### Remove Ads
+
+`js/purchases.js`, app only. One non-consumable in-app purchase, product ID
+**`remove_ads`**, through `@capgo/native-purchases` (StoreKit 2 on iOS, Google
+Play Billing on Android). No server and no third-party account: each store is
+the record of who owns it, and the phone asks it.
+
+- The product must exist with exactly that ID in App Store Connect (type
+  Non-Consumable) and Google Play Console (one-time product). The price shown in
+  the game comes from the store, in the player's currency.
+- The store is asked on every launch and every return to the foreground. A
+  refund turns ads back on; a purchase on another device, a parent approving
+  Ask to Buy, or a slow payment clearing turns them off without anyone pressing
+  anything. `colourjars.removeAds.v1` caches the answer so an offline launch does
+  not show an ad to someone who paid; a failed store query never clears it.
+- Once owned, `js/ads.js` never starts Unity, loads or shows anything, and the
+  personalised-ads switch in Privacy & Data is disabled with a note.
+- **Restore** is in Settings (Apple requires it). On iOS it may ask for the
+  Apple ID password, so it only ever runs from that button; on Android the
+  launch check already acknowledges any purchase that finished while the app was
+  closed (Google refunds purchases left unacknowledged for three days).
+- Run `npm test`: `test/purchases.test.js` and `test/reminders.test.js` cover
+  both with fake plugins.
 
 ## Fitting the window
 
