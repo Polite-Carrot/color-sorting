@@ -891,6 +891,22 @@ input:focus-visible {
 .save-warning[hidden] { display: none; }
 
 .menu-foot { display: flex; justify-content: center; gap: 11px; margin-top: 28px; }
+#home-remove-ads[hidden] { display: none; }
+#home-remove-ads .ra-short { display: none; }
+/* Three footer buttons only fit two to a row on a phone. On a tall one the
+   third sits underneath, which is fine; on a short one (iPhone SE and the
+   like) that row lands below the fold and the menu starts to scroll. There,
+   keep one row: smaller buttons and "No ads" for "Remove ads". */
+@media (max-height: 760px) and (max-width: 560px) {
+  #screen-home .menu-foot { flex-wrap: nowrap; gap: 8px; }
+  #screen-home .menu-foot .btn { font-size: 14px; padding: 9px 12px; white-space: nowrap; }
+  #home-remove-ads .ra-long { display: none; }
+  #home-remove-ads .ra-short { display: inline; }
+}
+@media (max-height: 760px) and (max-width: 340px) {
+  #screen-home .menu-foot { gap: 6px; }
+  #screen-home .menu-foot .btn { font-size: 13px; padding: 8px 9px; }
+}
 
 /* ───────── game chrome ───────── */
 

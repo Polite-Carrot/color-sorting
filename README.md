@@ -1171,6 +1171,11 @@ the record of who owns it, and the phone asks it.
   not show an ad to someone who paid; a failed store query never clears it.
 - Once owned, `js/ads.js` never starts Unity, loads or shows anything, and the
   personalised-ads switch in Privacy & Data is disabled with a note.
+- **Two ways to buy:** the *Remove ads · £1.99* button on the home screen and
+  the row in Settings. The home button disappears once bought (after a brief
+  "Thank you!"), shows *Pending* while a payment clears, and opens Settings with
+  an explanation if a purchase fails. On short phones it reads *No ads* so the
+  footer stays one row and the menu never scrolls.
 - **Restore** is in Settings (Apple requires it). On iOS it may ask for the
   Apple ID password, so it only ever runs from that button; on Android the
   launch check already acknowledges any purchase that finished while the app was

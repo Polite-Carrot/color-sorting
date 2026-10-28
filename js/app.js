@@ -1995,6 +1995,7 @@
         : 'Ads matched to your interests. Left off, ads still appear but are generic.';
     }
     if (adsBtn) adsBtn.disabled = removed;
+    renderHomeRemoveAds();
     if (!show) return;
     var st = P.status();
     var btn = $('settings-remove-ads');
@@ -2015,11 +2016,60 @@
     $('settings-restore').disabled = st.busy || st.owned;
   }
 
+  /* The home-screen button: the same purchase as the Settings row, one tap
+     from the menu. Hidden on the web and once bought; while a payment is
+     pending it stays, disabled, so the player can see it is in hand. */
+  var homeThanksUntil = 0;
+  function renderHomeRemoveAds() {
+    var P = window.Purchases;
+    var btn = $('home-remove-ads');
+    if (!btn) return;
+    if (!P || !P.available()) { btn.hidden = true; return; }
+    var st = P.status();
+    if (st.owned) {
+      /* Say thank you where they tapped, then get out of the way. */
+      var left = homeThanksUntil - Date.now();
+      btn.hidden = left <= 0;
+      btn.textContent = 'Thank you!';
+      btn.disabled = true;
+      if (left > 0) setTimeout(renderHomeRemoveAds, left + 20);
+      return;
+    }
+    btn.hidden = false;
+    btn.disabled = st.busy || st.pending;
+    btn.textContent = '';
+    if (st.pending) { btn.textContent = 'Pending'; return; }
+    /* Two labels; CSS shows the short one where the menu is tight. The price
+       comes from the store, so it goes in as text, never as markup. */
+    UI.el('span', 'ra-long', btn).textContent = 'Remove ads';
+    UI.el('span', 'ra-short', btn).textContent = 'No ads';
+    btn.appendChild(document.createTextNode(
+      st.busy ? '\u2026' : st.price ? ' \u00b7 ' + st.price : ''));
+  }
+
+  async function buyFromHome() {
+    var P = window.Purchases;
+    if (!P) return;
+    var result = await P.buy();
+    track('remove_ads', { result: result, from: 'home' });
+    if (result === 'owned') homeThanksUntil = Date.now() + 2500;
+    renderPurchaseRows();
+    /* There is no room on the menu for an explanation; Settings has one,
+       and the Restore button next to it. */
+    if (result === 'failed' || result === 'pending') {
+      renderSettingsToggles();
+      renderPurchaseRows(result === 'failed'
+        ? 'The purchase did not go through. Check your connection and try again. Bought it before? Tap Restore.'
+        : 'Waiting for the payment to be approved. Ads switch off by themselves when it goes through.');
+      openModal('settings-modal', 'settings-close');
+    }
+  }
+
   async function buyRemoveAds() {
     var P = window.Purchases;
     if (!P) return;
     var result = await P.buy();
-    track('remove_ads', { result: result });
+    track('remove_ads', { result: result, from: 'settings' });
     var msg = {
       owned: 'Thank you! Ads are gone for good.',
       pending: 'Waiting for the payment to be approved. Ads switch off by themselves when it goes through.',
@@ -2054,6 +2104,7 @@
     $('reminder-offer-no').addEventListener('click', closeReminderOffer);
 
     $('settings-remove-ads').addEventListener('click', buyRemoveAds);
+    $('home-remove-ads').addEventListener('click', buyFromHome);
     $('settings-restore').addEventListener('click', restorePurchases);
 
     if (window.Purchases) {
