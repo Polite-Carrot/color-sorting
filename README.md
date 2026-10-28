@@ -1135,8 +1135,9 @@ notifications through `@capacitor/local-notifications`: the daily puzzle is
 built on the phone from the date, so the phone schedules its own reminder. No
 push server, no APNs key, no Firebase Cloud Messaging, nothing sent anywhere.
 
-- **Asked once, at the right moment.** After the first solved daily, a small
-  dialog offers a reminder; the system permission prompt only appears if the
+- **Asked once, at the right moment.** After the first solved daily, or after
+  ten puzzles finished in any mode, whichever comes first, a small dialog
+  offers a reminder; the system permission prompt only appears if the
   player taps *Remind me*. Never at launch, where it would queue behind the
   privacy dialog and Apple's tracking prompt, and iOS only lets the prompt
   appear once. Settings has the switch and the time (7am to 10pm, default 6pm).

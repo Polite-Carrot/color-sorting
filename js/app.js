@@ -1358,6 +1358,7 @@
         await Ads.maybeShowInterstitial();
         if (hasNext) startLevel(book.list[i + 1], state.mode);
         else { showScreen('random'); $('play-random').focus(); }
+        maybeOfferReminder();
       };
     } else {
       next.textContent = 'Another one';
@@ -1366,6 +1367,7 @@
         await Ads.maybeShowInterstitial();
         $('seed-input').value = '';
         startRandom();
+        maybeOfferReminder();
       };
     }
 
@@ -1936,16 +1938,37 @@
     }
   }
 
-  /* Offered once, after the first solved daily: the moment the reminder
-     means something. Never at launch — the system prompt appears once per
-     install, and asking before the player has seen the daily wastes it. */
+  /* Every puzzle finished, in any mode: one per level or daily day with a
+     record, plus every random win. */
+  var REMINDER_AFTER_LEVELS = 10;
+  function levelsCompleted() {
+    var n = Object.keys(progress.levels).length +
+            Object.keys(progress.merge).length +
+            Object.keys(progress.daily).length;
+    Object.keys(progress.random).forEach(function (k) {
+      n += (progress.random[k] && progress.random[k].won) || 0;
+    });
+    return n;
+  }
+
+  /* Offered once per install, at whichever comes first: the first solved
+     daily (the reminder is about the daily, so that is when it means most),
+     or ten puzzles finished anywhere (a player who has stuck around but not
+     found the daily yet). Never at launch: the system prompt appears once
+     per install, and spending it before the player cares wastes it. */
   async function maybeOfferReminder() {
     var R = window.Reminders;
+    var daily = state.mode === 'daily';
+    if (!daily && levelsCompleted() < REMINDER_AFTER_LEVELS) return;
     if (!R || !(await R.shouldOffer())) return;
     if (!$('settings-modal').hidden || !$('overlay').hidden) return;
     R.markOffered();
+    var lead = $('reminder-offer-lead');
+    lead.hidden = daily;
+    lead.textContent = daily ? '' : levelsCompleted() + ' puzzles solved, nice work! There is also a new Daily Puzzle every day.';
     $('reminder-offer-time').textContent = hourLabel(R.state().hour);
     openModal('reminder-offer', 'reminder-offer-yes');
+    track('reminder_offer', { from: daily ? 'daily' : 'levels' });
   }
 
   function closeReminderOffer() {
