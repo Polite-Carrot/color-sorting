@@ -326,16 +326,13 @@
           <button id="settings-cb" class="btn" type="button" aria-pressed="false">Off</button>
         </div>
         <!-- Reminders and purchases exist only in the app; hidden on the web. -->
-        <div id="settings-reminder-row" class="settings-row settings-row--stack" hidden>
-          <div>
-            <b>Daily reminder</b>
-            <p id="settings-reminder-note" class="settings-row__note">One notification when the daily puzzle is ready. Skipped on days you have already solved it.</p>
-          </div>
-          <button id="settings-reminder" class="btn" type="button" aria-label="Daily reminder" aria-pressed="false">Off</button>
+        <div id="settings-reminder-row" class="settings-row" hidden>
+          <span>Notifications</span>
+          <button id="settings-reminder" class="btn" type="button" aria-label="Notifications" aria-pressed="false">Off</button>
         </div>
-        <div id="settings-reminder-time-row" class="settings-row" hidden>
-          <label for="settings-reminder-time">Remind me at</label>
-          <select id="settings-reminder-time" class="settings-select"></select>
+        <!-- Shown only when notifications are blocked in the phone's settings. -->
+        <div id="settings-reminder-note-row" class="settings-row settings-row--quiet" hidden>
+          <p id="settings-reminder-note" class="settings-row__note"></p>
         </div>
         <div class="settings-row">
           <span>Privacy &amp; Data</span>
@@ -346,7 +343,7 @@
             <b>Remove ads</b>
             <p id="settings-remove-ads-note" class="settings-row__note" aria-live="polite">Pay once, no more ads. Stays removed if you reinstall or change phone.</p>
           </div>
-          <button id="settings-remove-ads" class="btn btn--primary" type="button">Buy</button>
+          <button id="settings-remove-ads" class="btn btn--primary" type="button">Remove</button>
         </div>
         <div id="settings-restore-row" class="settings-row" hidden>
           <span>Bought it already?</span>
@@ -371,7 +368,7 @@
       <p class="modal__line">
         One notification a day when the new Daily Puzzle is ready, at
         <span id="reminder-offer-time">6pm</span>. None on days you have
-        already solved it. Change it or turn it off any time in Settings.
+        already solved it. Turn it off any time in Settings.
       </p>
       <div class="modal__actions">
         <button id="reminder-offer-yes" class="btn btn--primary" type="button">Remind me</button>

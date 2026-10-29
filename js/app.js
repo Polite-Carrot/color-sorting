@@ -962,8 +962,11 @@
 
   async function primeConsent() {
     var Ads = window.Ads;
-    if (!Ads || !Ads.isNative || !Ads.isNative()) return;
-    var attPromise = Ads.getPlatform() === 'ios' ? Ads.ensureAtt(true) : Promise.resolve();
+    var native = !!(Ads && Ads.isNative && Ads.isNative());
+    var attPromise = native && Ads.getPlatform() === 'ios' ? Ads.ensureAtt(true) : Promise.resolve();
+    /* iOS shows one system prompt at a time, so notifications wait for the tracking answer. */
+    attPromise.catch(function () {}).then(askForNotifications).catch(function () {});
+    if (!native) return;
     try { await Ads.init(); } catch (e) {}
     var attStatus = null;
     try { attStatus = await attPromise; } catch (e) {}
@@ -973,6 +976,16 @@
     }
     applyConsent();
     renderSettingsToggles();
+  }
+
+  /* First run only: the OS remembers the answer, and the Settings switch handles a change of mind. */
+  function askForNotifications() {
+    var R = window.Reminders;
+    if (!R || !R.available() || R.state().asked) return;
+    return R.enable(progress.daily).then(function (result) {
+      if (result === 'on') track('daily_reminder', { on: true, hour: R.state().hour, from: 'first_run' });
+      renderReminderRows();
+    });
   }
 
   function setToggleBtn(btn, on) {
@@ -1886,24 +1899,15 @@
     if (!row) return;
     var show = !!(R && R.available());
     row.hidden = !show;
-    $('settings-reminder-time-row').hidden = !show || !R.state().on;
-    if (!show) return;
-    var st = R.state();
-    setToggleBtn($('settings-reminder'), st.on);
-    var sel = $('settings-reminder-time');
-    if (!sel.options.length) {
-      for (var h = 7; h <= 22; h++) {
-        var o = document.createElement('option');
-        o.value = String(h);
-        o.textContent = hourLabel(h);
-        sel.appendChild(o);
-      }
-    }
-    sel.value = String(st.hour);
+    if (show) setToggleBtn($('settings-reminder'), R.state().on);
   }
 
-  var REMINDER_NOTE = 'One notification when the daily puzzle is ready. Skipped on days you have already solved it.';
   var REMINDER_BLOCKED = 'Notifications are turned off for this game. Allow them in your phone\'s Settings app, then switch this on.';
+
+  function showReminderBlocked(blocked) {
+    $('settings-reminder-note').textContent = blocked ? REMINDER_BLOCKED : '';
+    $('settings-reminder-note-row').hidden = !blocked;
+  }
 
   /* The system setting can change while the game is closed. If it was turned
      off there, say so next to the switch instead of showing "On" for
@@ -1912,9 +1916,22 @@
     var R = window.Reminders;
     if (!R || !R.available()) return;
     R.permission().then(function (p) {
-      $('settings-reminder-note').textContent =
-        p === 'denied' ? REMINDER_BLOCKED : REMINDER_NOTE;
+      showReminderBlocked(p === 'denied');
     });
+  }
+
+  /* Set while the phone's Settings is open from the switch, so coming back
+     with notifications allowed finishes switching it on. */
+  var reminderFromSettings = false;
+
+  async function finishReminderFromSettings() {
+    reminderFromSettings = false;
+    var R = window.Reminders;
+    if ((await R.permission()) !== 'granted') return;
+    var result = await R.enable(progress.daily);
+    showReminderBlocked(result !== 'on');
+    if (result === 'on') track('daily_reminder', { on: true, hour: R.state().hour, from: 'settings' });
+    renderReminderRows();
   }
 
   async function toggleReminder() {
@@ -1928,8 +1945,11 @@
         track('daily_reminder', { on: false });
       } else {
         var result = await R.enable(progress.daily);
-        $('settings-reminder-note').textContent =
-          result === 'denied' ? REMINDER_BLOCKED : REMINDER_NOTE;
+        if (result === 'blocked') {
+          reminderFromSettings = true;
+          R.openSettings();
+        }
+        showReminderBlocked(result === 'denied' || result === 'blocked');
         if (result === 'on') track('daily_reminder', { on: true, hour: R.state().hour });
       }
     } finally {
@@ -2009,7 +2029,7 @@
       btn.disabled = true;
       note.textContent = message || 'Waiting for the payment to be approved. Ads switch off by themselves when it goes through.';
     } else {
-      btn.textContent = st.busy ? '\u2026' : (st.price || 'Buy');
+      btn.textContent = st.busy ? '\u2026' : (st.price || 'Remove');
       btn.disabled = st.busy;
       note.textContent = message || REMOVE_ADS_NOTE;
     }
@@ -2092,9 +2112,6 @@
 
   function bindStoreAndReminders() {
     $('settings-reminder').addEventListener('click', toggleReminder);
-    $('settings-reminder-time').addEventListener('change', function () {
-      if (window.Reminders) window.Reminders.setHour(this.value, progress.daily);
-    });
     $('reminder-offer-yes').addEventListener('click', async function () {
       closeReminderOffer();
       var result = await window.Reminders.enable(progress.daily);
@@ -2120,8 +2137,10 @@
       });
       window.Reminders.sync(progress.daily);
       document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState !== 'visible') return;
         /* A new day may have started while the game sat in the background. */
-        if (document.visibilityState === 'visible') window.Reminders.sync(progress.daily);
+        window.Reminders.sync(progress.daily);
+        if (reminderFromSettings) finishReminderFromSettings();
       });
     }
     renderReminderRows();

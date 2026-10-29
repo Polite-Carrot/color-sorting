@@ -1402,8 +1402,9 @@ body.cb-assist .band span { visibility: visible; }
 
 /* A line of explanation under a switch, for when the switch is not showing
    what the player asked for — the OS overruled it. No border: it belongs to
-   the row above rather than being a row of its own. */
-.settings-row--quiet {
+   the row above rather than being a row of its own. Two classes, because
+   .settings-row is declared further down and would otherwise win. */
+.settings-row.settings-row--quiet {
   border: none;
   background: none;
   padding: 0 14px 2px;

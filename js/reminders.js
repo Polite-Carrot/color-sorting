@@ -13,9 +13,10 @@
  *   - the wording can mention the streak, and is always true when it fires;
  *   - someone who stops playing hears from us for a week and then not again.
  *
- * The player is asked for notification permission only after tapping
- * "Remind me" (offered after their first solved daily, or from Settings),
- * never at launch: iOS lets an app show that system prompt once, ever. */
+ * Permission is asked once on first run, right after Apple's tracking prompt
+ * (primeConsent in js/app.js). iOS shows that prompt once per install and
+ * Android at most twice, so after a refusal, switching reminders on opens the
+ * phone's notification settings instead. */
 
 (function () {
   var PREF_KEY = "colourjars.reminders.v1";
@@ -191,14 +192,16 @@
   }
 
   /* Turn reminders on, asking for permission if it has not been asked yet.
-   * Resolves to 'on', 'denied' (blocked in system settings: the caller should
-   * say where to change it) or 'unavailable' (web). */
+   * Resolves to 'on', 'denied' (refused the prompt just shown), 'blocked'
+   * (refused earlier, so no prompt can appear: call openSettings) or
+   * 'unavailable' (web). */
   async function enable(done) {
     var LN = getPlugin();
     if (!LN) return "unavailable";
     prefs.asked = true;
     var p = await permission();
-    if (p === "prompt") {
+    var prompted = p === "prompt";
+    if (prompted) {
       try {
         var r = await LN.requestPermissions();
         p = r.display === "granted" ? "granted" : "denied";
@@ -209,7 +212,27 @@
     prefs.on = p === "granted";
     save();
     await sync(done);
-    return prefs.on ? "on" : "denied";
+    if (prefs.on) return "on";
+    return !prompted && p === "denied" ? "blocked" : "denied";
+  }
+
+  var settingsPlugin = null;
+
+  /* After a refusal the system stops asking, so its Settings page is the only
+   * place left to allow notifications. */
+  function openSettings() {
+    if (platform() === "ios") {
+      /* Capacitor hands non-app navigations to iOS; window.open is blocked after an await. */
+      window.location.href = "app-settings:";
+      return;
+    }
+    if (platform() !== "android") return;
+    var C = window.Capacitor;
+    if (!settingsPlugin && C.registerPlugin) settingsPlugin = C.registerPlugin("NotificationSettings");
+    if (!settingsPlugin) return;
+    settingsPlugin.open().catch(function (e) {
+      console.warn("Reminders: could not open settings:", e && e.message);
+    });
   }
 
   async function disable() {
@@ -266,6 +289,7 @@
     permission: permission,
     enable: enable,
     disable: disable,
+    openSettings: openSettings,
     setHour: setHour,
     sync: sync,
     shouldOffer: shouldOffer,
