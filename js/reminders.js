@@ -117,7 +117,7 @@
          unsolved) or tomorrow (if today is solved). */
       var next = todayDone ? i === 1 : i === 0;
       var body = next && streakNow >= 2
-        ? "Keep your " + streakNow + "-day streak going: today's puzzle is ready."
+        ? "Your daily puzzle is ready. Keep your " + streakNow + "-day streak alive! \uD83D\uDD25"
         : "A new daily puzzle is ready.";
       out.push({
         id: FIRST_ID + i,
