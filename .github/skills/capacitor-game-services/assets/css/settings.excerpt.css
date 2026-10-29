@@ -81,7 +81,7 @@
 }
 .settings-row--quiet[hidden] { display: none; }
 
-/* ── styles.css L1744-1808: settings list and rows ── */
+/* ── styles.css L1744-1809: settings list and rows ── */
 /* ───────── settings modal ───────── */
 
 .settings-list {
@@ -120,6 +120,7 @@
    modifier lays them out as [text-block] [toggle] rather than the default
    [label] [toggle] which would clip a two-line description. */
 .settings-row--stack { align-items: flex-start; }
+#settings-remove-ads-row { align-items: center; }
 .settings-row--stack > div {
   flex: 1 1 auto;
   min-width: 0;

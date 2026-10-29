@@ -1779,6 +1779,7 @@ body.is-android.playing .app {
    modifier lays them out as [text-block] [toggle] rather than the default
    [label] [toggle] which would clip a two-line description. */
 .settings-row--stack { align-items: flex-start; }
+#settings-remove-ads-row { align-items: center; }
 .settings-row--stack > div {
   flex: 1 1 auto;
   min-width: 0;
