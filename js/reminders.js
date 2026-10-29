@@ -20,10 +20,9 @@
 (function () {
   var PREF_KEY = "colourjars.reminders.v1";
   var CHANNEL = "daily";
-  var FIRST_ID = 7100;     /* ids 7100..7100+DAYS_AHEAD-1 belong to this module */
+  var FIRST_ID = 7100; /* ids 7100..7100+DAYS_AHEAD-1 belong to this module */
   var DAYS_AHEAD = 7;
-  var DEFAULT_HOUR = 18;
-
+  var DEFAULT_HOUR = 18; 
   var plugin = null;
   var openHandler = null;
   var channelMade = false;
@@ -42,21 +41,28 @@
         var v = JSON.parse(raw);
         p.on = v.on === true;
         p.asked = v.asked === true;
-        if (typeof v.hour === "number" && v.hour >= 0 && v.hour <= 23) p.hour = v.hour;
+        if (typeof v.hour === "number" && v.hour >= 0 && v.hour <= 23)
+          p.hour = v.hour;
       }
     } catch (e) {}
     return p;
   }
 
   function save() {
-    try { window.Store.write(PREF_KEY, JSON.stringify(prefs)); } catch (e) {}
+    try {
+      window.Store.write(PREF_KEY, JSON.stringify(prefs));
+    } catch (e) {}
   }
 
   function platform() {
     try {
       var C = window.Capacitor;
-      return C && C.isNativePlatform && C.isNativePlatform() ? C.getPlatform() : "web";
-    } catch (e) { return "web"; }
+      return C && C.isNativePlatform && C.isNativePlatform()
+        ? C.getPlatform()
+        : "web";
+    } catch (e) {
+      return "web";
+    }
   }
 
   function available() {
@@ -81,7 +87,9 @@
       if (r.display === "granted") return "granted";
       if (r.display === "denied") return "denied";
       return "prompt";
-    } catch (e) { return "unavailable"; }
+    } catch (e) {
+      return "unavailable";
+    }
   }
 
   async function ensureChannel() {
@@ -94,7 +102,9 @@
         importance: 3,
       });
       channelMade = true;
-    } catch (e) { console.warn("Reminders: channel failed:", e && e.message); }
+    } catch (e) {
+      console.warn("Reminders: channel failed:", e && e.message);
+    }
   }
 
   /* The notifications to schedule, given the solved-days record. Pure, so it
@@ -110,15 +120,25 @@
     for (var i = 0; i < DAYS_AHEAD; i++) {
       var day = D.shift(today, i);
       if (i === 0 && todayDone) continue;
-      var at = new Date(day.getFullYear(), day.getMonth(), day.getDate(), prefs.hour, 0, 0);
+      var at = new Date(
+        day.getFullYear(),
+        day.getMonth(),
+        day.getDate(),
+        prefs.hour,
+        0,
+        0,
+      );
       if (at <= now) continue;
       /* The streak can only be quoted for the next reminder to fire: by the
          one after, the player may have missed a day in between. Today (if
          unsolved) or tomorrow (if today is solved). */
       var next = todayDone ? i === 1 : i === 0;
-      var body = next && streakNow >= 2
-        ? "Your daily puzzle is ready. Keep your " + streakNow + "-day streak alive! \uD83D\uDD25"
-        : "A new daily puzzle is ready.";
+      var body =
+        next && streakNow >= 2
+          ? "Your daily puzzle is ready. Keep your " +
+            streakNow +
+            "-day streak alive! \uD83D\uDD25"
+          : "A new daily puzzle is ready.";
       out.push({
         id: FIRST_ID + i,
         title: "Daily puzzle",
@@ -141,7 +161,9 @@
     if (!LN) return;
     var ids = [];
     for (var i = 0; i < DAYS_AHEAD; i++) ids.push({ id: FIRST_ID + i });
-    try { await LN.cancel({ notifications: ids }); } catch (e) {}
+    try {
+      await LN.cancel({ notifications: ids });
+    } catch (e) {}
   }
 
   var syncing = Promise.resolve();
@@ -149,20 +171,22 @@
    * calls queue rather than overlap. */
   function sync(done) {
     if (done) lastDone = done;
-    syncing = syncing.then(async function () {
-      var LN = getPlugin();
-      if (!LN) return;
-      await cancelAll();
-      if (!prefs.on || (await permission()) !== "granted") return;
-      await ensureChannel();
-      var list = plan(lastDone);
-      if (!list.length) return;
-      try {
-        await LN.schedule({ notifications: list });
-      } catch (e) {
-        console.warn("Reminders: schedule failed:", e && e.message);
-      }
-    }).catch(function () {});
+    syncing = syncing
+      .then(async function () {
+        var LN = getPlugin();
+        if (!LN) return;
+        await cancelAll();
+        if (!prefs.on || (await permission()) !== "granted") return;
+        await ensureChannel();
+        var list = plan(lastDone);
+        if (!list.length) return;
+        try {
+          await LN.schedule({ notifications: list });
+        } catch (e) {
+          console.warn("Reminders: schedule failed:", e && e.message);
+        }
+      })
+      .catch(function () {});
     return syncing;
   }
 
@@ -178,7 +202,9 @@
       try {
         var r = await LN.requestPermissions();
         p = r.display === "granted" ? "granted" : "denied";
-      } catch (e) { p = "denied"; }
+      } catch (e) {
+        p = "denied";
+      }
     }
     prefs.on = p === "granted";
     save();
@@ -212,7 +238,10 @@
     return p === "prompt" || p === "granted";
   }
 
-  function markOffered() { prefs.asked = true; save(); }
+  function markOffered() {
+    prefs.asked = true;
+    save();
+  }
 
   /* fn(dayKey) runs when the player taps a reminder. Taps that cold-start the
    * app are held by the plugin until this listener is attached. */
@@ -223,14 +252,17 @@
     try {
       LN.addListener("localNotificationActionPerformed", function (e) {
         var extra = e && e.notification && e.notification.extra;
-        if (extra && extra.kind === "daily" && openHandler) openHandler(extra.day);
+        if (extra && extra.kind === "daily" && openHandler)
+          openHandler(extra.day);
       });
     } catch (e) {}
   }
 
   window.Reminders = {
     available: available,
-    state: function () { return { on: prefs.on, asked: prefs.asked, hour: prefs.hour }; },
+    state: function () {
+      return { on: prefs.on, asked: prefs.asked, hour: prefs.hour };
+    },
     permission: permission,
     enable: enable,
     disable: disable,
