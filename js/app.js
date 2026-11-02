@@ -325,6 +325,21 @@
     if (which === 'game') fitBoard();
   }
 
+  /* Scrolling stays in CSS only as a fallback below this floor. */
+  var HOME_MIN_ZOOM = 0.6;
+
+  function fitHome() {
+    var screen = $('screen-home');
+    if (!screen.classList.contains('is-active')) return;
+    var zoom = 1;
+    screen.style.setProperty('--home-zoom', '1');
+    for (var i = 0; i < 4 && zoom > HOME_MIN_ZOOM &&
+         screen.scrollHeight > screen.clientHeight + 1; i++) {
+      zoom = Math.max(HOME_MIN_ZOOM, zoom * screen.clientHeight / screen.scrollHeight - 0.005);
+      screen.style.setProperty('--home-zoom', zoom.toFixed(3));
+    }
+  }
+
   function renderHome() {
     var list = window.Levels.list;
     var done = list.filter(function (lvl) { return progress.levels[lvl.id]; }).length;
@@ -365,6 +380,7 @@
         ? 'This browser will not keep your progress after you close the game — stars will last until you close this tab.'
         : 'This browser is not letting the game store anything, so progress will be lost when you close it. Allowing site data for this page will fix it.';
     }
+    fitHome();
   }
 
   function renderLevels() {
@@ -1842,7 +1858,7 @@
     var refit = null;
     function refitSoon() {
       clearTimeout(refit);
-      refit = setTimeout(function () { fitBoard(); tagShelfRows(); }, 120);
+      refit = setTimeout(function () { fitBoard(); tagShelfRows(); fitHome(); }, 120);
     }
     window.addEventListener('resize', refitSoon);
 
@@ -1865,6 +1881,7 @@
       vv.addEventListener('resize', applyViewport);
       applyViewport();
     }
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitHome);
   }
 
   function renderSettingsToggles() {
@@ -2016,6 +2033,7 @@
     }
     if (adsBtn) adsBtn.disabled = removed;
     renderHomeRemoveAds();
+    fitHome();
     if (!show) return;
     var st = P.status();
     var btn = $('settings-remove-ads');
@@ -2052,7 +2070,7 @@
       btn.hidden = left <= 0;
       btn.textContent = 'Thank you!';
       btn.disabled = true;
-      if (left > 0) setTimeout(renderHomeRemoveAds, left + 20);
+      if (left > 0) setTimeout(function () { renderHomeRemoveAds(); fitHome(); }, left + 20);
       return;
     }
     btn.hidden = false;

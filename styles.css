@@ -1848,6 +1848,8 @@ body.is-android.playing .app {
    the screen leaves the cards in the middle of the scrolled content, nowhere
    near a clipping edge. */
 #screen-home .choices { flex: 0 0 auto; }
+/* Set by fitHome() in app.js so the whole menu fits the screen instead of scrolling. */
+#screen-home > * { zoom: var(--home-zoom, 1); }
 #screen-home .menu-foot {
   flex-wrap: wrap;
   margin-top: auto;
