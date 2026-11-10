@@ -1183,6 +1183,76 @@ the record of who owns it, and the phone asks it.
 - Run `npm test`: `test/purchases.test.js` and `test/reminders.test.js` cover
   both with fake plugins.
 
+## The extras
+
+Five small modules, each its own file, each optional in the strict sense:
+`js/app.js` holds a do-nothing stand-in for every one of them, so a file that
+fails to load costs its feature and never a level. `test/extras.test.js`
+covers all five.
+
+### Picking up an interrupted puzzle
+
+`js/resume.js`. Phones close apps that sit in the background, and a web page
+can be reloaded by a stray swipe; either used to throw away the attempt. The
+board is now saved after every move and put back on the next launch: same
+puzzle, same moves, same hints left, and undo still walks back through all of
+it. What is stored is the level plus the list of pours, and the pours are
+replayed through the engine, which rebuilds the undo history and proves the
+save still fits the level. One refused pour and the save is dropped.
+
+Leaving a puzzle through the menu, or finishing it, clears the save; only an
+interruption keeps it. A save older than 48 hours is ignored. Stored under
+`colourjars.resume.v1`, apart from progress.
+
+### Stats and trophies
+
+`js/stats.js`, opened from **Stats** on the menu. Totals (puzzles solved,
+stars, finished in par, best daily streak), a line per mode, and twelve
+trophies with progress bars. Nothing new is stored: every number is counted
+from the progress record, so it cannot disagree with the level grid, and
+players from before this existed open it to find what they had already
+earned. A win that earns a trophy says so on the win card.
+
+### Sharing a result
+
+`js/share.js`. The win card's **Share** button sends a few lines of text
+through the phone's share sheet (`@capacitor/share`), the Web Share API in a
+browser, or the clipboard where neither exists. The text ends in a link to the
+web game with the puzzle in it, so whoever taps it plays the same board:
+
+```
+?daily=2026-11-10                  that day's Daily Puzzle
+?random=hard&seed=12345            a random Sort Colors board
+?random=hard&seed=12345&merge=1    a random Merge Colors board
+```
+
+A malformed link opens the menu. A first-time visitor answers the privacy
+question first, and the puzzle opens on Continue. The query is removed from
+the address bar once read, so a reload resumes the attempt rather than
+dealing it again.
+
+### Vibration
+
+`js/haptics.js`, app only, through `@capacitor/haptics`: a light tap for
+picking a jar up, a firmer one for a pour, a warning for a refused move and
+the success pattern for a win. **Vibration** in Settings turns it off.
+
+### Asking for a rating
+
+`js/rate.js`, app only, through `@capacitor-community/in-app-review` (the
+system rating sheet, the only way Apple allows). Requested only after a
+three-star win, by someone with at least twelve puzzles solved who first
+opened the game two or more days ago, at most once every ninety days and
+three times in all. The stores ration the sheet themselves and do not say
+whether it appeared.
+
+### Ads when the shared package is missing
+
+`vendor/unity-ads.js` is generated and git-ignored. Served without it,
+`js/ads.js` used to throw on its first line, `window.Ads` never existed, and
+the first finished level threw before its stars were saved or its win card
+shown. It now falls back to an Ads object that does nothing.
+
 ## Fitting the window
 
 While a puzzle is on screen the whole game is sized to the window and nothing

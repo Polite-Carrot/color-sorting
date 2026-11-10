@@ -2,11 +2,36 @@
 /* App-specific Unity configuration and frequency policy. SDK lifecycle,
  * consent signals, ATT and playback live in the shared package. */
 (function () {
-  var client = window.PoliteCarrotAds.createUnityAds({
+  /* The shared package arrives as vendor/unity-ads.js, a file the build
+   * scripts generate and git ignores. Anywhere the page is served without
+   * that step (the repository root on a static host, a checkout opened before
+   * `npm run web:sync`) the script is a 404 and PoliteCarrotAds is undefined.
+   * This file then used to throw on its first line, window.Ads never existed,
+   * and the first finished level threw before its stars were saved or its
+   * win card shown. Ads are optional; the game is not. Without the package,
+   * every call below quietly does nothing. */
+  function noAds() {
+    var state = { platform: 'web', ready: false, personalized: false, attStatus: null,
+      effectivePersonalized: false, prepared: { interstitial: false } };
+    return {
+      state: function () { return state; },
+      init: function () { return Promise.resolve(false); },
+      prepareInterstitial: function () { return Promise.resolve({ loaded: false, reason: 'ads package missing' }); },
+      showInterstitial: function () { return Promise.resolve({ shown: false, reason: 'ads package missing' }); },
+      setPersonalized: function (on) { state.personalized = on === true; return Promise.resolve(); },
+      requestTracking: function () { return Promise.resolve(null); }
+    };
+  }
+  var factory = window.PoliteCarrotAds && window.PoliteCarrotAds.createUnityAds;
+  if (!factory && window.Capacitor && window.Capacitor.isNativePlatform &&
+      window.Capacitor.isNativePlatform()) {
+    console.warn('Ads: vendor/unity-ads.js did not load, so this build shows no ads. Run `npm run sync`.');
+  }
+  var client = factory ? factory({
     ios: { gameId: "800379629", interstitial: "BP_Interstitial_iOS" },
     android: { gameId: "800384183", interstitial: "BP_Interstitial_Android" },
     testMode: false,
-  });
+  }) : noAds();
   var MIN_MILLIS = 2 * 60 * 1000;
   var MIN_LEVELS = 3;
   var lastShownAt = Date.now();

@@ -106,3 +106,16 @@ test('Remove Ads stops Unity starting, loading and showing, and a refund brings 
   for (let i = 0; i < 3; i++) f.ads.noteLevelComplete();
   assert.equal(await f.ads.maybeShowInterstitial(), true);
 });
+test('the game still gets a working Ads object when the shared package failed to load', async () => {
+  const context = vm.createContext({ Date, setTimeout, clearTimeout, console: { warn() {} } });
+  context.window = context;
+  vm.runInContext(fs.readFileSync('js/ads.js', 'utf8'), context);
+  const ads = context.Ads;
+  assert.equal(ads.isNative(), false);
+  ads.noteLevelComplete();
+  assert.equal(await ads.maybeShowInterstitial(), false);
+  assert.equal(await ads.init(), false);
+  assert.equal(await ads.warm(), false);
+  await ads.setPersonalized(true);
+  assert.equal(ads.adsPersonalisedGranted(), false);
+});

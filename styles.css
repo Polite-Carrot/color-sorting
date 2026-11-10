@@ -1429,6 +1429,120 @@ body.cb-assist .band span { visibility: visible; }
 .stars span.win:nth-child(3) { animation-delay: .26s; }
 @keyframes star-pop { from { opacity: 0; transform: scale(0) rotate(-50deg); } }
 
+/* The win card's trophy line. Only present when this win earned one. */
+.win-trophy {
+  margin: 14px 0 0;
+  padding: 9px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--gold);
+  color: var(--ink);
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 1.25;
+  animation: star-pop .5s cubic-bezier(.2, .9, .3, 1.5) .35s both;
+}
+.win-trophy[hidden] { display: none; }
+.win-trophy small { display: block; font: 600 13px/1.3 inherit; font-family: inherit; opacity: .8; }
+
+/* ───────── stats and trophies ───────── */
+
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.stat-tile {
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: var(--paper-warm);
+  padding: 10px 12px 9px;
+  text-align: center;
+}
+.stat-tile b {
+  display: block;
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1.05;
+  color: var(--ink);
+}
+.stat-tile span { font-size: 13px; color: var(--ink-soft); }
+
+.stat-rows { list-style: none; margin: 12px 0 0; padding: 0; }
+.stat-rows li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 2px;
+  border-bottom: 2px dashed var(--ink-faint);
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+.stat-rows li:last-child { border-bottom: 0; }
+.stat-rows b { color: var(--ink); font-weight: 800; white-space: nowrap; }
+
+.stat-heading {
+  margin: 18px 0 0;
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--ink);
+}
+.stat-heading span { font-size: 14px; color: var(--ink-soft); margin-left: 6px; }
+
+.trophies { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.trophy {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 9px 12px;
+  border: 2px solid var(--ink-faint);
+  border-radius: 12px;
+  background: var(--paper);
+}
+.trophy.is-earned { border-color: var(--ink); background: var(--paper-warm); }
+.trophy__medal {
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  border: 2px solid var(--ink-faint);
+  background: rgba(43, 33, 66, .06);
+  color: rgba(43, 33, 66, .22);
+  font-size: 20px;
+  line-height: 1;
+}
+.trophy.is-earned .trophy__medal {
+  border-color: var(--ink);
+  background: var(--gold);
+  color: var(--ink);
+  box-shadow: 0 3px 0 var(--ink);
+}
+.trophy__name {
+  display: block;
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.trophy:not(.is-earned) .trophy__name { color: var(--ink-soft); }
+.trophy__blurb { display: block; font-size: 13px; color: var(--ink-soft); }
+.trophy__count { font-size: 13px; font-weight: 800; color: var(--ink-soft); white-space: nowrap; }
+.trophy.is-earned .trophy__count { color: var(--grass); }
+.trophy__bar {
+  grid-column: 2 / -1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--ink-faint);
+  overflow: hidden;
+}
+.trophy__bar i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+.trophy.is-earned .trophy__bar { display: none; }
+
 .rules { margin: 16px 0 0; padding-left: 22px; color: var(--ink-soft); font-size: 15px; }
 .rules li { margin-bottom: 10px; }
 .rules b { color: var(--ink); }

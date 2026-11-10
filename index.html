@@ -76,6 +76,7 @@
     <footer class="menu-foot">
       <button id="how-to" class="btn btn--ghost">How to play</button>
       <button id="settings" class="btn btn--ghost">Settings</button>
+      <button id="stats" class="btn btn--ghost" type="button">Stats</button>
       <!-- App only, and gone once bought. Price comes from the store. -->
       <button id="home-remove-ads" class="btn btn--primary" type="button" hidden>Remove ads</button>
     </footer>
@@ -220,9 +221,12 @@
       <h2 id="win-title">Jar filled</h2>
       <div class="stars" id="win-stars" aria-hidden="true"></div>
       <p class="modal__line" id="win-line"></p>
+      <!-- Filled in only when this win earned a trophy. -->
+      <p class="win-trophy" id="win-trophy" hidden></p>
       <div class="modal__actions">
         <button id="win-next" class="btn btn--primary">Next</button>
         <button id="win-retry" class="btn">Try again</button>
+        <button id="win-share" class="btn" type="button">Share</button>
         <button id="win-menu" class="btn btn--ghost">Menu</button>
       </div>
     </div>
@@ -312,6 +316,20 @@
     </div>
   </div>
 
+  <!-- ─────────────── stats and trophies ─────────────── -->
+  <div id="stats-modal" class="overlay" hidden>
+    <div class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="stats-title">
+      <h2 id="stats-title">Your stats</h2>
+      <div class="stat-tiles" id="stat-tiles"></div>
+      <ul class="stat-rows" id="stat-rows"></ul>
+      <h3 class="stat-heading">Trophies <span id="trophy-count"></span></h3>
+      <ul class="trophies" id="trophies"></ul>
+      <div class="modal__actions">
+        <button id="stats-close" class="btn btn--primary" type="button">Done</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ─────────────── settings ─────────────── -->
   <div id="settings-modal" class="overlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
@@ -324,6 +342,11 @@
         <div class="settings-row">
           <span>Color Blind Assist</span>
           <button id="settings-cb" class="btn" type="button" aria-pressed="false">Off</button>
+        </div>
+        <!-- App only: a browser has no vibration motor to speak of. -->
+        <div id="settings-haptics-row" class="settings-row" hidden>
+          <span>Vibration</span>
+          <button id="settings-haptics" class="btn" type="button" aria-pressed="true">On</button>
         </div>
         <!-- Reminders and purchases exist only in the app; hidden on the web. -->
         <div id="settings-reminder-row" class="settings-row" hidden>
@@ -444,6 +467,11 @@
 <script src="js/ui.js"></script>
 <script src="js/track.js"></script>
 <script src="vendor/unity-ads.js"></script>
+<script src="js/haptics.js"></script>
+<script src="js/resume.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/share.js"></script>
+<script src="js/rate.js"></script>
 <script src="js/purchases.js"></script>
 <script src="js/reminders.js"></script>
 <script src="js/ads.js"></script>

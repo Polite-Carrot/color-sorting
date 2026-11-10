@@ -9,8 +9,11 @@ android {
 
 apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
 dependencies {
+    implementation project(':capacitor-community-in-app-review')
     implementation project(':capacitor-firebase-analytics')
+    implementation project(':capacitor-haptics')
     implementation project(':capacitor-local-notifications')
+    implementation project(':capacitor-share')
     implementation project(':capgo-native-purchases')
     implementation project(':politecarrot-capacitor-unity-ads')
 

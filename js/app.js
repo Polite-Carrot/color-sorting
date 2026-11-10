@@ -6,6 +6,30 @@
   var UI = window.UI;
   var Sound = UI.Sound;
   var MAIN = window.Engine.MAIN;
+
+  /* The extras: vibration, the saved attempt, stats, sharing, the rating
+     prompt. Each is its own file, and each is optional in the strict sense:
+     if one fails to load, the stand-in below does nothing and the game plays
+     on without it. The board calls into these on every pour and every win,
+     so a missing file must never be able to take a level down with it. */
+  var Haptics = window.Haptics || {
+    available: function () { return false; }, setEnabled: function () {},
+    pick: function () {}, pour: function () {}, nope: function () {}, win: function () {}
+  };
+  var Resume = window.Resume || {
+    save: function () {}, load: function () { return null; }, clear: function () {}
+  };
+  var Stats = window.Stats || {
+    compute: function () {
+      return { solved: 0, stars: 0, perfect: 0, sortDone: 0, sortTotal: 0, mergeDone: 0, mergeTotal: 0,
+        dailyDone: 0, streak: 0, bestStreak: 0, randomWon: 0, trophies: [], trophiesEarned: 0 };
+    },
+    newlyEarned: function () { return []; }
+  };
+  var Share = window.Share || {
+    text: function () { return ''; }, parseLink: function () { return null; },
+    send: function () { return Promise.resolve('failed'); }
+  };
   var STORE_KEY = 'colourjars.progress.v3';
   /* Kept apart from progress on purpose. It is a preference, not something
      earned, and writing it must never put anything near the record of stars. */
@@ -98,7 +122,17 @@
     listMode: 'campaign',
     /* The month the calendar is looking at, and the day being played. */
     calMonth: null,
-    dailyKey: null
+    dailyKey: null,
+    /* Every pour of the current attempt, in order, as [fromId, toId]. The
+       engine keeps positions for undo but not the moves that made them; this
+       is what js/resume.js stores so an interrupted puzzle can be replayed
+       back to where it stood. */
+    log: [],
+    /* True from the moment a saved puzzle is put back until the player makes
+       a move in it. */
+    resumedIdle: false,
+    /* Trophies the win just recorded earned, for the win card to announce. */
+    newTrophies: []
   };
 
   /* Both modes are played on the same board and answered by the same code;
@@ -260,7 +294,7 @@
      the game reads as its colours, on when someone asks for it. */
     /* Analytics is undecided only until the first-run question is answered.
       Personalised ads is always a local intent, defaulting to off. */
-    var prefs = { sound: true, cbAssist: false, randomMerge: false, analytics: null, personalizedAds: false };
+    var prefs = { sound: true, haptics: true, cbAssist: false, randomMerge: false, analytics: null, personalizedAds: false };
 
   function loadPrefs() {
     try {
@@ -268,6 +302,7 @@
       if (raw) {
         var p = JSON.parse(raw);
         if (typeof p.sound === 'boolean') prefs.sound = p.sound;
+        if (typeof p.haptics === 'boolean') prefs.haptics = p.haptics;
         if (typeof p.cbAssist === 'boolean') prefs.cbAssist = p.cbAssist;
         if (typeof p.randomMerge === 'boolean') prefs.randomMerge = p.randomMerge;
         if (typeof p.analytics === 'boolean') prefs.analytics = p.analytics;
@@ -283,6 +318,7 @@
   function applyPrefs() {
     Sound.on = prefs.sound;
     if (!prefs.sound) Sound.hush();
+    Haptics.setEnabled(prefs.haptics);
     document.body.classList.toggle('cb-assist', prefs.cbAssist);
     state.randomMerge = prefs.randomMerge;
   }
@@ -317,6 +353,9 @@
       $('screen-' + name).classList.toggle('is-active', name === which);
     });
     document.body.classList.toggle('playing', which === 'game');
+    /* Leaving the board by choice abandons the attempt, so there is nothing
+       to put back next launch. Only an interruption keeps it. */
+    if (which !== 'game') { Resume.clear(); state.resumedIdle = false; }
     window.scrollTo(0, 0);
     if (which === 'home') renderHome();
     if (which === 'levels') renderLevels();
@@ -608,15 +647,17 @@
 
   /* ───────── starting a level ───────── */
 
-  function startLevel(level, mode) {
+  function startLevel(level, mode, resumed) {
     closeStuck();
-    track('level_start', {
+    track(resumed ? 'level_resume' : 'level_start', {
       mode: mode,
       level: level.id,
       par: level.par,
       jars: level.jars.length
     });
     state.game = new window.Engine.Game(level);
+    state.log = [];
+    state.resumedIdle = false;
     state.hintsLeft = hintAllowance(state.game.par);
     state.followed = level.path && level.path.length ? level.path : null;
     state.onPath = state.followed ? 0 : -1;
@@ -628,6 +669,101 @@
     buildBoard();
     showScreen('game');
     setStatus('', '');
+    if (!resumed) persistAttempt();
+  }
+
+  /* ───────── the attempt in progress (js/resume.js) ───────── */
+
+  function persistAttempt() {
+    var g = state.game;
+    if (!g || g.won) return;
+    Resume.save({
+      level: g.level,
+      mode: state.mode,
+      dailyKey: state.mode === 'daily' ? state.dailyKey : null,
+      log: state.log,
+      hintsUsed: g.hintsUsed,
+      hintsLeft: state.hintsLeft
+    });
+  }
+
+  /* Put back the puzzle that was on the board when the game was last closed.
+     The pours are replayed through the engine, which rebuilds the undo
+     history and proves the save still fits the level; one refused pour and
+     the whole save is dropped. Returns true if a puzzle was restored. */
+  function restoreAttempt() {
+    var saved = Resume.load();
+    if (!saved) return false;
+    try {
+      var level = saved.level;
+      if (saved.mode === 'random') {
+        /* The record a random win is filed under comes from these two. */
+        var merge = level.mode === 'merge';
+        var table = (merge ? window.MergeGenerator : window.Generator).DIFFICULTY;
+        if (!table[level.difficulty]) throw new Error('unknown setting');
+        state.randomMerge = merge;
+        state.difficulty = level.difficulty;
+      } else if (saved.mode === 'daily') {
+        if (!saved.dailyKey) throw new Error('no day');
+        state.dailyKey = saved.dailyKey;
+      } else {
+        /* The campaign's own copy, so a level corrected in an update is
+           played as it now is; the replay below proves the moves still fit. */
+        var at = listFor(saved.mode).indexOf(level.id);
+        if (at < 0) throw new Error('level is gone');
+        level = listFor(saved.mode).list[at];
+      }
+
+      startLevel(level, saved.mode, true);
+      var g = state.game;
+      for (var i = 0; i < saved.log.length; i++) {
+        var r = g.pour(saved.log[i][0], saved.log[i][1]);
+        if (!r.ok || g.won) throw new Error('save does not fit the level');
+      }
+      state.log = saved.log.slice();
+      g.hintsUsed = Math.max(0, saved.hintsUsed | 0);
+      state.hintsLeft = Math.max(0, Math.min(hintAllowance(g.par), saved.hintsLeft | 0));
+      if (state.log.length) { state.followed = null; state.onPath = -1; }
+      state.resumedIdle = true;
+      refresh();
+      setStatus(state.log.length ? 'Picked up where you left off.' : '', '');
+      return true;
+    } catch (e) {
+      Resume.clear();
+      state.game = null;
+      showScreen('home');
+      return false;
+    }
+  }
+
+  /* ───────── a puzzle somebody shared (js/share.js) ───────── */
+
+  /* link: what Share.parseLink made of the page address. Opens that exact
+     puzzle, or the screen it belongs to if it cannot be played (a daily that
+     has not arrived yet, a setting this version does not have). */
+  function openSharedLink(link) {
+    if (!link) return false;
+    if (link.kind === 'daily') {
+      var D = window.Daily;
+      var date = D.fromKey(link.key);
+      if (isNaN(date.getTime()) || D.key(date) !== link.key) return false;
+      track('shared_link_open', { kind: 'daily', day: link.key });
+      if (D.playable(date)) startDaily(date);
+      else showScreen('daily');
+      return true;
+    }
+    if (link.kind === 'random') {
+      var gen = link.merge ? window.MergeGenerator : window.Generator;
+      if (RANDOM_KEYS.indexOf(link.difficulty) < 0 || !gen.DIFFICULTY[link.difficulty]) return false;
+      track('shared_link_open', { kind: 'random', setting: link.difficulty, game: link.merge ? 'merge' : 'classic' });
+      showScreen('random');
+      setRandomMode(link.merge);
+      setDifficulty(link.difficulty);
+      $('seed-input').value = String(link.seed);
+      startRandom();
+      return true;
+    }
+    return false;
   }
 
   function startRandom() {
@@ -670,6 +806,10 @@
                          (SHOW_JAR_PICKER ? ' · ' + state.jars + ' jars' : '') +
                          ' · seed ' + lvl.seed;
         }
+        /* A shared link can only promise the same board when the width is
+           the setting's own, which is all a link carries. */
+        var preset = randomGen().DIFFICULTY[state.difficulty];
+        lvl.linkable = state.jars === (preset.defaultJars || preset.sideJars);
         track('random_deal', {
           game: state.randomMerge ? 'merge' : 'classic',
           setting: state.difficulty,
@@ -1069,6 +1209,7 @@
 
     if (state.selected === id) {          /* put it back down */
       state.selected = null;
+      Haptics.pick();
       refresh();
       return;
     }
@@ -1083,11 +1224,13 @@
         setStatus('That jar is empty.', 'warn');
         viewFor(id).flash('is-blocked');
         Sound.nope();
+        Haptics.nope();
         return;
       }
       state.selected = id;
       clearHintMarks();
       Sound.pick();
+      Haptics.pick();
       setStatus('Now tap where it should go.', '');
       refresh();
       return;
@@ -1100,6 +1243,7 @@
       if (id !== MAIN && candidate && candidate.cells.length) {
         state.selected = id;
         Sound.pick();
+        Haptics.pick();
         setStatus('Now tap where it should go.', '');
         refresh();
         return;
@@ -1115,6 +1259,7 @@
 
     if (!result.ok) {
       Sound.nope();
+      Haptics.nope();
       viewFor(toId).flash('is-blocked');
       setStatus(
         result.reason === 'full' ? 'That jar is full.' :
@@ -1127,9 +1272,12 @@
     }
 
     trackPath(g, fromId, toId);
+    state.log.push([fromId, toId]);
+    state.resumedIdle = false;
 
     var dest = g.get(toId);
     Sound.pour(dest.cells.length / dest.capacity);
+    if (g.won) Haptics.win(); else Haptics.pour();
 
     var fromView = viewFor(fromId), toView = viewFor(toId);
     var dir = toView.centreX() >= fromView.centreX() ? 1 : -1;
@@ -1151,6 +1299,7 @@
       Sound.win();
       setTimeout(showWinCard, 420);
     } else {
+      persistAttempt();
       watchForDeadEnd();
     }
   }
@@ -1176,10 +1325,14 @@
       state.onPath = 0;
     } else state.onPath = -1;
     state.selected = null;
+    state.log.pop();
+    state.resumedIdle = false;
     clearHintMarks();
     Sound.pick();
+    Haptics.pick();
     setStatus('Undone.', '');
     refresh();
+    persistAttempt();
     return true;
   }
 
@@ -1193,10 +1346,13 @@
     state.followed = state.game.level.path || null;
     state.onPath = state.followed ? 0 : -1;
     state.selected = null;
+    state.log = [];
+    state.resumedIdle = false;
     clearTimeout(state.hintTimer);
     clearHintMarks();
     setStatus('Back to the start.', '');
     refresh();
+    persistAttempt();
   }
 
   /* Say so early when a position can no longer be finished, rather than
@@ -1324,6 +1480,9 @@
     });
     /* Same reasoning: the ad cadence counts real wins, not just cards seen. */
     Ads.noteLevelComplete();
+    /* Finished, so there is no attempt left to put back. */
+    Resume.clear();
+    var before = statsNow();
     var g = state.game;
     var stars = g.stars();
     var lvl = g.level;
@@ -1351,7 +1510,16 @@
       progress.random[slot] = rec;
     }
     save();
+    state.newTrophies = Stats.newlyEarned(before, statsNow());
+    state.newTrophies.forEach(function (t) { track('trophy_earned', { trophy: t.id }); });
     renderHome();
+  }
+
+  function statsNow() {
+    return Stats.compute(progress, {
+      sortTotal: window.Levels.list.length,
+      mergeTotal: window.MergeLevels.list.length
+    }, window.Daily);
   }
 
   function showWinCard() {
@@ -1400,8 +1568,47 @@
       };
     }
 
+    var trophy = $('win-trophy');
+    var earned = state.newTrophies;
+    state.newTrophies = [];
+    trophy.hidden = !earned.length;
+    if (earned.length) {
+      trophy.textContent = '\uD83C\uDFC6 ' + (earned.length === 1
+        ? 'Trophy earned: ' + earned[0].name
+        : earned.length + ' trophies earned: ' + earned.map(function (t) { return t.name; }).join(', '));
+      UI.el('small', null, trophy).textContent = earned.length === 1 ? earned[0].blurb : 'See them all under Stats on the menu.';
+    }
+
+    var share = $('win-share');
+    var result = shareResult(g);
+    share.textContent = 'Share';
+    share.disabled = false;
+    share.onclick = async function () {
+      share.disabled = true;
+      var how = await Share.send(Share.text(result));
+      track('share', { mode: result.mode, result: how });
+      share.disabled = false;
+      if (how === 'copied' || how === 'failed') {
+        share.textContent = how === 'copied' ? 'Copied!' : 'Could not share';
+        setTimeout(function () { share.textContent = 'Share'; }, 2200);
+      }
+    };
+
     $('overlay').hidden = false;
     next.focus();
+
+    /* A three-star finish is the moment to ask for a rating, if one is due
+       (js/rate.js decides). Held a beat so the card is read first, and
+       dropped if the player has already moved on. */
+    if (window.Rate && stars === 3) {
+      var solved = statsNow().solved;
+      setTimeout(function () {
+        if ($('overlay').hidden || state.game !== g) return;
+        window.Rate.noteWin({ stars: stars, solved: solved }).then(function (asked) {
+          if (asked) track('rate_prompt', { solved: solved });
+        }).catch(function () {});
+      }, 1400);
+    }
 
     if (stars > 0) {
       var palette = [C.hex(g.target), '#ffc93c', '#ff5d8f'];
@@ -1415,7 +1622,87 @@
     }
   }
 
+  /* What the Share button says about the win on the card (js/share.js turns
+     it into text). Read now, while the game that was won is still the one in
+     state. */
+  function shareResult(g) {
+    var lvl = g.level;
+    var r = { mode: state.mode, stars: g.stars(), moves: g.moves, par: g.par };
+    if (state.mode === 'daily') {
+      var D = window.Daily;
+      r.dailyKey = state.dailyKey;
+      r.dateTitle = D.title(D.fromKey(state.dailyKey));
+      r.streak = D.streak(progress.daily);
+    } else if (state.mode === 'random') {
+      var cfg = randomGen().DIFFICULTY[state.difficulty] || {};
+      r.label = cfg.label || 'Random';
+      r.difficulty = state.difficulty;
+      r.seed = lvl.seed;
+      r.merge = !!g.merging;
+      r.linkable = lvl.linkable === true && typeof lvl.seed === 'number';
+    } else {
+      var book = listFor(state.mode);
+      r.levelNumber = book.indexOf(lvl.id) + 1;
+      r.total = book.list.length;
+    }
+    return r;
+  }
+
   function closeOverlay() { $('overlay').hidden = true; }
+
+  /* ───────── stats and trophies (js/stats.js) ───────── */
+
+  function renderStats() {
+    var s = statsNow();
+    var tiles = $('stat-tiles');
+    tiles.innerHTML = '';
+    [[s.solved, 'puzzles solved'], [s.stars, 'stars earned'],
+     [s.perfect, 'finished in par'], [s.bestStreak, 'best daily streak']
+    ].forEach(function (t) {
+      var tile = UI.el('div', 'stat-tile', tiles);
+      UI.el('b', null, tile).textContent = t[0];
+      UI.el('span', null, tile).textContent = t[1];
+    });
+
+    var rows = $('stat-rows');
+    rows.innerHTML = '';
+    [['Sort Colors', s.sortDone + ' of ' + s.sortTotal + ' levels'],
+     ['Merge Colors', s.mergeDone + ' of ' + s.mergeTotal + ' levels'],
+     ['Daily Puzzle', s.dailyDone + (s.dailyDone === 1 ? ' day' : ' days') +
+        (s.streak > 1 ? ' \u00b7 ' + s.streak + '-day streak now' : '')],
+     ['Random puzzles', s.randomWon + ' solved']
+    ].forEach(function (r) {
+      var li = UI.el('li', null, rows);
+      UI.el('span', null, li).textContent = r[0];
+      UI.el('b', null, li).textContent = r[1];
+    });
+
+    $('trophy-count').textContent = s.trophiesEarned + ' of ' + s.trophies.length;
+    var list = $('trophies');
+    list.innerHTML = '';
+    /* Earned first, then the nearest to being earned: the next thing to aim
+       for is at the top of what is left. */
+    s.trophies.slice().sort(function (a, b) {
+      if (a.earned !== b.earned) return a.earned ? -1 : 1;
+      return a.earned ? 0 : (b.have / b.need) - (a.have / a.need);
+    }).forEach(function (t) {
+      var li = UI.el('li', 'trophy' + (t.earned ? ' is-earned' : ''), list);
+      UI.el('span', 'trophy__medal', li).textContent = '\u2605';
+      li.firstChild.setAttribute('aria-hidden', 'true');
+      var body = UI.el('span', null, li);
+      UI.el('span', 'trophy__name', body).textContent = t.name;
+      UI.el('span', 'trophy__blurb', body).textContent = t.blurb;
+      UI.el('span', 'trophy__count', li).textContent = t.earned ? 'Earned' : t.have + ' / ' + t.need;
+      var bar = UI.el('span', 'trophy__bar', li);
+      UI.el('i', null, bar).style.width = Math.round(100 * t.have / t.need) + '%';
+    });
+  }
+
+  function openStats() {
+    renderStats();
+    track('stats_open', {});
+    openModal('stats-modal', 'stats-close');
+  }
 
   /* Show a dialog and put the keyboard in it.
 
@@ -1480,6 +1767,7 @@
 
     g.hintsUsed++;
     state.hintsLeft--;
+    persistAttempt();
     track('hint_used', {
       mode: state.mode,
       level: g.level.id,
@@ -1603,6 +1891,7 @@
       applyConsent();
       $('privacy').hidden = true;
       primeConsent();
+      if (pendingLink) { openSharedLink(pendingLink); pendingLink = null; }
     });
 
     function bindPrivacyDataToggle(id) {
@@ -1693,8 +1982,10 @@
       state.followed = state.game.level.path || null;
       state.onPath = state.followed ? 0 : -1;
       state.selected = null;
+      state.log = [];
       refresh();
       setStatus('', '');
+      persistAttempt();
     });
     $('win-menu').addEventListener('click', function () { closeOverlay(); showScreen(state.from); });
 
@@ -1737,6 +2028,19 @@
       else Sound.hush();
       savePrefs();
       renderSettingsToggles();
+    });
+    $('settings-haptics').addEventListener('click', function () {
+      prefs.haptics = !prefs.haptics;
+      Haptics.setEnabled(prefs.haptics);
+      /* Turning it on answers with the thing it turns on. */
+      Haptics.pick();
+      savePrefs();
+      renderSettingsToggles();
+    });
+    $('stats').addEventListener('click', openStats);
+    $('stats-close').addEventListener('click', function () {
+      $('stats-modal').hidden = true;
+      $('stats').focus();
     });
     $('settings-cb').addEventListener('click', function () {
       prefs.cbAssist = !prefs.cbAssist;
@@ -1882,7 +2186,23 @@
       applyViewport();
     }
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitHome);
+
+    /* Last, once everything a puzzle needs is wired: open the puzzle a shared
+       link names, or failing that put back the one that was interrupted. A
+       first-time visitor answers the privacy question first; their link
+       waits for Continue. */
+    var link = null;
+    try { link = Share.parseLink(window.location.search); } catch (e) {}
+    if (link) {
+      /* Out of the address bar, so a reload resumes the attempt instead of
+         dealing the puzzle again from the start. */
+      try { window.history.replaceState(null, '', window.location.pathname); } catch (e) {}
+    }
+    if (prefs.analytics === null) pendingLink = link;
+    else if (!(link && openSharedLink(link))) restoreAttempt();
   }
+
+  var pendingLink = null;
 
   function renderSettingsToggles() {
     var s = document.getElementById('settings-sound');
@@ -1894,6 +2214,11 @@
     if (c) {
       c.textContent = prefs.cbAssist ? 'On' : 'Off';
       c.setAttribute('aria-pressed', prefs.cbAssist ? 'true' : 'false');
+    }
+    var hRow = document.getElementById('settings-haptics-row');
+    if (hRow) {
+      hRow.hidden = !Haptics.available();
+      setToggleBtn(document.getElementById('settings-haptics'), prefs.haptics);
     }
 
     setToggleBtn(document.getElementById('privacy-data-analytics'), prefs.analytics === true);
@@ -2149,9 +2474,16 @@
       /* A tapped reminder opens the daily calendar, unless a puzzle is in
          progress: that is left alone rather than thrown away. */
       window.Reminders.onOpen(function () {
-        if ($('screen-game').classList.contains('is-active')) return;
+        var playing = $('screen-game').classList.contains('is-active');
+        /* A puzzle that was only put back by the launch, and not touched
+           since, is not "in progress" in the sense that matters: the player
+           tapped the reminder, so take them to the daily. The saved puzzle
+           is kept for next time rather than cleared by leaving the board. */
+        if (playing && !state.resumedIdle) return;
+        var keep = playing ? Resume.load() : null;
         closeReminderOffer();
         showScreen('daily');
+        if (keep) Resume.save(keep);
       });
       window.Reminders.sync(progress.daily);
       document.addEventListener('visibilitychange', function () {
@@ -2210,6 +2542,10 @@
     }
     if (!$('reminder-offer').hidden) {
       if (e.key === 'Escape') closeReminderOffer();
+      return;
+    }
+    if (!$('stats-modal').hidden) {
+      if (e.key === 'Escape') { $('stats-modal').hidden = true; $('stats').focus(); }
       return;
     }
     if (!$('reset-modal').hidden) {
